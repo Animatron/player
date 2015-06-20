@@ -33,6 +33,7 @@ var C = anm.constants,
     Audio = anm.Audio,
     Video = anm.Video,
     is = anm.utils.is,
+    roundTo = anm.utils.roundTo,
     $log = anm.log;
     //test = anm._valcheck
 
@@ -67,7 +68,6 @@ Import._type = function(src) {
  */
 // -> Animation
 Import.project = function(prj) {
-    //if (window && console && window.__anm_conf && window.__anm_conf.logImport) $log.debug(prj);
     if (anm.conf.logImport) $log.debug(prj);
     cur_import_id = anm.utils.guid();
     anm.lastImportedProject = prj;
@@ -93,18 +93,16 @@ Import.project = function(prj) {
     var node_res;
     var traverseFunc = function(elm) {
         var e_gband_before = elm.gband;
-        elm.gband = [ last_scene_band[1] + e_gband_before[0],
-        last_scene_band[1] + e_gband_before[1] ];
+        elm.gband = [
+            last_scene_band[1] + e_gband_before[0],
+            last_scene_band[1] + e_gband_before[1]
+        ];
     };
 
     for (var i = 0, il = scenes_ids.length; i < il; i++) {
         var node_src = Import._find(scenes_ids[i], elems);
         if (Import._type(node_src) != TYPE_SCENE) _reportError('Given Scene ID ' + scenes_ids[i] + ' points to something else');
         node_res = Import.node(node_src, elems, null, root);
-        //ignore empty scenes - if the band start/stop equals, the scene is of duration = 0
-        if (node_res.gband[0] == node_res.gband[1]) {
-            continue;
-        }
 
         if (i > 0) { // start from second scene, if there is one
             // FIXME: smells like a hack
@@ -164,14 +162,14 @@ Import.fonts = function(prj) {
  */
 // -> Object
 Import.anim = function(prj, trg) {
-    var _a = prj.anim;
-    trg.fps = _a.framerate;
-    trg.width = _a.dimension ? Math.floor(_a.dimension[0]) : undefined;
-    trg.height = _a.dimension ? Math.floor(_a.dimension[1]): undefined;
-    trg.bgfill = _a.background ? Import.fill(_a.background) : undefined;
-    trg.zoom = _a.zoom || 1.0;
-    trg.speed = _a.speed || 1.0;
-    if (_a.loop && ((_a.loop === true) || (_a.loop === 'true'))) trg.repeat = true;
+    var a = prj.anim;
+    trg.fps = a.framerate;
+    trg.width = a.dimension ? Math.floor(a.dimension[0]) : undefined;
+    trg.height = a.dimension ? Math.floor(a.dimension[1]): undefined;
+    trg.bgfill = a.background ? Import.fill(a.background) : undefined;
+    trg.zoom = a.zoom || 1.0;
+    trg.speed = a.speed || 1.0;
+    if (a.loop && ((a.loop === true) || (a.loop === 'true'))) trg.repeat = true;
 };
 
 var TYPE_UNKNOWN =  0,
@@ -272,6 +270,7 @@ Import.branch = function(type, src, all, anim) {
         // if there is a branch under the node, it will be a wrapper
         // if it is a leaf, it will be the element itself
         var ltrg = Import.node(nsrc, all, trg, anim);
+        if (!ltrg) continue;
         if (!ltrg.name) { ltrg.name = lsrc[1]; }
 
         // apply bands, pivot and registration point
@@ -290,7 +289,7 @@ Import.branch = function(type, src, all, anim) {
                  ti < tl; ti++) {
                 var t = Import.tween(tweens[ti]);
                 if (!t) continue;
-                if (t.tween == C.T_TRANSLATE) {
+                if (t.tween_type === C.T_TRANSLATE) {
                     if (!translates) translates = [];
                     translates.push(t);
                 }
@@ -299,7 +298,7 @@ Import.branch = function(type, src, all, anim) {
             if (translates && (flags & L_ROT_TO_PATH)) {
                 var rtp_tween;
                 for (ti = 0, til = translates.length; ti < til; ti++) {
-                    rtp_tween = new Tween(C.T_ROT_TO_PATH);
+                    rtp_tween = Tween[C.T_ROT_TO_PATH]();
                     if (translates[ti].$band) rtp_tween.band(translates[ti].$band);
                     if (translates[ti].$easing) rtp_tween.easing(translates[ti].$easing);
                     ltrg.tween(rtp_tween);
@@ -359,14 +358,6 @@ Import.branch = function(type, src, all, anim) {
         }
 
         Import.callCustom(ltrg, lsrc, TYPE_LAYER);
-
-        // TODO temporary implementation, use custom renderer for that!
-        if (ltrg.$audio && ltrg.$audio.master) {
-            ltrg.lband = [ltrg.lband[0], Infinity];
-            ltrg.gband = [ltrg.gband[0], Infinity];
-            trg.remove(ltrg);
-            anim.add(ltrg);
-        }
     }
 
     return trg;
@@ -374,19 +365,26 @@ Import.branch = function(type, src, all, anim) {
 
 /** leaf **/
 // -> Element
-Import.leaf = function(type, src, parent/*, anim*/) {
+Import.leaf = function(type, src, parent, anim) {
     var trg = new Element();
-         if (type == TYPE_IMAGE) { trg.$image = Import.sheet(src); }
+    var hasUrl = !!src[1];
+    if (!hasUrl &&
+        (type === TYPE_IMAGE || type === TYPE_AUDIO || type === TYPE_VIDEO)) {
+        return null;
+    }
+    if (type == TYPE_IMAGE) {
+        trg.$image = Import.sheet(src);
+    }
     else if (type == TYPE_TEXT)  { trg.$text  = Import.text(src);  }
     else if (type == TYPE_AUDIO) {
         trg.type = C.ET_AUDIO;
         trg.$audio = Import.audio(src);
-        trg.$audio.connect(trg);
+        trg.$audio.connect(trg, anim);
     }
     else if (type == TYPE_VIDEO) {
         trg.type = C.ET_VIDEO;
         trg.$video = Import.video(src);
-        trg.$video.connect(trg);
+        trg.$video.connect(trg, anim);
     }
     else { trg.$path  = Import.path(src);  }
     if (trg.$path || trg.$text) {
@@ -448,18 +446,18 @@ Import._pathDecode = function(src) {
 
     var val = Import._path_cache.get(encoded);
     if (val) {
-        return [].concat(val.segs);
+        return val;
     } else {
         val = Import._decodeBinaryPath(encoded);
         if (!val) return null;
         Import._path_cache.put(encoded, val);
     }
 
-    return val.segs;
+    return val;
 };
 
 Import._decodeBinaryPath = function(encoded) {
-    var path = new Path();
+    var path = '';
     if (encoded) {
         encoded = encoded.replace(/\s/g, ''); // TODO: avoid this by not formatting base64 while exporting
         try {
@@ -467,36 +465,32 @@ Import._decodeBinaryPath = function(encoded) {
             var s = new BitStream(decoded);
             var base = [0, 0];
             if (s) {
-                var _do = true;
-                while (_do) {
+                var hasBits = true;
+                while (hasBits) {
                     var type = s.readBits(2), p;
                     switch (type) {
                         case 0:
-                            p = Import._pathReadPoint(s, [], base);
+                            p = Import._pathReadPoint(s, base);
                             base = p;
-
-                            path.add(new MSeg(p));
+                            path += ' M ' + p.join(',');
                             break;
                         case 1:
-                            p = Import._pathReadPoint(s, [], base);
+                            p = Import._pathReadPoint(s, base);
                             base = p;
-
-                            path.add(new LSeg(p));
+                            path += ' L ' + p.join(',');
                             break;
                         case 2:
-                            p = Import._pathReadPoint(s, [], base);
-                            Import._pathReadPoint(s, p);
-                            Import._pathReadPoint(s, p);
-                            base = [p[p.length - 2], p[p.length - 1]];
-
-                            path.add(new CSeg(p));
-                            break;
-                        case 3:
-                            _do = false;
+                            var cStr = ' C';
+                            p = base;
+                            for (var i = 0; i < 3; i++) {
+                                p = Import._pathReadPoint(s, p);
+                                cStr += ' ' + p.join(',');
+                            }
+                            base = p;
+                            path += cStr;
                             break;
                         default:
-                            _do = false;
-                            _reportError('Unknown type "' + type + ' for path "' + encoded + '"');
+                            hasBits = false;
                             break;
                     }
                 }
@@ -513,7 +507,8 @@ Import._decodeBinaryPath = function(encoded) {
     return path;
 };
 
-Import._pathReadPoint = function(stream, target, base) {
+Import._pathReadPoint = function(stream, base) {
+    base = base || [0,0];
     var l = stream.readBits(5);
     if (l <= 0) {
         throw new Error('Failed to decode path, wrong length (<= 0)');
@@ -522,12 +517,7 @@ Import._pathReadPoint = function(stream, target, base) {
     var x = stream.readSBits(l);
     var y = stream.readSBits(l);
 
-    var b_x = base ? base[0] : (target.length ? target[target.length - 2] : 0);
-    var b_y = base ? base[1] : (target.length ? target[target.length - 1] : 0);
-
-    target.push(b_x + x / 1000.0);
-    target.push(b_y + y / 1000.0);
-    return target;
+    return [roundTo(base[0] + x / 1000.0, 2), roundTo(base[1] + y / 1000.0, 2)];
 };
 
 /** text **/
@@ -630,9 +620,9 @@ Import.sheet = function(src) {
 // -> Tween
 Import.tween = function(src) {
     var type = Import.tweentype(src[0]);
-    if (type === null) return null;
-    var tween = new Tween(type, Import.tweendata(type, src[3]))
-                          .band(Import.band(src[1])),
+    if (!type) return null; // type is a string
+    var tween = Tween[type](Import.tweendata(type, src[3]))
+                           .band(Import.band(src[1])),
         easing = Import.easing(src[2]);
     if (easing) tween.easing(easing);
     return tween;
@@ -650,6 +640,7 @@ Import.tweentype = function(src) {
     if (src === 9) return C.T_FILL;
     if (src === 10) return C.T_STROKE;
     if (src === 11) return C.T_SHADOW;
+    if (src === 12) return C.T_SWITCH;
 };
 /** tweendata **/
 // -> Any
@@ -680,10 +671,10 @@ Import.tweendata = function(type, src) {
         return [Import.shadow(src[0]), Import.shadow(src[1])];
     }
     if (type === C.T_VOLUME) {
-      if (src.length == 2) return src;
-      if (src.length == 1) return [ src[0], src[0] ];
+        if (src.length == 2) return src;
+        if (src.length == 1) return [ src[0], src[0] ];
     }
-
+    if (type === C.T_SWITCH) return src;
 };
 /** easing **/
 /*
@@ -853,18 +844,19 @@ var repeats = ['no-repeat', 'repeat', 'repeat-x', 'repeat-y'];
 
 Import.pattern = function(src) {
     var el = anm.lastImportedProject.anim.elements[src[0]],
-        elm = Import.leaf(Import._type(el), el);
-
-    elm.alpha = src[5];
-    elm.disabled = true;
-    Import.root.add(elm);
-    return {
-        elm: elm,
-        repeat: repeats[src[1]],
-        w: src[2],
-        h: src[3],
-        bounds: src[4]
-    };
+        elm = Import.leaf(Import._type(el), el/*, anim*/);
+    if (elm) {
+        elm.alpha = src[5];
+        elm.disabled = true;
+        Import.root.add(elm);
+        return {
+            elm: elm,
+            repeat: repeats[src[1]],
+            w: src[2],
+            h: src[3],
+            bounds: src[4]
+        };
+    }
 };
 
 /** pathval **/

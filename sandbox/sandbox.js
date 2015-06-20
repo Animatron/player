@@ -5,7 +5,7 @@
  * Animatron player is licensed under the MIT License, see LICENSE.
  */
 
-var DEFAULT_REFRESH_RATE = 3000;
+var DEFAULT_REFRESH_RATE = 5000;
 
 var _player = null;
 
@@ -18,16 +18,44 @@ function sandbox() {
     this.debugElm = document.getElementById('enable-debug');
     this.logErrorsElm = document.getElementById('log-errors');
 
-    window.elm = anm.Element._$;
-    window.E = anm.Element;
-    window.C = anm.constants;
+    var widthVal = document.getElementById('val-width');
+    var heightVal = document.getElementById('val-height');
+    var durationVal = document.getElementById('val-duration');
+
+    var width = 420, height = 250;
+
+    var ctx = {
+        width: width,
+        height: height,
+        duration: Math.round(DEFAULT_REFRESH_RATE / 1000),
+        element: anm.Element._$,
+        Tween: anm.Tween,
+        Path: anm.Path,
+        Color: anm.Color,
+        Brush: anm.Brush
+    }
+
+    function applyCtx(userCode, ctx) {
+        return 'var width=' + ctx.width + ',height=' + ctx.height + ';' +
+               'var duration=' + ctx.duration + ';' +
+               'var element=ctx.element,Tween=ctx.Tween,Path=ctx.Path,Color=ctx.Color,Brush=ctx.Brush;'
+               + userCode;
+    }
+
+    function updateDuration(val) {
+        ctx.duration = val;
+        durationVal.innerText = val;
+    }
+
+    widthVal.innerText = width;
+    heightVal.innerText = height;
+    updateDuration(ctx.duration);
 
     this.player = anm.createPlayer('player', {
-        mode: anm.constants.M_SANDBOX,
         muteErrors: true,
-        width: 400,
-        height: 250,
-        bgColor: '#fff'
+        controlsEnabled: false,
+        width: width,
+        height: height
     });
 
     //this.player.mode = anm.C.M_SANDBOX;
@@ -35,8 +63,7 @@ function sandbox() {
 
     _player = this.player;
 
-    var lastCode = '';
-    if (localStorage) lastCode = load_last_code();
+    var lastCode = load_last_code();
 
     var logErrors = false;
 
@@ -72,9 +99,9 @@ function sandbox() {
         wereErrors = false;
 
     function makeSafe(code) {
-        return ['(function(){',
+        return ['(function(ctx){',
                 '  '+code,
-                '})();'].join('\n');
+                '});'].join('\n');
     }
 
     function playFrom(from, rate) {
@@ -82,9 +109,9 @@ function sandbox() {
         try {
             _player.stop();
             var userCode = s.cm.getValue();
-            if (localStorage) save_current_code(userCode);
-            var safeCode = makeSafe(userCode);
-            var anim = eval(safeCode);
+            save_current_code(userCode);
+            var safeCode = makeSafe(applyCtx(userCode, ctx));
+            var anim = (function() { return eval(safeCode)(ctx); })();
             if (!anim || (!(anim instanceof anm.Animation) && !(anim instanceof anm.Element))) {
                 throw new Error('No animation was returned from code');
             }
@@ -97,6 +124,7 @@ function sandbox() {
     };
 
     function onerror(e) {
+        cleanCanvas();
         ensureToCancelTimeouts();
         wereErrors = true;
         var e2;
@@ -125,6 +153,11 @@ function sandbox() {
             clearTimeout(timeout[0]);
         }
         curTimeouts = [];
+    }
+
+    function cleanCanvas() {
+        var cvs = document.getElementById('player-cvs');
+        if (cvs) cvs.getContext('2d').clearRect(0, 0, cvs.width, cvs.height );
     }
 
     function refreshFromStart() {
@@ -156,20 +189,20 @@ function sandbox() {
                 //console.log('sheduled next refresh to ', rate - from, 'ms (#', nextTimeout, ')');
             }
         };
-        _refresher(startAt || 0, sequenceId, timeoutId)(
-            (_player.mode != C.M_PREVIEW) && (_player.mode != C.M_SANDBOX));
+        _refresher(startAt || 0, sequenceId, timeoutId)
+                  ( /* play once or not */
+                    (_player.handleEvents === true) ||
+                    (_player.infiniteDuration === true));
     }
 
-    if (localStorage) {
-        setTimeout(function() {
-            store_examples(); // store current examples, it will skip if their versions match
-            load_examples(); // load new examples, it will skip the ones with matching versions
-            list_examples(s.selectElm); // list the examples in select element
-        }, 1);
-    }
+    setTimeout(function() {
+        store_examples(); // store current examples, it will skip if their versions match
+        load_examples(); // load new examples, it will skip the ones with matching versions
+        list_examples(s.selectElm); // list the examples in select element
+    }, 1);
 
     this.selectElm.onchange = function() {
-        s.cm.setValue(examples[this.selectedIndex][1]);
+        s.cm.setValue(examples[this.selectedIndex][2]);
         wereErrors = false;
         refreshFromStart();
     }
@@ -189,46 +222,26 @@ function sandbox() {
         },
         update: function () {
             this.perMinute = Math.floor((60 / this.secPeriod) * 100) / 100;
+            updateDuration(Math.floor(this.secPeriod));
             runSequence(this.secPeriod * 1000, 0);
         }
     };
 
+    updateDuration(Math.floor(refreshRate / 1000));
     runSequence(refreshRate, 0);
 
     new Tangle(this.tangleElm, tangleModel);
 
     function change_mode(radio) {
       if (_player) {
-        _player.mode = C[radio.value];
-        _player._updateMode();
+        _player.handleEvents = (radio.value === 'with-events');
+        _player.infiniteDuration = (radio.value === 'with-events');
+        _player._checkOpts();
         refreshFromStart();
       }
     }
 
     window.change_mode = change_mode;
-
-}
-
-function show_csheet(csheetElmId, overlayElmId) {
-    var csheetElm = document.getElementById(csheetElmId);
-    var overlayElm = document.getElementById(overlayElmId);
-
-    csheetElm.style.display = 'block';
-    overlayElm.style.display = 'block';
-
-    csheetElm.onclick = function() {
-        return hide_csheet(csheetElmId, overlayElmId);
-    }
-
-    return false;
-}
-
-function hide_csheet(csheetElmId, overlayElmId) {
-    var csheetElm = document.getElementById(csheetElmId);
-    var overlayElm = document.getElementById(overlayElmId);
-
-    csheetElm.style.display = 'none';
-    overlayElm.style.display = 'none';
 
 }
 
@@ -243,12 +256,14 @@ function store_examples() {
 function store_example(i) {
     var ekey = '_example'+i,
         vkey = ekey+'__v',
+        nkey = ekey+'__n',
         ver = localStorage.getItem(vkey);
     if ((typeof ver === 'undefined') ||
         (ver === null) ||
         (ver < examples[i][0])) {
         localStorage.setItem(vkey, examples[i][0]);
-        localStorage.setItem(ekey, examples[i][1]);
+        localStorage.setItem(nkey, examples[i][1]);
+        localStorage.setItem(ekey, examples[i][2]);
     }
     localStorage.setItem('_examples_count', examples.length);
 }
@@ -261,13 +276,16 @@ function load_examples() {
     for (var i = 0; i < count; i++) {
         var ekey = '_example'+i,
             vkey = ekey+'__v',
-            ver = localStorage.getItem(vkey);
+            nkey = ekey+'__n',
+            ver = localStorage.getItem(vkey),
+            name = localStorage.getItem(nkey)
         if ((typeof ver !== 'undefined') &&
             (ver !== null) &&
             ((i >= elen) ||
              (ver > examples[i][0]))) {
             examples[i] = [
                 ver,
+                name,
                 localStorage.getItem(ekey)
             ];
         }
@@ -281,22 +299,18 @@ function save_example(code) {
 }
 
 function save_current_code(code) {
-    if (!localStorage) throw new Error('Local storage support required');
     localStorage.setItem('_current_code', code);
 }
 
 function load_last_code() {
-    if (!localStorage) throw new Error('Local storage support required');
     return localStorage.getItem('_current_code') || '';
 }
 
 function save_refresh_rate(rate) {
-    if (!localStorage) throw new Error('Local storage support required');
     localStorage.setItem('_current_rate', rate);
 }
 
 function load_refresh_rate() {
-    if (!localStorage) throw new Error('Local storage support required');
     return localStorage.getItem('_current_rate') || DEFAULT_REFRESH_RATE;
 }
 
@@ -304,11 +318,14 @@ function list_examples(selectElm) {
     selectElm.innerHTML = '';
     var elen = examples.length;
     //selectElm.setAttribute('size', elen);
+    var optElm; var version, name;
     for (var i = 0; i < elen; i++) {
-        var optElm = document.createElement('option');
+        optElm = document.createElement('option');
+        version = examples[i][0];
+        name    = examples[i][1];
         optElm.setAttribute('value', i);
-        optElm.innerHTML = i + ': [v' + examples[i][0] + '] : ' +
-                           examples[i][1].substring(0, 45).split('\n').join('↵');
+        optElm.innerHTML = /*'Example ' + (i + 1) + ': ' + */ name +
+            ((version > 0) ? ' (version ' + version + ')' : '');
         selectElm.appendChild(optElm);
     }
 }

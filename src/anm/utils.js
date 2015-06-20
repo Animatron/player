@@ -33,14 +33,14 @@ is.not_empty = function(obj) {
     else return (Object.getOwnPropertyNames(obj).length > 0);
 };
 
-is.modifier = function(f) {
-    return f.hasOwnProperty(C.MARKERS.MODIFIER_MARKER);
+is.modifier = function(v) {
+    return (v instanceof anm.Modifier);
 };
-is.painter = function(f) {
-    return f.hasOwnProperty(C.MARKERS.PAINTER_MARKER);
+is.painter = function(v) {
+    return (v instanceof anm.Painter);
 };
-is.tween = function(f) {
-    return f.is_tween && is.modifier(f);
+is.tween = function(v) {
+    return is.modifier(v) && v.is_tween;
 };
 
 is.equal = function(x, y) {
@@ -110,6 +110,19 @@ function iter(a) {
     });
 }
 
+function keys(obj, f) {
+    // TODO: grep -r ./src -e "var .* in" -> use everywhere?
+    if (Object.keys) {
+        var ids = Object.keys(obj);
+        for (var i = 0; i < ids.length; i++) {
+            if (f(ids[i], obj[ids[i]]) === false) break;
+        }
+    } else {
+        for (var id in obj) {
+            if (f(id, obj[id]) === false) break;
+        };
+    }
+}
 
 function fmt_time(time) {
     if (!is.finite(time)) return '∞';
@@ -121,7 +134,7 @@ function fmt_time(time) {
     return ((time < 0) ? '-' : '') +
             ((h > 0)  ? (((h < 10) ? ('0' + h) : h) + ':') : '') +
             ((m < 10) ? ('0' + m) : m) + ':' +
-            ((s < 10) ? ('0' + s) : s)
+            ((s < 10) ? ('0' + s) : s);
 }
 
 function ell_text(text, max_len) {
@@ -179,7 +192,7 @@ function mrg_obj(src, backup, trg) {
     if (!backup) return src;
     var res = trg || {};
     for (var prop in backup) {
-        res[prop] = is.defined(src[prop]) ? src[prop] : backup[prop]; };
+        res[prop] = is.defined(src[prop]) ? src[prop] : backup[prop]; }
     return res;
 }
 
@@ -190,18 +203,6 @@ function strf(str, subst) {
         args[number] : match;
     });
 }
-
-// collects all characters from string
-// before specified char, starting from start
-function collect_to(str, start, ch) {
-    var result = '';
-    for (var i = start; str[i] !== ch; i++) {
-        if (i === str.length) throw new SystemError('Reached end of string');
-        result += str[i];
-    }
-    return result;
-}
-
 
 function guid() {
    return Math.random().toString(36).substring(2, 10) +
@@ -245,6 +246,12 @@ function removeElement(obj, element) {
     }
 }
 
+function postpone(fn) {
+    //run the code after the event loop is done with whatever it is
+    //occupied with at the moment
+    setTimeout(fn, 0);
+}
+
 // TODO: add array cloning
 
 module.exports = {
@@ -257,10 +264,11 @@ module.exports = {
     obj_clone: obj_clone,
     mrg_obj: mrg_obj,
     strf: strf,
-    collect_to: collect_to,
     guid: guid,
     fit_rects: fit_rects,
     is: is,
     iter: iter,
-    removeElement: removeElement
+    keys: keys,
+    removeElement: removeElement,
+    postpone: postpone
 };

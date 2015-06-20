@@ -4,6 +4,8 @@ var conf = require('../conf.js'),
 var engine = require('engine'),
     resMan = require('../resource_manager.js');
 
+var errors = require('../errors.js');
+
 var Bounds = require('./bounds.js');
 
 Sheet.instances = 0;
@@ -50,9 +52,9 @@ var https = engine.isHttps;
 /**
 * @private @method load
 */
-Sheet.prototype.load = function(player_id, callback, errback) {
+Sheet.prototype.load = function(elm, player_id, callback, errback) {
     callback = callback || this._callback;
-    if (this._image) throw new Error('Already loaded'); // just skip loading?
+    if (this._image) throw errors.element('Image already loaded', elm); // just skip loading?
     var me = this;
     if (!me.src) {
         log.error('Empty source URL for image');
@@ -97,7 +99,8 @@ Sheet.prototype.load = function(player_id, callback, errback) {
         function(err) { log.error(err.srcElement || err.path, err.message || err);
                         me.ready = true;
                         me.wasError = true;
-                        if (errback) errback.call(me, err); });
+                        if (errback) errback.call(me, err);
+                        throw errors.element(err ? err.message : 'Unknown', elm); });
 };
 /**
  * @private @method updateRegion
@@ -166,6 +169,22 @@ Sheet.prototype.bounds = function() {
     }
     var r = this.region;
     return new Bounds(0, 0, r[2], r[3]);
+};
+/**
+ * @method inside
+ *
+ * Checks if point is inside the image. _Does no test for bounds_, the point is
+ * assumed to be already inside of the bounds, so check `image.bounds().inside(pt)`
+ * before calling this method manually.
+ *
+ * @param {Object} pt point to check
+ * @param {Number} pt.x
+ * @param {Number} pt.y
+ * @return {Boolean} is point inside
+ */
+Sheet.prototype.inside = function(pt) {
+    return true; // if point is inside of the bounds, point is considered to be
+                 // inside the image shape
 };
 /**
  * @method clone

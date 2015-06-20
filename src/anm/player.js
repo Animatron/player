@@ -29,11 +29,9 @@ var utils = require('./utils.js'),
     provideEvents = events.provideEvents;
 
 var loc = require('./loc.js'),
-    Strings = loc.Strings,
-    Errors = loc.Errors,
-    errors = require('./errors.js'),
-    PlayerError = errors.PlayerError,
-    SystemError = errors.SystemError;
+    StrLoc = loc.Strings,
+    ErrLoc = loc.Errors,
+    errors = require('./errors.js');
 
 var engine = require('engine'),
     resourceManager = require('./resource_manager.js'),
@@ -100,7 +98,6 @@ function Player() {
     this.controls = null;
     this.__canvasPrepared = false;
     this.__instanceNum = ++Player.__instances;
-    this.__makeSafe(Player._SAFE_METHODS);
     this.muted = false;
 }
 Player.__instances = 0;
@@ -121,12 +118,13 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'infiniteDuration': undefined, // undefined means 'auto'
                                  'drawStill': undefined, // undefined means 'auto',
                                  'audioEnabled': true,
-                                 'audioGlobalVolume': 1.0,
+                                 'volume': 1.0,
                                  'imagesEnabled': true,
                                  'videoEnabled': true,
                                  'shadowsEnabled': true,
                                  'handleEvents': undefined, // undefined means 'auto'
                                  'controlsEnabled': undefined, // undefined means 'auto'
+                                 'controlsInvisible': undefined,
                                  'infoEnabled': undefined, // undefined means 'auto'
                                  'loadingMode': C.LM_DEFAULT, // undefined means 'auto'
                                  'thumbnail': undefined,
@@ -137,20 +135,9 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                };
 
 Player.EMPTY_BG = 'rgba(0,0,0,.05)';
-Player.EMPTY_STROKE = 'rgba(50,158,192,.5)';
-Player.EMPTY_STROKE_WIDTH = 3;
 
 // ### Playing Control API
 /* ----------------------- */
-
-/**
-  * @private @static @property
-  *
-  * Methods listed below are directly wrapped with try/catch to check
-  * which way of handling/suppressing errors is current one for this player
-  * and act with caught errors basing on this way
-  */
-Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 
 /* TODO: add load/play/pause/stop events */
 
@@ -180,7 +167,7 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
  *       bgColor: undefined,
  *       ribbonsColor: undefined,
  *       audioEnabled: true,
- *       inifiniteDuration: false,
+ *       infiniteDuration: false,
  *       drawStill: false,
  *       controlsEnabled: undefined, // undefined means 'auto'
  *       infoEnabled: undefined, // undefined means 'auto'
@@ -228,9 +215,10 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
  */
 
 Player.prototype.init = function(elm, opts) {
-    if (this.canvas || this.wrapper) throw new PlayerError(Errors.P.INIT_TWICE);
-    if (this.anim) throw new PlayerError(Errors.P.INIT_AFTER_LOAD);
     this._initHandlers(); /* TODO: make automatic */
+    this.on(C.S_ERROR, this.__onerror());
+    if (this.canvas || this.wrapper) throw errors.player(ErrLoc.P.INIT_TWICE, this);
+    if (this.anim) throw errors.player(ErrLoc.P.INIT_AFTER_LOAD, this);
     this._prepare(elm);
     this._addOpts(Player.DEFAULT_CONFIGURATION);
     this._addOpts(engine.extractUserOptions(this.canvas));
@@ -278,7 +266,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
     if ((state.happens === C.PLAYING) ||
         (state.happens === C.PAUSED)) {
-        throw new PlayerError(Errors.P.COULD_NOT_LOAD_WHILE_PLAYING);
+        throw errors.player(ErrLoc.P.COULD_NOT_LOAD_WHILE_PLAYING, player);
     }
 
     /* object */
@@ -305,7 +293,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     //        we can't let ourselves create an importer instance manually here,
     //        so it's considered a problem of naming.
     if ((arg2 && arg2.IMPORTER_ID) || (arg3 && arg3.IMPORTER_ID)) {
-        throw new PlayerError(Errors.P.IMPORTER_CONSTRUCTOR_PASSED);
+        throw errors.player(ErrLoc.P.IMPORTER_CONSTRUCTOR_PASSED, player);
     }
 
     if (is.fun(arg2)) { callback = arg2; } /* object, callback */
@@ -329,7 +317,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                              // it was requested after the call to 'play', or else it was called by user
                              // FIXME: may be playLock was set by player and user calls this method
                              //        while some animation is already loading
-        if (player._postponedLoad) throw new PlayerError(Errors.P.LOAD_WAS_ALREADY_POSTPONED);
+        if (player._postponedLoad) throw errors.player(ErrLoc.P.LOAD_WAS_ALREADY_POSTPONED, player);
         player._lastReceivedAnimationId = null;
         // this kind of postponed call is different from the ones below (_clearPostpones and _postpone),
         // since this one is related to loading mode, rather than calling later some methods which
@@ -346,10 +334,10 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         player.anim = null;
         player._reset();
         player.stop();
-        throw new PlayerError(Errors.P.NO_ANIMATION_PASSED);
+        throw errors.player(ErrLoc.P.NO_ANIMATION_PASSED, player);
     }
 
-    if (!player.__canvasPrepared) throw new PlayerError(Errors.P.CANVAS_NOT_PREPARED);
+    if (!player.__canvasPrepared) throw errors.player(ErrLoc.P.CANVAS_NOT_PREPARED, player);
 
     player._reset();
 
@@ -358,6 +346,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
     var whenDone = function(result) {
         var anim = player.anim;
+        player.__subscribePlayingEvents(anim);
         if (player.handleEvents) {
             // checks inside if was already subscribed before, skips if so
             player.__subscribeDynamicEvents(anim);
@@ -379,41 +368,46 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             player.fire(C.S_CHANGE_STATE, C.RES_LOADING);
             player.fire(C.S_RES_LOAD, remotes);
             // subscribe to wait until remote resources will be ready or failed
-            resourceManager.subscribe(player.id, remotes, [ player.__defAsyncSafe(
+            resourceManager.subscribe(player.id, remotes, [
                 function(res_results, err_count) {
-                    //if (err_count) throw new AnimErr(Errors.A.RESOURCES_FAILED_TO_LOAD);
+                    //if (err_count) throw errors.animation(ErrLoc.A.RESOURCES_FAILED_TO_LOAD, player);
                     if (player.anim === result) { // avoid race condition when there were two requests
                         // to load different animations and first one finished loading
                         // after the second one
-                        player.state.happens = C.LOADING;
-                        player.fire(C.S_CHANGE_STATE, C.LOADING);
-                        player.fire(C.S_LOAD, result);
-                        if (!player.handleEvents) player.stop();
-                        player._callPostpones();
-                        if (callback) callback.call(player, result);
-                        // player may appear already playing something if autoPlay or a similar time-jump
-                        // flag was set from some different source of options (async, for example),
-                        // then the rule (for the moment) is: last one wins
-                        if (player.autoPlay) {
-                            if (player.state.happens === C.PLAYING) player.stop();
-                            player.play();
-                        }
+                        utils.postpone(function(){
+                            player.state.happens = C.LOADING;
+                            player.fire(C.S_CHANGE_STATE, C.LOADING);
+                            player.fire(C.S_LOAD, result);
+                            player._updateMediaVolumes();
+                            if (!player.handleEvents) player.stop();
+                            player._callPostpones();
+                            if (callback) callback.call(player, result);
+                            // player may appear already playing something if autoPlay or a similar time-jump
+                            // flag was set from some different source of options (async, for example),
+                            // then the rule (for the moment) is: last one wins
+                            if (player.autoPlay) {
+                                if (player.state.happens === C.PLAYING) player.stop();
+                                player.play();
+                            }
+                        });
                     }
                 }
-            ) ], (player.controlsEnabled && player.controls) ? function(url, factor, progress, errors) {
-                player.controls.loadingProgress = progress;
-                player.controls.loadingErrors = errors;
-            } : null);
+            ], function(url, factor, progress, errors) {
+                player.fire(C.S_LOADING_PROGRESS, factor);
+                if(player.controlsEnabled && player.controls){
+                    player.controls.loadingProgress = progress;
+                    player.controls.loadingErrors = errors;
+                }
+            });
             // actually start loading remote resources
             anim._loadRemoteResources(player);
         }
-
     };
-    whenDone = player.__defAsyncSafe(whenDone);
 
     /* TODO: configure canvas using clips bounds? */
 
     if (player.anim) {
+        player.__unsubscribePlayingEvents(player.anim);
         player.__unsubscribeDynamicEvents(player.anim);
         player.anim.traverse(function(elm) {
             elm.removeMaskCanvases();
@@ -429,7 +423,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             player._loadTarget = C.LT_ELEMENTS;
             Loader.loadElements(player, object, whenDone);
         } else if (is.str(object)) { // URL
-            var controls = player.controls;
             player._loadTarget = C.LT_URL;
             player._loadSrc = object;
             Loader.loadFromUrl(player, object, importer, whenDone);
@@ -449,7 +442,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     }
 
     return player;
-}
+};
 
 var __nextFrame = engine.getRequestFrameFunc(),
     __stopAnim  = engine.getCancelFrameFunc();
@@ -474,7 +467,6 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     if (state.happens === C.PLAYING) {
         if (player.infiniteDuration) return; // it's ok to skip this call if it's some dynamic animation (FIXME?)
-        else throw new PlayerError(Errors.P.ALREADY_PLAYING);
     }
 
     if ((player.loadingMode === C.LM_ONPLAY) && !player._lastReceivedAnimationId) {
@@ -484,10 +476,10 @@ Player.prototype.play = function(from, speed, stopAfter) {
         player._playLock = true;
         var loadArgs = player._postponedLoad,
             playArgs = arguments;
-        if (!loadArgs) throw new PlayerError(Errors.P.NO_LOAD_CALL_BEFORE_PLAY);
+        if (!loadArgs) throw errors.player(ErrLoc.P.NO_LOAD_CALL_BEFORE_PLAY, player);
         var loadCallback = loadArgs[3];
         var afterLoad = function() {
-            if (loadCallback) loadCallback.call(player, arguments);
+            if (loadCallback) loadCallback.apply(player, arguments);
             player._postponedLoad = null;
             player._playLock = false;
             player._lastReceivedAnimationId = player.anim.id;
@@ -521,20 +513,16 @@ Player.prototype.play = function(from, speed, stopAfter) {
     state.time = Player.NO_TIME;
     state.speed = (speed || 1) * (player.speed || 1) * (anim.speed || 1);
     state.stop = (typeof stopAfter !== 'undefined') ? stopAfter : state.stop;
-    state.duration = player.inifiniteDuration ? Infinity
+    state.duration = player.infiniteDuration ? Infinity
                      : (anim.duration || (anim.isEmpty() ? 0
                                                            : Animation.DEFAULT_DURATION));
 
-    if (state.duration === undefined) throw new PlayerError(Errors.P.DURATION_IS_NOT_KNOWN);
+    if (state.duration === undefined) throw errors.player(ErrLoc.P.DURATION_IS_NOT_KNOWN, player);
 
     state.__startTime = Date.now();
     state.__redraws = 0;
     state.__rsec = 0;
     state.__prevt = 0;
-
-    // this flags actually stops the animation,
-    // __stopAnim is called just for safety reasons :)
-    state.__supressFrames = false;
 
     if (state.happens === C.STOPPED && !player.repeating) {
         player.reportStats();
@@ -545,18 +533,12 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     state.happens = C.PLAYING;
 
-    // FIXME: W3C says to call stopAnim (cancelAnimationFrame) with ID
-    //        of the last call of nextFrame (requestAnimationFrame),
-    //        not the first one, but some Mozilla / HTML5tutorials examples use ID
-    //        of the first call. Anyway, __supressFrames stops our animation in fact,
-    //        __stopAnim is called "to ensure", may be it's not a good way to ensure,
-    //       though...
-    state.__firstReq = Render.loop(player.ctx,
-                                   player, anim,
-                                   player.__beforeFrame(anim),
-                                   player.__afterFrame(anim),
-                                   player.__userBeforeRender,
-                                   player.__userAfterRender);
+    state.__lastReq = Render.loop(player.ctx,
+                                  player, anim,
+                                  player.__beforeFrame(anim),
+                                  player.__afterFrame(anim),
+                                  player.__userBeforeRender,
+                                  player.__userAfterRender);
 
     player.fire(C.S_CHANGE_STATE, C.PLAYING);
     player.fire(C.S_PLAY, state.from);
@@ -591,10 +573,7 @@ Player.prototype.stop = function() {
 
     if ((state.happens === C.PLAYING) ||
         (state.happens === C.PAUSED)) {
-        // this flags actually stops the animation,
-        // __stopAnim is called just for safety reasons :)
-        state.__supressFrames = true;
-        __stopAnim(state.__firstReq);
+        __stopAnim(state.__lastReq);
     }
 
     state.time = Player.NO_TIME;
@@ -637,7 +616,7 @@ Player.prototype.pause = function() {
     if ((player.state.happens === C.RES_LOADING) &&
         (player.loadingMode === C.LM_ONREQUEST)) {
         player._postpone('pause', arguments);
-        return;
+        return player;
     }
 
     player._ensureHasState();
@@ -645,14 +624,11 @@ Player.prototype.pause = function() {
 
     var state = player.state;
     if (state.happens === C.STOPPED) {
-        throw new PlayerError(Errors.P.PAUSING_WHEN_STOPPED);
+        return player;
     }
 
     if (state.happens === C.PLAYING) {
-        // this flags actually stops the animation,
-        // __stopAnim is called just for safety reasons :)
-        state.__supressFrames = true;
-        __stopAnim(state.__firstReq);
+        __stopAnim(state.__lastReq);
     }
 
     if (state.time > state.duration) {
@@ -668,6 +644,23 @@ Player.prototype.pause = function() {
     player.fire(C.S_PAUSE, state.time);
 
     return player;
+};
+
+/**
+ * @method seek
+ * @chainable
+ *
+ * Jump to the given time in Animation and continue playing. Stops a player and starts to play from
+ * this time.
+ *
+ * @param {Number} time to set the playhead at
+ **/
+Player.prototype.seek = function(time) {
+    if (this.state.happens === C.PAUSED) {
+        return this.play(time).pause();
+    } else {
+        return this.pause().play(time);
+    }
 };
 
 /**
@@ -689,14 +682,14 @@ Player.prototype.onerror = function(callback) {
 
 provideEvents(Player, [ C.S_IMPORT, C.S_CHANGE_STATE, C.S_LOAD, C.S_RES_LOAD,
                         C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
-                        C.S_ERROR ]);
+                        C.S_ERROR, C.S_LOADING_PROGRESS, C.S_TIME_UPDATE ]);
 Player.prototype._prepare = function(elm) {
-    if (!elm) throw new PlayerError(Errors.P.NO_WRAPPER_PASSED);
+    if (!elm) throw errors.player(ErrLoc.P.NO_WRAPPER_PASSED, this);
     var wrapper_id, wrapper;
     if (is.str(elm)) {
         wrapper_id = elm;
         wrapper = engine.getElementById(wrapper_id);
-        if (!wrapper_id) throw new PlayerError(utils.strf(Errors.P.NO_WRAPPER_WITH_ID, [wrapper_id]));
+        if (!wrapper_id) throw errors.player(utils.strf(ErrLoc.P.NO_WRAPPER_WITH_ID, [wrapper_id]), this);
     } else {
         if (!elm.id) elm.id = ('anm-player-' + Player.__instances);
         wrapper_id = elm.id;
@@ -706,7 +699,7 @@ Player.prototype._prepare = function(elm) {
     this.id = assign_data.id;
     this.wrapper = assign_data.wrapper;
     this.canvas = assign_data.canvas;
-    if (!engine.checkPlayerCanvas(this.canvas)) throw new PlayerError(Errors.P.CANVAS_NOT_VERIFIED);
+    if (!engine.checkPlayerCanvas(this.canvas)) throw errors.player(ErrLoc.P.CANVAS_NOT_VERIFIED, this);
     this.ctx = engine.getContext(this.canvas, '2d');
     this.state = Player.createState(this);
     this.fire(C.S_CHANGE_STATE, C.NOTHING);
@@ -735,8 +728,8 @@ Player.prototype._addOpts = function(opts) {
                         opts.loadingMode : this.loadingMode;
     this.audioEnabled = is.defined(opts.audioEnabled) ?
                         opts.audioEnabled : this.audioEnabled;
-    this.globalAudioVolume = is.defined(opts.globalAudioVolume) ?
-                        opts.globalAudioVolume : this.globalAudioVolume;
+    this.globalVolume = is.defined(opts.volume) ?
+                        opts.volume : this.globalVolume;
     this.imagesEnabled = is.defined(opts.imagesEnabled) ?
                         opts.imagesEnabled : this.imagesEnabled;
     this.videoEnabled = is.defined(opts.videoEnabled) ?
@@ -745,6 +738,8 @@ Player.prototype._addOpts = function(opts) {
                         opts.shadowsEnabled : this.shadowsEnabled;
     this.controlsEnabled = is.defined(opts.controlsEnabled) ?
                         opts.controlsEnabled : this.controlsEnabled;
+    this.controlsInvisible = is.defined(opts.controlsInvisible) ?
+                        opts.controlsInvisible : this.controlsInvisible;
     this.infoEnabled = is.defined(opts.infoEnabled) ?
                         opts.infoEnabled : this.infoEnabled;
     this.handleEvents = is.defined(opts.handleEvents) ?
@@ -759,7 +754,7 @@ Player.prototype._addOpts = function(opts) {
                         opts.muteErrors : this.muteErrors;
 
     if (is.defined(opts.mode)) { this.mode(opts.mode); }
-}
+};
 Player.prototype._checkOpts = function() {
     if (!this.canvas) return;
 
@@ -823,7 +818,6 @@ Player.prototype._postInit = function() {
  * @param {Number} val `C.M_*` constant
  */
 Player.prototype.mode = function(val) {
-    if (!is.defined(val)) { throw new PlayerError("Please define a mode to set"); }
     this.infiniteDuration = (val & C.M_INFINITE_DURATION) || undefined;
     this.handleEvents = (val & C.M_HANDLE_EVENTS) || undefined;
     this.controlsEnabled = (val & C.M_CONTROLS_ENABLED) || undefined;
@@ -886,15 +880,15 @@ Player.prototype.forceRedraw = function() {
  * @param {Number} time
  */
 Player.prototype.drawAt = function(time) {
-    if (time === Player.NO_TIME) throw new PlayerError(Errors.P.PASSED_TIME_VALUE_IS_NO_TIME);
+    if (time === Player.NO_TIME) throw errors.player(ErrLoc.P.PASSED_TIME_VALUE_IS_NO_TIME, this);
     if ((this.state.happens === C.RES_LOADING) &&
         (this.loadingMode === C.LM_ONREQUEST)) { this._postpone('drawAt', arguments);
                                                    return; } // if player loads remote resources just now,
                                                              // postpone this task and exit. postponed tasks
                                                              // will be called when all remote resources were
                                                              // finished loading
-    if ((time < 0) || (time > this.anim.duration)) {
-        throw new PlayerError(utils.strf(Errors.P.PASSED_TIME_NOT_IN_RANGE, [time]));
+    if ((time < 0) || (!this.infiniteDuration && (time > this.anim.duration))) {
+        throw errors.player(utils.strf(ErrLoc.P.PASSED_TIME_NOT_IN_RANGE, [time]), this);
     }
     var anim = this.anim,
         u_before = this.__userBeforeRender,
@@ -951,7 +945,7 @@ Player.prototype.factor = function() {
         return Math.min(this.width / this.anim.width,
                         this.height / this.anim.height);
     }
-}
+};
 /**
  * @method factorData
  *
@@ -973,8 +967,8 @@ Player.prototype.factorData = function() {
         anim_rect: result[1],
         ribbon_one: result[2] || null,
         ribbon_two: result[3] || null
-    }
-}
+    };
+};
 /**
  * @method thumbnail
  *
@@ -1007,7 +1001,6 @@ Player.prototype.thumbnail = function(url, target_width, target_height) {
           ctx = player.ctx;
       ctx.save();
       ctx.clearRect(0, 0, player.width * ratio, player.height * ratio);
-      player._drawEmpty();
       ctx.restore();
     }
     var thumb = new Sheet(url);
@@ -1102,7 +1095,7 @@ Player.__invalidate = function(player) {
  */
 // TODO: change to before/after for events?
 Player.prototype.beforeFrame = function(callback) {
-    if (this.state.happens === C.PLAYING) throw new PlayerError(Errors.P.BEFOREFRAME_BEFORE_PLAY);
+    if (this.state.happens === C.PLAYING) throw errors.player(ErrLoc.P.BEFOREFRAME_BEFORE_PLAY, this);
     this.__userBeforeFrame = callback;
 };
 
@@ -1116,7 +1109,7 @@ Player.prototype.beforeFrame = function(callback) {
  * @param {Boolean} callback.return
  */
 Player.prototype.afterFrame = function(callback) {
-    if (this.state.happens === C.PLAYING) throw new PlayerError(Errors.P.AFTERFRAME_BEFORE_PLAY);
+    if (this.state.happens === C.PLAYING) throw errors.player(ErrLoc.P.AFTERFRAME_BEFORE_PLAY, this);
     this.__userAfterFrame = callback;
 };
 
@@ -1130,7 +1123,7 @@ Player.prototype.afterFrame = function(callback) {
  * @param {Canvas2DContext} callback.ctx
  */
 Player.prototype.beforeRender = function(callback) {
-    if (this.state.happens === C.PLAYING) throw new PlayerError(Errors.P.BEFORENDER_BEFORE_PLAY);
+    if (this.state.happens === C.PLAYING) throw errors.player(ErrLoc.P.BEFORENDER_BEFORE_PLAY, this);
     this.__userBeforeRender = callback;
 };
 
@@ -1144,7 +1137,7 @@ Player.prototype.beforeRender = function(callback) {
  * @param {Canvas2DContext} callback.ctx
  */
 Player.prototype.afterRender = function(callback) {
-    if (this.state.happens === C.PLAYING) throw new PlayerError(Errors.P.AFTERRENDER_BEFORE_PLAY);
+    if (this.state.happens === C.PLAYING) throw errors.player(ErrLoc.P.AFTERRENDER_BEFORE_PLAY, this);
     this.__userAfterRender = callback;
 };
 
@@ -1186,6 +1179,26 @@ Player.prototype.subscribeEvents = function(canvas) {
 };
 
 /**
+ * @method mute
+ *
+ * Disable sound
+ */
+Player.prototype.mute = function() {
+    if (this.muted) return;
+    this.toggleMute();
+};
+
+/**
+ * @method unmute
+ *
+ * Enable sound
+ */
+Player.prototype.unmute = function() {
+    if(!this.muted) return;
+    this.toggleMute();
+};
+
+/**
  * @method toggleMute
  *
  * Disable or enable sound
@@ -1202,6 +1215,30 @@ Player.prototype.toggleMute = function() {
     });
 };
 
+/**
+ * @method volume
+ *
+ * Get/set audio volume
+ */
+Player.prototype.volume = function(vol) {
+    if (typeof vol === 'undefined') {
+        return this.globalVolume;
+    }
+    this.globalVolume = vol;
+    this._updateMediaVolumes();
+};
+
+Player.prototype._updateMediaVolumes = function() {
+    var me=this;
+    if (me.anim) {
+        me.anim.traverse(function(el) {
+            if (el.$audio) {
+                el.$audio.setVolume(me.globalVolume);
+            }
+        });
+    }
+};
+
 Player.prototype._drawEmpty = function() {
     var ctx = this.ctx,
         w = this.width,
@@ -1210,15 +1247,8 @@ Player.prototype._drawEmpty = function() {
     ctx.save();
 
     var ratio = engine.PX_RATIO;
-    // FIXME: somehow scaling context by ratio here makes all look bad
-
-    // background
     ctx.fillStyle = Player.EMPTY_BG;
     ctx.fillRect(0, 0, w * ratio, h * ratio);
-    ctx.strokeStyle = Player.EMPTY_STROKE;
-    ctx.lineWidth = Player.EMPTY_STROKE_WIDTH;
-    ctx.strokeRect(0, 0, w * ratio, h * ratio);
-
     ctx.restore();
 };
 
@@ -1308,32 +1338,8 @@ Player.prototype._drawLoadingSplash = function(text) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#006';
     ctx.font = '12px sans-serif';
-    ctx.fillText(text || Strings.LOADING, 20, 25);
+    ctx.fillText(text || StrLoc.LOADING, 20, 25);
     ctx.restore();
-};
-
-Player.prototype._drawLoadingProgress = function() {
-    // Temporarily, do nothing.
-    // Later we will show a line at the top, may be
-
-    /* if (this.controls) return;
-    var theme = Controls.THEME;
-    Controls._runLoadingAnimation(this.ctx, function(ctx) {
-        var w = ctx.canvas.clientWidth,
-            h = ctx.canvas.clientHeight;
-        // FIXME: render only changed circles
-        ctx.clearRect(0, 0, w, h);
-        //Controls._drawBack(ctx, theme, w, h);
-        Controls._drawLoadingProgress(ctx, w, h,
-                                      (((Date.now() / 100) % 60) / 60),
-                                      theme.radius.loader,
-                                      theme.colors.progress.left, theme.colors.progress.passed);
-    }); */
-};
-
-Player.prototype._stopDrawingLoadingCircles = function() {
-    if (this.controls) return;
-    this._drawEmpty();
 };
 
 Player.prototype._drawErrorSplash = function(e) {
@@ -1347,7 +1353,7 @@ Player.prototype._drawErrorSplash = function(e) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#006';
     ctx.font = '14px sans-serif';
-    ctx.fillText(Strings.ERROR +
+    ctx.fillText(StrLoc.ERROR +
                  (e ? ': ' + (e.message || (typeof Error))
                     : '') + '.', 20, 25);
     ctx.restore();
@@ -1405,7 +1411,8 @@ Player.prototype._resize = function(width, height) {
     if (cur_size && (cur_size[0] === new_size[0]) && (cur_size[1] === new_size[1])) return;
     if (!new_size[0] || !new_size[1]) {
         new_size = cur_size;
-    };
+    }
+    engine.setWrapperSize(this.wrapper, new_size[0], new_size[1]);
     engine.setCanvasSize(cvs, new_size[0], new_size[1]);
     this.width = new_size[0];
     this.height = new_size[1];
@@ -1449,6 +1456,24 @@ Player.prototype._disableInfo = function() {
     this.controls.disableInfo();
 };
 
+Player.prototype.__subscribePlayingEvents = function(anim) {
+    if (this.__anim_handlers && this.__anim_handlers[anim.id]) return;
+    var handlers = {};
+    handlers[C.A_START] = this.on(C.S_PLAY,  function() { anim.fire(C.A_START); });
+    handlers[C.A_PAUSE] = this.on(C.S_PAUSE, function() { anim.fire(C.A_PAUSE); });
+    handlers[C.A_STOP]  = this.on(C.S_STOP,  function() { anim.fire(C.A_STOP);  });
+    if (!this.__anim_handlers) this.__anim_handlers = {};
+    this.__anim_handlers[anim.id] = handlers;
+};
+Player.prototype.__unsubscribePlayingEvents = function(anim) {
+    if (!this.__anim_handlers) return;
+    var handlers = this.__anim_handlers[anim.id];
+    if (!handlers) return;
+    this.unbind(C.S_PLAY,  handlers[C.A_START]);
+    this.unbind(C.S_PAUSE, handlers[C.A_PAUSE]);
+    this.unbind(C.S_STOP,  handlers[C.STOP]);
+    this.__anim_handlers[anim.id] = null;
+};
 Player.prototype.__subscribeDynamicEvents = function(anim) {
     if (global_opts.setTabindex) {
         engine.setTabIndex(this.canvas, this.__instanceNum);
@@ -1467,6 +1492,7 @@ Player.prototype.__subscribeDynamicEvents = function(anim) {
         }
         if (!subscribed) {
             this.__boundTo.push([ anim.id, this.canvas ]);
+            anim.on(C.X_ERROR, this.__onerror());
             anim.subscribeEvents(this.canvas);
         }
     }
@@ -1492,11 +1518,11 @@ Player.prototype.__unsubscribeDynamicEvents = function(anim) {
 };
 
 Player.prototype._ensureHasState = function() {
-    if (!this.state) throw new PlayerError(Errors.P.NO_STATE);
+    if (!this.state) throw errors.player(ErrLoc.P.NO_STATE, this);
 };
 
 Player.prototype._ensureHasAnim = function() {
-    if (!this.anim) throw new PlayerError(Errors.P.NO_ANIMATION);
+    if (!this.anim) throw errors.player(ErrLoc.P.NO_ANIMATION, this);
 };
 
 Player.prototype.__beforeFrame = function(anim) {
@@ -1506,8 +1532,8 @@ Player.prototype.__beforeFrame = function(anim) {
             if (state.happens !== C.PLAYING) return false;
             if (((state.stop !== Player.NO_TIME) &&
                  (time >= (state.from + state.stop))) ||
-                 (is.finite(state.duration) &&
-                    (time > (state.duration + Player.PEFF)))) {
+                (is.finite(state.duration) &&
+                 (time > (state.duration + Player.PEFF)))) {
                 player.fire(C.S_COMPLETE);
                 state.time = 0;
                 anim.reset();
@@ -1539,23 +1565,29 @@ Player.prototype.__afterFrame = function(anim) {
     })(this, this.state, anim, this.__userAfterFrame);
 };
 
+Player.prototype.__onerror = function() {
+    var me = this;
+    return function(err) {
+        return me.__onerror_f(err);
+    };
+};
+
 // Called when any error happens during player initialization or animation
 // Player should mute all non-system errors by default, and if it got a system error, it may show
-// this error over itself
-Player.prototype.__onerror = function(err) {
+// this error in its UI
+Player.prototype.__onerror_f = function(err) {
   var player = this;
   var doMute = player.muteErrors;
-      doMute = doMute && !(err instanceof SystemError);
+      doMute = doMute && !(err instanceof errors.SystemError);
 
   try {
       if (player.state) player.state.happens = C.ERROR;
       player.__lastError = err;
       player.fire(C.S_CHANGE_STATE, C.ERROR);
-      player.fire(C.S_ERROR, err);
 
       player.anim = null;
       // was here: /*if (player.state)*/ player.__unsafe_stop();
-  } catch(e) { throw new SystemError(utils.strf(Errors.S.ERROR_HANDLING_FAILED, [err.message || err])); }
+  } catch(e) { throw e; }
 
   try {
       if (player.state &&
@@ -1571,68 +1603,6 @@ Player.prototype.__onerror = function(err) {
       try { this._drawErrorSplash(err); } catch(e) { /* skip errors in splash */ }
       throw err;
   }
-};
-
-Player.prototype.__callSafe = function(f) {
-  try {
-    return f.call(this);
-  } catch(err) {
-    this.__onerror(err);
-  }
-};
-
-// safe call generator for player method (synchronous calls)
-Player.prototype.__defSafe = function(method_f) {
-  var player = this;
-  return function() {
-    var args = arguments;
-    if (!this.__safe_ctx) { // already in safe context
-      this.__safe_ctx = true;
-      try {
-        var ret_val = player.__callSafe(function() {
-          return method_f.apply(player, args);
-        });
-        this.__safe_ctx = false;
-        return ret_val;
-      } catch(err) {
-        this.__safe_ctx = false;
-        throw err;
-      }
-    } else {
-      return method_f.apply(player, args);
-    }
-  };
-};
-
-// safe call generator for asycnhronous function
-Player.prototype.__defAsyncSafe = function(func) {
-  var player = this;
-  return function() {
-    var args = arguments;
-    try {
-      var ret_val = player.__callSafe(function() {
-        return func.apply(player, args);
-      });
-      return ret_val;
-    } catch(err) {
-      throw err;
-    }
-  };
-};
-
-Player.prototype.__makeSafe = function(methods) {
-  var player = this;
-  for (var i = 0, il = methods.length; i < il; i++) {
-    var method = methods[i];
-    if (!player[method]) throw new SystemError(utils.strf(Errors.S.NO_METHOD_FOR_PLAYER, [method]));
-    player['__unsafe_'+method] = player[method];
-    player[method] = player.__defSafe(player[method]);
-  }
-};
-
-Player.prototype.handle__x = function(type, evt) {
-    if (this.anim) this.anim.fire(type, this);
-    return true;
 };
 
 Player.prototype._clearPostpones = function() {

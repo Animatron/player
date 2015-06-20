@@ -1,9 +1,11 @@
-var provideEvents = require('../events.js').provideEvents,
-    C = require('../constants.js'),
-    engine = require('engine'),
-    Strings = require('../loc.js').Strings,
-    utils = require('../utils.js'),
+var utils = require('../utils.js'),
     is = utils.is;
+
+var C = require('../constants.js'),
+    Strings = require('../loc.js').Strings;
+
+var engine = require('engine'),
+    InfoBlock = require('./infoblock.js');
 
 //fade modes
 var FADE_NONE = 0,
@@ -23,7 +25,8 @@ function Controls(player) {
     this.bounds = [];
     this.theme = null;
     this.info = null;
-    this._initHandlers(); /* TODO: make automatic */
+    this.invisible = player.controlsInvisible;
+
     this.state = {
         happens: C.NOTHING,
         mpos: {x: 0, y: 0},
@@ -42,7 +45,6 @@ var theme = Controls.DEFAULT_THEME = require('./controls_theme.json');
 Controls.THEME = Controls.DEFAULT_THEME;
 
 Controls.LAST_ID = 0;
-provideEvents(Controls, [C.X_DRAW]);
 Controls.prototype.update = function(parent) {
     var cvs = this.canvas;
     if (!cvs) {
@@ -63,13 +65,12 @@ Controls.prototype.update = function(parent) {
     }
     this.handleAreaChange();
     if (this.info) this.info.update(parent);
-    BACK_GRAD = null; // invalidate back gradient
 };
 
 Controls.prototype.subscribeEvents = function() {
     var me=this;
 
-    me.player.on(C.S_STATE_CHANGE, function(state) {
+    me.player.on(C.S_CHANGE_STATE, function(state) {
         me.state.happens = state;
         me.state.changed = true;
     });
@@ -135,9 +136,14 @@ Controls.prototype.checkFade = function(dt) {
 Controls.prototype.render = function(gtime) {
     this.checkMouseTimeout(gtime);
 
-    var dt = gtime-this.state.gtime;
+    var dt = gtime - this.state.gtime;
     var prevGtime = this.state.gtime;
     this.state.gtime = gtime;
+    this.state.time = this.player.state.time;
+
+    if (this.invisible) {
+        return;
+    }
 
     if (!this.bounds || !this.state.changed) {
         // no reason to render nothing or the same image again
@@ -152,7 +158,7 @@ Controls.prototype.render = function(gtime) {
         player = this.player,
         s = state.happens,
         coords = state.mpos,
-        time = state.time = player.state.time;
+        time = state.time;
 
     var ctx = this.ctx,
         theme = this.theme,
@@ -182,21 +188,19 @@ Controls.prototype.render = function(gtime) {
         state.changed = false;
     } else if (s === C.PAUSED) {
         drawBack(ctx, theme, w, h);
-        drawPlay(ctx, theme, w, h, this.focused);
         if (duration) {
             drawProgress(ctx, theme, w, h, progress);
             drawTinyPlay(ctx, w, h);
             drawTime(ctx, theme, w, h, time, duration, progress, coords);
             drawVolumeBtn(ctx, w, h, player.muted);
         }
+        drawPlay(ctx, theme, w, h, this.focused);
         state.changed = false;
     } else if (s === C.NOTHING) {
         drawNoAnimation(ctx, theme, w, h, this.focused);
         state.changed = false;
     } else if ((s === C.LOADING) || (s === C.RES_LOADING)) {
-        drawBack(ctx, theme, w, h);
-        drawLoadingProgress(ctx, w, h, ((gtime / 100  % 60) / 60),
-                            this.loadingProgress, this.loadingErrors);
+        drawLoadingProgress(ctx, w, h, this.loadingProgress, this.loadingErrors);
     } else if (s === C.ERROR) {
         drawBack(ctx, theme, w, h);
         drawError(ctx, theme, w, h, player.__lastError, this.focused);
@@ -204,11 +208,10 @@ Controls.prototype.render = function(gtime) {
     }
 
     ctx.restore();
-    this.fire(C.X_DRAW);
 
     if (this.info) {
-      if (s !== C.NOTHING) { this._infoShown = true; this.info.render(); }
-      else { this._infoShown = false; }
+        if (s !== C.NOTHING) { this._infoShown = true; this.info.render(); }
+        else { this._infoShown = false; }
     }
     //we might have a non-changing state like STOPPED, but it will still
     //need to be redrawn when fading in/out, so we apply our fade modifier
@@ -232,7 +235,7 @@ Controls.prototype.react = function() {
 
     //handle clicks in the bottom area, where the playhead
     //and mute buttons reside
-    if (Controls.isInProgressArea(coords, w, h)) {
+    if (!this.invisible && Controls.isInProgressArea(coords, w, h)) {
         if (coords.x > btnWidth && coords.x < w-btnWidth) {
             time = utils.roundTo(p.state.duration*(coords.x-btnWidth)/(w-2*btnWidth), 1);
             if (time > p.anim.duration) {
@@ -241,12 +244,7 @@ Controls.prototype.react = function() {
                 //a good idea.
                 time = p.anim.duration;
             }
-            if (s === C.PLAYING) {
-              p.pause()
-               .play(time);
-            } else {
-              p.play(time).pause();
-            }
+            p.seek(time);
             this.state.time = time;
             return;
         } else if(coords.x > w-btnWidth) { //mute button?
@@ -276,8 +274,8 @@ Controls.prototype.handleAreaChange = function() {
 Controls.prototype.handleMouseMove = function(evt) {
     this.state.mouseInteracted = true;
     var pos = engine.getEventPosition(evt, this.canvas);
-    this.state.mpos.x = pos[0];
-    this.state.mpos.y = pos[1];
+    this.state.mpos.x = pos.x;
+    this.state.mpos.y = pos.y;
     if (this.state.happens === C.PLAYING || this.state.happens === C.PAUSED) {
         //if we are in the state where the playhead is accessible,
         //let's check if the mouse was there.
@@ -533,48 +531,30 @@ var drawVolumeBtn = function(ctx, w, h, muted) {
     ctx.restore();
 };
 
-//draw the loader
-var drawLoadingProgress = function(ctx, w, h, hilite_pos, factor, errorFactor) {
-    var cx = w / 2,
-        cy = h / 2,
-        segment = Math.ceil(90 * hilite_pos),
-        twoPi = 2 * Math.PI,
-        segmentPos = twoPi/90*segment;
-        segmentAngle = twoPi/8;
+// draw loading progress at the bottom
+var drawLoadingProgress = function(ctx, w, h, factor, errorFactor) {
 
-    ctx.translate(cx, cy);
-    ctx.strokeStyle = theme.loading.inactiveColor;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(0, 0, 36, 0, twoPi);
-    ctx.stroke();
-    ctx.closePath();
-    ctx.beginPath();
-    ctx.strokeStyle = theme.loading.activeColor;
-    ctx.arc(0,0,36,segmentPos, segmentPos + segmentAngle);
-    ctx.stroke();
-    ctx.closePath();
+    if (!factor && !errorFactor) return;
 
     // draw loading progress at the bottom
-    if (factor || errorFactor) {
-        ctx.translate(-cx, cy - theme.loading.factorLineWidth); // bottom right corner - 2px
-        ctx.strokeStyle = theme.loading.factorBackColor;
-        ctx.lineWidth = theme.loading.factorLineWidth;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(w, 0);
+
+    ctx.translate(0, h - theme.loading.factorLineWidth);
+    ctx.strokeStyle = theme.loading.factorBackColor;
+    ctx.lineWidth = theme.loading.factorLineWidth;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(w, 0);
+    ctx.stroke();
+    ctx.strokeStyle = theme.loading.factorDoneColor;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(w * factor, 0);
+    ctx.stroke();
+    if (errorFactor) {
+        ctx.strokeStyle = theme.loading.factorErrorColor;
+        ctx.moveTo(w * factor, 0);
+        ctx.lineTo(w * errorFactor, 0);
         ctx.stroke();
-        ctx.strokeStyle = theme.loading.factorDoneColor;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(w * factor, 0);
-        ctx.stroke();
-        if (errorFactor) {
-            ctx.strokeStyle = theme.loading.factorErrorColor;
-            ctx.moveTo(w * factor, 0);
-            ctx.lineTo(w * errorFactor, 0);
-            ctx.stroke();
-        }
     }
 };
 

@@ -24,10 +24,10 @@ Color.HSLA_RE      = /^hsla\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*%\s*,\s*([0
  *
  * @param {String} source
  * @return {Object} result
- * @param {Number} return.r Red value
- * @param {Number} return.g Green value
- * @param {Number} return.b Blue value
- * @param {Number} return.a Alpha value
+ * @return {Number} return.r Red value
+ * @return {Number} return.g Green value
+ * @return {Number} return.b Blue value
+ * @return {Number} return.a Alpha value
  */
 Color.from = function(test) {
     return is.str(test) ? Color.fromStr(test) : (test.r && test);
@@ -115,10 +115,10 @@ Color.fromHsla = function(hsla) {
  * @param {Number} sat saturation
  * @param {Number} light light
  * @return {Object} result
- * @param {Number} return.r Red value
- * @param {Number} return.g Green value
- * @param {Number} return.b Blue value
- * @param {Number} return.a Alpha value
+ * @return {Number} return.r Red value
+ * @return {Number} return.g Green value
+ * @return {Number} return.b Blue value
+ * @return {Number} return.a Alpha value
  */
 Color.fromHslVal = function(hue, sat, light) {
     var hueToRgb = Color.hueToRgb;
@@ -178,8 +178,8 @@ Color.rgba = function(r, g, b, a) {
  * Convert HSL values to CSS-compatible string
  *
  * @param {Number} h Hue value, in radians
- * @param {Number} s Saturation value
- * @param {Number} l Light value
+ * @param {Number} s Saturation value, 0..1
+ * @param {Number} l Light value, 0..1
  * @return {String} result
  */
 Color.hsl = function(h, s, l) {
@@ -191,8 +191,8 @@ Color.hsl = function(h, s, l) {
  * Convert DHSL values to CSS-compatible string
  *
  * @param {Number} h Hue value, in degrees
- * @param {Number} s Saturation value
- * @param {Number} l Light value
+ * @param {Number} s Saturation value, 0..1
+ * @param {Number} l Light value, 0..1
  * @return {String} result
  */
 Color.dhsl = function(dh, s, l) {
@@ -215,9 +215,9 @@ Color.hsla = function(h, s, l, a) {
     return Color.dhsla(h / Math.PI * 180, s, l, a);
 };
 /**
- * @static @method hsla
+ * @static @method dhsla
  *
- * Convert HSLA values to CSS-compatible string
+ * Convert DHSLA values to CSS-compatible string
  *
  * @param {Number} h Hue value, in radians
  * @param {Number} s Saturation value
@@ -258,7 +258,7 @@ Color.toHslaStr = function(color) {
  *
  * Find a color located at a given distance between two given colors
  *
- * See {@link anm.Brush#interpolate Brush.interpolate()}
+ * See {@link anm.Brush#static-method-interpolate Brush.interpolate()}
  *
  * @param {anm.Color} c1 starting value of a color
  * @param {anm.Color} c2 final value of a color

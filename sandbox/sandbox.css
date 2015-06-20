@@ -74,7 +74,7 @@ textarea, .CodeMirror {
 	padding: 5px;
 }
 
-#my-canvas {
+#player {
 	/*width: 400px;
 	  height: 300px;*/
 }
@@ -91,6 +91,14 @@ textarea, .CodeMirror {
 	margin-bottom: 10px;
 	height: 98%;
 	width: 64%;
+}
+
+#interactivity #left-pane {
+	width: 35%;
+}
+
+#interactivity #right-pane {
+	width: 60%;
 }
 
 select#examples-list {
@@ -118,18 +126,12 @@ select#examples-list {
 	margin-bottom: 0;
 }
 
-#left-pane pre.locked {
+#left-pane pre.locked, #right-pane pre.locked {
 	/*font-weight: bold;*/
 	margin-bottom: 10px;
-	height: 2.5em;
+	height: 3.5em;
+	line-height: 1.3em;
 }
-
-#right-pane pre.locked {
-	margin-bottom: 10px;
-	line-height: .8em;
-	height: 2.5em;
-}
-
 select#examples-list {
 	margin: 0;
 	margin-top: 15px;
@@ -159,7 +161,7 @@ select#examples-list:focus {
 	max-width: 386px; /* 400 - 5*2 - 2*2 */
 }
 
-#refresh-calc, #debug-options, #switch-mode-l, #switch-mode {
+#refresh-calc, #debug-options, #switch-mode-l, #switch-mode, #set-json {
 	font-size: .8em;
 }
 
@@ -173,61 +175,9 @@ select#examples-list:focus {
 	margin-bottom: 2px;
 }
 
-#csheet {
-	background-color: #FFFFFF;
-    left: 10%;
-    top: 10%;
-    position: fixed;
-    z-index: 100;
-    width: 75%;
-    font-size: .9em;
-    padding: 15px;
-    border: 2px solid #666;
-    height: 75%;
-    overflow-y: scroll;
-}
-
-#csheet dt {
-	font-family: monospace;
-	font-weight: bold;
-	padding-bottom: 5px;
-	color: #600;
-}
-
-#csheet dd {
-	padding-bottom: 10px;
-	line-height: 1.15em;
-	font-size: .8em;
-}
-
-#csheet code {
-	font-family: monospace;
-}
-
-#csheet-overlay {
-	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	width: 100%;
-	height: 100%;
-	opacity: .9;
-	-moz-opacity: .9;
-	-webkit-opacity: .9;
-	-o-opacity: .9;
-	-ms-opacity: .9;
-	background-color: #666;
-	z-index: 50;
-}
-
-#csheet-link, #api-link {
+#player-page-link, #api-link {
 	font-size: .8em;
 	margin-right: 10px;
-}
-
-#csheet-link {
-	text-decoration: none;
 }
 
 /* colors, when CodeEditor is not focused */
@@ -242,7 +192,7 @@ h1 {
 	color: #333;
 }
 
-#player-wrapper, textarea, .CodeMirror {
+#player, textarea, .CodeMirror {
 	border-color: #ddd;
 	color: #8a8a8a;
 }
@@ -268,6 +218,19 @@ h1 {
 select#examples-list {
 	border-color: #ccc;
 	color: #333;
+	margin-bottom: 10px;
+}
+
+input#json-url {
+	width: 70%;
+}
+
+textarea#json-code {
+	float: right;
+	width: 80%;
+	height: 40px;
+	font-size: 0.9em;
+	font-family: monospace;
 }
 
 #copyright {
@@ -280,15 +243,11 @@ select#examples-list {
 	background-color: #fee;
 }
 
-#csheet-link {
-	color: #600;
-}
-
-#api-link {
+#player-page-link, #api-link {
 	color: #006;
 }
 
-a#csheet-link:hover, a#api-link:hover {
+a#player-page-link:hover, a#api-link:hover {
     background-color: #eee;
 }
 

@@ -1,12 +1,12 @@
 var C = require('../constants.js'),
-    is = require('../utils.js').is,
-    SystemError = require('../errors.js').SystemError;
+    is = require('../utils.js').is;
+
+var errors = require('../errors.js');
 
 var engine = require('engine');
 
-var Brush = require('./brush.js');
-
-var Bounds = require('./bounds.js');
+var Brush = require('./brush.js'),
+    Bounds = require('./bounds.js');
 
 // TODO: new Text("My Text").font("Arial").size(5).bold()
 
@@ -159,6 +159,22 @@ Text.prototype.bounds = function() {
     var bounds = Text.bounds(this, this.lines);
     return (this.$bounds = bounds);
 };
+/**
+ * @method inside
+ *
+ * Checks if point is inside the shape. _Does no test for bounds_, the point is
+ * assumed to be already inside of the bounds, so check `text.bounds().inside(pt)`
+ * before calling this method manually.
+ *
+ * @param {Object} pt point to check
+ * @param {Number} pt.x
+ * @param {Number} pt.y
+ * @return {Boolean} is point inside
+ */
+Text.prototype.inside = function(pt) {
+    return true; // if point is inside of the bounds, point is considered to be
+                 // inside the text shape, for the moment
+};
 // should be static
 Text.prototype.ascent = function(height, baseline) {
     return (baseline == C.BL_MIDDLE) ? (height / 2) : height;
@@ -228,7 +244,7 @@ Text.prototype.invalidate = function() {
 Text.prototype.reset = function() { };
 Text.prototype.dispose = function() { };
 Text.bounds = function(spec, lines) {
-    if (!Text.__measuring_f) throw new SysErr('no Text buffer, bounds call failed');
+    if (!Text.__measuring_f) throw errors.system('no Text buffer, bounds call failed');
     var dimen = Text.__measuring_f(spec, lines);
     return new Bounds(0, 0, dimen[0], dimen[1]);
 };

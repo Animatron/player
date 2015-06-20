@@ -112,6 +112,13 @@ Transform.prototype.transformPoint = function(x, y) {
            y: (x * this.m[1] + y * this.m[3] + this.m[5]) };
 };
 
+Transform.prototype.transformPointInverse = function(x, y) {
+  this.invert();
+  var pt = this.transformPoint(x, y);
+  this.invert();
+  return pt;
+};
+
 // customized methods
 
 Transform.prototype.shear = function(hx, hy) {

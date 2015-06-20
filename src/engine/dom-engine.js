@@ -7,11 +7,16 @@
  * @VERSION
  */
 
+
 // DOM Engine
 // -----------------------------------------------------------------------------
 
-var $doc = window.document;
-    // DomEngine constants
+var $win = (typeof window !== 'undefined') ? window : {}
+var $doc = (typeof window !== 'undefined') ? window.document : {};
+var $nav = (typeof navigator !== 'undefined') ? navigator : {};
+var $glob = (typeof global !== 'undefined') ? global : {};
+
+// DomEngine constants
 
 var MARKER_ATTR = 'anm-player', // marks player existence on canvas element
     AUTO_MARKER_ATTR = 'anm-player-target', // marks that this element is a target for a player
@@ -92,28 +97,27 @@ var $DE = {};
 // mouseEvent(evt, canvas) -> Event//
 // preventDefault(evt) -> none
 
-// createStyle() -> Element
 // createStatImg() -> Image
 
 // canvasSupported -> bool
 
 // Framing
 // shim adopted from https://gist.github.com/paulirish/1579671
-var requestAnimationFrame = global.requestAnimationFrame,
-    cancelAnimationFrame = global.cancelAnimationFrame;
+var requestAnimationFrame = $glob.requestAnimationFrame,
+    cancelAnimationFrame = $glob.cancelAnimationFrame;
 var lastTime = 0;
     var vendors = ['ms', 'moz', 'webkit', 'o'];
-    for(var x = 0; x < vendors.length && !global.requestAnimationFrame; ++x) {
-        requestAnimationFrame = global[vendors[x]+'RequestAnimationFrame'];
-        cancelAnimationFrame = global[vendors[x]+'CancelAnimationFrame'] ||
-                                   global[vendors[x]+'CancelRequestAnimationFrame'];
+    for(var x = 0; x < vendors.length && !$glob.requestAnimationFrame; ++x) {
+        requestAnimationFrame = $glob[vendors[x]+'RequestAnimationFrame'];
+        cancelAnimationFrame = $glob[vendors[x]+'CancelAnimationFrame'] ||
+                               $glob[vendors[x]+'CancelRequestAnimationFrame'];
     }
 
     if (!requestAnimationFrame) {
         requestAnimationFrame = function(callback, element) {
             var currTime = new Date().getTime();
             var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-            var id = window.setTimeout(function() { callback(currTime + timeToCall); },
+            var id = $win.setTimeout(function() { callback(currTime + timeToCall); },
               timeToCall);
             lastTime = currTime + timeToCall;
             return id;
@@ -130,18 +134,18 @@ $DE.getCancelFrameFunc = function(){ return cancelAnimationFrame; };
 
 // Global things
 
-$DE.PX_RATIO = window.devicePixelRatio || 1;
+$DE.PX_RATIO = $win.devicePixelRatio || 1;
 
 $DE.ajax = function(url, callback, errback, method, headers) {
     var req;
     if (isIE9) {
-        req = new window.XDomainRequest();
+        req = new $win.XDomainRequest();
     } else {
-        req = new window.XMLHttpRequest();
+        req = new $win.XMLHttpRequest();
     }
 
     if (!req) {
-      throw new Error('Failed to create XMLHttp instance'); // SysErr
+        throw new Error('Failed to create XMLHttp instance'); // SysErr
     }
 
     var whenDone = function() {
@@ -225,53 +229,26 @@ $DE.CONTROLS_INSTANCE_CLASS_PREFIX = 'anm-controls-';
 $DE.INFO_CLASS = 'anm-controls';
 $DE.INFO_INSTANCE_CLASS_PREFIX = 'anm-controls-';
 
-$DE.styling = {
-    wrapperGeneral: function(rule) {
-        rule.style.position = 'relative';
-    },
-    wrapperInstance: function(rule) { },
-    playerGeneral: function(rule) { },
-    playerInstance: function(rule, desc) { },
-    controlsGeneral: function(rule) {
-        rule.style.position = 'absolute';
-        rule.style.left = 0;
-        rule.style.top = 0;
-        rule.style.verticalAlign = 'top';
-        rule.style.zIndex = 100;
-        rule.style.cursor = 'pointer';
-        rule.style.backgroundColor = 'rgba(0, 0, 0, 0)';
-    },
-    controlsInstance: function(rule, desc) { },
-    infoGeneral: function(rule) {
-        rule.style.position = 'relative';
-        rule.style.verticalAlign = 'top';
-        rule.style.zIndex = 110;
-        rule.style.cursor = 'pointer';
-        rule.style.backgroundColor = 'rgba(0, 0, 0, 0)';
-        rule.style.opacity = 1;
-    },
-    infoInstance: function(rule, desc) { }
-};
 
 $DE.ensureGlobalStylesInjected = function() {
     if ($DE.__stylesTag) return;
-    //if (!($doc.readyState === "complete")) return;
-    var stylesTag = $DE.createStyle();
+    var stylesTag = $doc.getElementById('anm-player-styles');
+    if (!stylesTag) {
+        stylesTag = $doc.createElement('style');
+        stylesTag.id = 'anm-player-styles';
 
-    // TODO: inject as first element?
-    var head = $doc.getElementsByTagName("head")[0];
-    if (!head) throw new Error('anm.Player requires <head> tag to exist in the document to inject CSS there');
-    head.appendChild(stylesTag);
-    // TODO: inject as first element?
-    // var head = $doc.getElementsByTagName("head")[0];
-    // head.insertBefore(stylesTag, head.firstChild);
+        var css = require('../../res/player.css');
+        stylesTag.innerHTML = css;
+        // TODO: inject as first element?
+        var head = $doc.head;
+        head.appendChild(stylesTag);
 
+    }
     $DE.__stylesTag = stylesTag;
 };
 
+
 $DE.injectElementStyles = function(elm, general_class, instance_class) {
-    var styles = $DE.__stylesTag.sheet,
-        rules = styles.cssRules || styles.rules;
     if (elm.classList) {
         elm.classList.add(general_class);
         elm.classList.add(instance_class);
@@ -283,27 +260,17 @@ $DE.injectElementStyles = function(elm, general_class, instance_class) {
     var props = $DE.getAnmProps(elm);
     props.gen_class  = general_class;
     props.inst_class = instance_class;
-    var general_rule_idx  = (styles.insertRule || styles.addRule).call(styles, '.' +general_class + '{}', rules.length),
-        instance_rule_idx = (styles.insertRule || styles.addRule).call(styles, '.' +instance_class + '{}', rules.length);
-    var elm_rules = [ rules[general_rule_idx],
-                      rules[instance_rule_idx] ];
-    props.gen_rule  = elm_rules[0];
-    props.inst_rule = elm_rules[1];
-    return elm_rules;
 };
 
-$DE.__textBuf = null;
+$DE.__textBuf = $doc.getElementById('anm-text-measurer');
 $DE.createTextMeasurer = function() {
     var buff = $DE.__textBuf;
     if (!buff) {
-        /* FIXME: dispose buffer when text is removed from animation */
         $DE.onDocReady(function(){
           var div = $doc.createElement('div');
           var span = $doc.createElement('span');
-          div.style.visibility = 'hidden';
-          div.style.position = 'absolute';
-          div.style.top = -10000 + 'px';
-          div.style.left = -10000 + 'px';
+          span.id = 'anm-text-measurer';
+          div.id = 'anm-text-measurer-container';
           div.appendChild(span);
           $doc.body.appendChild(div);
           $DE.__textBuf = span;
@@ -318,7 +285,7 @@ $DE.createTextMeasurer = function() {
         //buff.style.textAlign = text.align;
         //buff.style.verticalAlign = text.baseline || 'bottom';
         buff.style.whiteSpace = 'pre';
-        if (Array.isArray(text.lines)) { // FIXME: replace with anm.is.arr()
+        if (anm.utils.is.arr(lines)) {
             var maxWidth = 0, height = 0;
             for (var i = 0, ilen = lines.length; i < ilen; i++) {
                 buff.textContent = lines[i] || " ";
@@ -327,12 +294,13 @@ $DE.createTextMeasurer = function() {
             }
             return [ maxWidth, height ];
         } else {
-            buff.textContent = text.lines.toString() || "";
+            buff.textContent = lines.toString() || "";
             return [ buff.offsetWidth,
                      buff.offsetHeight ];
         }
         // TODO: test if lines were changed, and if not,
         //       use cached value
+
     };
 };
 
@@ -415,13 +383,11 @@ $DE.detachElement = function(parent, child) {
 };
 
 $DE.showElement = function(elm) {
-    var props = $DE.hasAnmProps(elm);
-    ((props && props.inst_rule) || elm).style.visibility = 'visible';
+    elm.style.visibility = 'visible';
 };
 
 $DE.hideElement = function(elm) {
-    var props = $DE.hasAnmProps(elm);
-    ((props && props.inst_rule) || elm).style.visibility = 'hidden';
+    elm.style.visibility = 'hidden';
 };
 
 $DE.clearChildren = function(elm) {
@@ -439,14 +405,14 @@ $DE.createCanvas = function(width, height, bg, ratio) {
 };
 
 $DE.assignPlayerToWrapper = function(wrapper, player, backup_id) {
-    if (!wrapper) throw new Error('Element passed to anm.Player initializer does not exists.');
+    if (!wrapper) throw new Error('Element passed to anm.Player initializer does not exist.');
 
     if (anm.utils.is.str(wrapper)) {
         wrapper = $doc.getElementById(wrapper);
     }
 
     var canvasWasPassed = (wrapper.tagName == 'canvas') || (wrapper.tagName == 'CANVAS');
-    if (canvasWasPassed && window.console) {
+    if (canvasWasPassed && $win.console) {
         console.warn('NB: A <canvas> tag was passed to the anm.Player as an element to attach to. This is ' +
                      'not a recommended way since version 1.2; this <canvas> will be moved inside ' +
                      'a <div>-wrapper because of it, so it may break document flow and/or CSS styles. ' +
@@ -465,7 +431,7 @@ $DE.assignPlayerToWrapper = function(wrapper, player, backup_id) {
 
     var prev_cvs_id = canvas.id;
     canvas.id = ''; // to ensure no elements will have the same ID in DOM after the execution of next line
-    if (!wrapper.id) wrapper.id = prev_cvs_id || back_id;
+    if (!wrapper.id) wrapper.id = prev_cvs_id;
     canvas.id = wrapper.id + '-cvs';
     var props = $DE.getAnmProps(canvas);
     props.wrapper = wrapper;
@@ -487,17 +453,12 @@ $DE.assignPlayerToWrapper = function(wrapper, player, backup_id) {
 
     $DE.ensureGlobalStylesInjected();
 
-    var wrapper_rules = $DE.injectElementStyles(wrapper,
-                                                $DE.WRAPPER_CLASS,
-                                                $DE.WRAPPER_INSTANCE_CLASS_PREFIX + (id || 'no-id'));
-    var cvs_rules = $DE.injectElementStyles(canvas,
-                                            $DE.PLAYER_CLASS,
-                                            $DE.PLAYER_INSTANCE_CLASS_PREFIX + (id || 'no-id'));
-
-    $DE.styling.playerGeneral(cvs_rules[0]);
-    $DE.styling.playerInstance(cvs_rules[1]);
-    $DE.styling.wrapperGeneral(wrapper_rules[0]);
-    $DE.styling.wrapperInstance(wrapper_rules[1]);
+    $DE.injectElementStyles(wrapper,
+        $DE.WRAPPER_CLASS,
+        $DE.WRAPPER_INSTANCE_CLASS_PREFIX + (id || 'no-id'));
+    $DE.injectElementStyles(canvas,
+        $DE.PLAYER_CLASS,
+        $DE.PLAYER_INSTANCE_CLASS_PREFIX + (id || 'no-id'));
 
     $DE.subscribeWrapperToStateChanges(wrapper, player);
 
@@ -529,23 +490,6 @@ $DE.getAnmProps = function(elm) {
 
 $DE.clearAnmProps = function(elm) {
     if (!elm || !elm.__anm) return;
-    var __anm = elm.__anm;
-    if (__anm.gen_class && __anm.inst_class) {
-        var styles = $DE.__stylesTag.sheet,
-            rules = styles.cssRules || styles.rules;
-        var to_remove = [];
-        for (var i = 0, il = rules.length; i < il; i++) {
-            if ((rules[i].selectorText == '.' + __anm.gen_class) ||
-                (rules[i].selectorText == '.' + __anm.inst_class)) {
-                to_remove.push(i); // not to conflict while iterating
-            }
-        }
-        while (to_remove.length) { // remove from the end for safety
-            (styles.deleteRule || styles.removeRule).call(styles, to_remove.pop());
-        }
-    }
-    if (__anm.gen_class  && elm.classList) elm.classList.remove(__anm.gen_class);
-    if (__anm.inst_class && elm.classList) elm.classList.remove(__anm.inst_class);
     delete elm.__anm;
 };
 
@@ -571,9 +515,6 @@ $DE.detachPlayer = function(player) {
     if (player.statImg) {
       $DE.detachElement(null, player.statImg);
     }
-    //FIXME: should remove stylesTag when last player was deleted from page
-    //$DE.detachElement(null, $DE.__stylesTag);
-    //$DE.__stylesTag = null;
 };
 
 $DE.getContext = function(cvs, type) {
@@ -695,8 +636,8 @@ $DE.setCanvasSize = function(cvs, width, height, ratio) {
     props.ratio = ratio;
     props.width = _w;
     props.height = _h;
-    if (!cvs.style.width) { (props.inst_rule || cvs).style.width  = _w + 'px'; }
-    if (!cvs.style.height) { (props.inst_rule || cvs).style.height = _h + 'px'; }
+    cvs.style.width  = _w + 'px';
+    cvs.style.height = _h + 'px';
     cvs.setAttribute('width', _w * (ratio || 1));
     cvs.setAttribute('height', _h * (ratio || 1));
     $DE._saveCanvasPos(cvs);
@@ -712,7 +653,7 @@ $DE.setCanvasPosition = function(cvs, x, y) {
 };
 
 $DE.setCanvasBackground = function(cvs, bg) {
-    ($DE.getAnmProps(cvs).inst_rule || cvs).style.backgroundColor = bg;
+    cvs.style.backgroundColor = bg;
 };
 
 $DE._saveCanvasPos = function(cvs) {
@@ -760,6 +701,17 @@ $DE._saveCanvasPos = function(cvs) {
     props.offset_top  = ot || props.usr_y;
 };
 
+$DE.setWrapperSize = function(wrapper, width, height) {
+    var _w = width | 0, // to int
+        _h = height | 0; // to int
+    var props = $DE.getAnmProps(wrapper);
+    props.width = _w;
+    props.height = _h;
+    wrapper.style.width  = _w + 'px';
+    wrapper.style.height = _h + 'px';
+    return [ _w, _h ];
+};
+
 $DE.addCanvasOverlay = function(id, player_cvs, conf, callback) {
     // conf should be: [ x, y, w, h ], all in percentage relative to parent
     // style may contain _class attr
@@ -770,7 +722,7 @@ $DE.addCanvasOverlay = function(id, player_cvs, conf, callback) {
         w = conf[2], h = conf[3];
     var pconf = $DE.getCanvasSize(player_cvs),
         pw = pconf[0], ph = pconf[1];
-    var p_style = window.getComputedStyle ? window.getComputedStyle(player_cvs) : player_cvs.currentStyle;
+    var p_style = $win.getComputedStyle ? $win.getComputedStyle(player_cvs) : player_cvs.currentStyle;
     var x_shift = parseFloat(p_style.getPropertyValue('border-left-width')),
         y_shift = parseFloat(p_style.getPropertyValue('border-top-width'));
     var new_w = (w * pw),
@@ -807,19 +759,15 @@ $DE.updateOverlay = function(player_cvs, overlay, p_props) {
 // Controls & Info
 
 $DE.registerAsControlsElement = function(elm, player) {
-    var rules = $DE.injectElementStyles(elm,
-                                $DE.CONTROLS_CLASS,
-                                $DE.CONTROLS_INSTANCE_CLASS_PREFIX + (player.id || 'no-id'));
-    $DE.styling.controlsGeneral(rules[0]);
-    $DE.styling.controlsInstance(rules[1]);
+    $DE.injectElementStyles(elm,
+        $DE.CONTROLS_CLASS,
+        $DE.CONTROLS_INSTANCE_CLASS_PREFIX + (player.id || 'no-id'));
 };
 
 $DE.registerAsInfoElement = function(elm, player) {
-    var rules = $DE.injectElementStyles(elm,
-                                $DE.INFO_CLASS,
-                                $DE.INFO_INSTANCE_CLASS_PREFIX + (player.id || 'no-id'));
-    $DE.styling.infoGeneral(rules[0]);
-    $DE.styling.infoInstance(rules[1]);
+    $DE.injectElementStyles(elm,
+        $DE.INFO_CLASS,
+        $DE.INFO_INSTANCE_CLASS_PREFIX + (player.id || 'no-id'));
 };
 
 // Events
@@ -827,24 +775,24 @@ $DE.registerAsInfoElement = function(elm, player) {
 $DE.getEventPosition = function(evt, elm) {
     if (elm) {
         var shift = $DE.findElementPosition(elm); // $DE.findScrollAwarePosition(elm);
-        return [ evt.clientX - shift[0], evt.clientY - shift[1] ];
-    } else return [ evt.x, evt.y ];
+        return { x: evt.clientX - shift[0], y: evt.clientY - shift[1] };
+    } else return { x: evt.x, y: evt.y };
 };
 
 $DE.subscribeElementEvents = function(elm, handlers) {
     for (var type in handlers) {
         elm.addEventListener(type, handlers[type], false);
     }
-}
+};
 
 $DE.unsubscribeElementEvents = function(elm, handlers) {
     for (var type in handlers) {
         elm.removeEventListener(type, handlers[type], false);
     }
-}
+};
 
 $DE.subscribeWindowEvents = function(handlers) {
-    $DE.subscribeElementEvents(window, handlers);
+    $DE.subscribeElementEvents($win, handlers);
 };
 
 $DE.subscribeCanvasEvents = $DE.subscribeElementEvents;
@@ -875,16 +823,14 @@ $DE.subscribeAnimationToEvents = function(cvs, anim, map) {
     if (!cvs.__anm.handlers)   cvs.__anm.handlers = {};
     if (!cvs.__anm.subscribed) cvs.__anm.subscribed = {};
     var handlers = cvs.__anm.subscribed[anim.id] || {
-      mouseup:   function(evt) { anim.fire(map.mouseup,   _mevt(evt, cvs)); },
-      mousedown: function(evt) { anim.fire(map.mousedown, _mevt(evt, cvs)); },
-      mousemove: function(evt) { anim.fire(map.mousemove, _mevt(evt, cvs)); },
-      mouseover: function(evt) { anim.fire(map.mouseover, _mevt(evt, cvs)); },
-      mouseout:  function(evt) { anim.fire(map.mouseout,  _mevt(evt, cvs)); },
-      click:     function(evt) { anim.fire(map.click,     _mevt(evt, cvs)); },
-      dblclick:  function(evt) { anim.fire(map.dblclick,  _mevt(evt, cvs)); },
-      keyup:     function(evt) { anim.fire(map.keyup,     _kevt(evt)); },
-      keydown:   function(evt) { anim.fire(map.keydown,   _kevt(evt)); },
-      keypress:  function(evt) { anim.fire(map.keypress,  _kevt(evt)); }
+        click:     function(evt) { anim.fire(map.click,     _mevt(evt, cvs)); },
+        dblclick:  function(evt) { anim.fire(map.dblclick,  _mevt(evt, cvs)); },
+        mouseup:   function(evt) { anim.fire(map.mouseup,   _mevt(evt, cvs)); },
+        mousedown: function(evt) { anim.fire(map.mousedown, _mevt(evt, cvs)); },
+        mousemove: function(evt) { anim.fire(map.mousemove, _mevt(evt, cvs)); },
+        keypress:  function(evt) { anim.fire(map.keypress,  _kevt(evt)); },
+        keyup:     function(evt) { anim.fire(map.keyup,     _kevt(evt)); },
+        keydown:   function(evt) { anim.fire(map.keydown,   _kevt(evt)); }
     };
     cvs.__anm.handlers[anim.id] = handlers;
     cvs.__anm.subscribed[anim.id] = true;
@@ -946,67 +892,110 @@ $DE.createStatImg = function() {
     return img;
 };
 
-$DE.createStyle = function() {
-    var style = document.createElement('style');
+$DE.getWebfontStyleObject = function() {
+    var style = document.getElementById('anm-webfonts');
+    if (style) {
+        return style;
+    }
+    style = $doc.createElement('style');
     style.type = 'text/css';
+    style.id = 'anm-webfonts';
+    style.innerHTML = '';
+    document.body.appendChild(style);
     return style;
 };
 
 $DE.createAudio = function() {
-    return document.createElement('audio');
+    return $doc.createElement('audio');
 };
 
 $DE.createVideo = function() {
-    return document.createElement('video');
+    return $doc.createElement('video');
 };
 
 $DE.createSource = function() {
-    return document.createElement('source');
+    return $doc.createElement('source');
 };
 
 $DE.appendToBody = function(element) {
-    document.body.appendChild(element);
+    $doc.body.appendChild(element);
 };
 
-var testCanvas = document.createElement('canvas');
+var testCanvas = $doc.createElement ? $doc.createElement('canvas') : {};
 $DE.canvasSupported = !!(testCanvas.getContext && testCanvas.getContext('2d'));
 
-var https = window.location && window.location.protocol === 'https:';
+var https = $win.location && $win.location.protocol === 'https:';
 $DE.isHttps = https;
 
-var local = window.location && window.location.protocol === 'file:';
+var local = $win.location && $win.location.protocol === 'file:';
 $DE.isLocal = local;
 
-var isIE9 = navigator.userAgent.indexOf('MSIE 9.0') !== -1;
+var isIE9 = $nav.userAgent && $nav.userAgent.indexOf('MSIE 9.0') !== -1;
 $DE.isIE9 = isIE9;
 
 var hidden, visibilityChange;
-if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and later support
+if (typeof $doc.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and later support
   hidden = "hidden";
   visibilityChange = "visibilitychange";
-} else if (typeof document.mozHidden !== "undefined") {
+} else if (typeof $doc.mozHidden !== "undefined") {
   hidden = "mozHidden";
   visibilityChange = "mozvisibilitychange";
-} else if (typeof document.msHidden !== "undefined") {
+} else if (typeof $doc.msHidden !== "undefined") {
   hidden = "msHidden";
   visibilityChange = "msvisibilitychange";
-} else if (typeof document.webkitHidden !== "undefined") {
+} else if (typeof $doc.webkitHidden !== "undefined") {
   hidden = "webkitHidden";
   visibilityChange = "webkitvisibilitychange";
 }
 
-if (typeof document[hidden] !== 'undefined' ||
-    typeof document.addEventListener !== 'undefined') {
-        document.addEventListener(visibilityChange,
+if (typeof $doc[hidden] !== 'undefined' ||
+    typeof $doc.addEventListener !== 'undefined') {
+        $doc.addEventListener(visibilityChange,
             function() {
                 if (onDocumentHiddenChange) {
-                    onDocumentHiddenChange(document[hidden]);
+                    onDocumentHiddenChange($doc[hidden]);
                 }
             }, false);
 }
 var onDocumentHiddenChange = null;
 $DE.onDocumentHiddenChange = function(cb){
     onDocumentHiddenChange = cb;
+};
+
+$DE.Path2D = $glob.Path2D;
+
+
+$DE.isInIframe = function() {
+    return $glob.self !== $glob.top;
+};
+
+var iframe = $DE.isInIframe() ? global : null;
+
+var origin = iframe ? iframe.document.referrer.split('/', 3).join('/') : "*";
+
+$DE.getIframeOrigin = function() {
+    return origin;
+};
+
+$DE.getIframeSrc = function() {
+    if (!iframe) {
+        return null;
+    }
+    return iframe.location.href;
+};
+
+$DE.addMessageListener = function(listener) {
+    if (!$glob.addEventListener) {
+        return;
+    }
+    $glob.addEventListener('message', listener, false);
+};
+
+$DE.postToContentWindow = function(message) {
+    if (!iframe) {
+        return;
+    }
+    iframe.top.postMessage(JSON.stringify(message), origin);
 };
 
 module.exports = $DE;

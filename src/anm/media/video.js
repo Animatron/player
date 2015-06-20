@@ -12,9 +12,13 @@ var conf = require('../conf.js'),
 
 var C = require('../constants.js');
 
+var errors = require('../errors.js');
+
 var engine = require('engine');
 
 var ResMan = require('../resource_manager.js');
+
+var Bounds = require('../graphics/bounds.js');
 
 /**
  * @class anm.Video
@@ -25,18 +29,18 @@ function Video(url) {
     this.playing = false;
 }
 /** @private @method connect */
-Video.prototype.connect = function(element) {
+Video.prototype.connect = function(element, anim) {
     var me = this;
     element.on(C.X_START, function() {
         me.play.apply(me, arguments);
     });
     var stop = function() { me.stop(); };
     element.on(C.X_STOP, stop);
-    element.on(C.S_STOP, stop);
-    element.on(C.S_PAUSE, stop);
+    anim.on(C.A_STOP, stop);
+    anim.on(C.A_PAUSE, stop);
 };
 /** @private @method load */
-Video.prototype.load = function(player) {
+Video.prototype.load = function(elm, player) {
 
     var me = this;
     ResMan.loadOrGet(player.id, me.url,
@@ -116,6 +120,7 @@ Video.prototype.load = function(player) {
             me.ready = true;
         },
         function(err) { log.error(err ? (err.message || err) : 'Unknown error');
+                        throw errors.element(err ? err.message : 'Unknown', elm);
                         /* throw err; */
         });
 };
@@ -123,7 +128,30 @@ Video.prototype.load = function(player) {
 Video.prototype.apply = function(ctx) {
     ctx.drawImage(this.video, 0, 0);
 };
-Video.prototype.bounds = function() {};
+Video.prototype.bounds = function() {
+    if (this.$bounds) return this.$bounds;
+    if (!this.video) return Bounds.NONE;
+    var bounds = new Bounds(0, 0,
+                            this.video.width,
+                            this.video.height);
+    return (this.$bounds = bounds);
+};
+/**
+ * @method inside
+ *
+ * Checks if point is inside the shape. _Does no test for bounds_, the point is
+ * assumed to be already inside of the bounds, so check `video.bounds().inside(pt)`
+ * before calling this method manually.
+ *
+ * @param {Object} pt point to check
+ * @param {Number} pt.x
+ * @param {Number} pt.y
+ * @return {Boolean} is point inside
+ */
+Video.prototype.inside = function(pt) {
+    return true; // if point is inside of the bounds, point is considered to be
+                 // inside the video shape
+};
 /** @private @method play */
 Video.prototype.play = function(ltime, duration) {
     if (!this.ready || this.playing) {
@@ -142,7 +170,9 @@ Video.prototype.stop = function() {
     this.video.pause();
     this.playing = false;
 };
-Video.prototype.invalidate = function() {};
+Video.prototype.invalidate = function() {
+    this.$bounds = null;
+};
 Video.prototype.dispose = function() {};
 /**
  * @method clone

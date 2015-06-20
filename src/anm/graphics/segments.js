@@ -7,7 +7,7 @@ var C = require('../constants.js');
  *
  * See {@link anm.LSeg LSeg}, {@link anm.CSeg CSeg}, {@link anm.Path Path};
  *
- * @constuctor
+ * @constructor
  *
  * @param {Array[Number]} pts point to initialize with, in format `[x, y]`
  */
@@ -103,6 +103,20 @@ MSeg.prototype.tangentAt = function(start, t) {
     return 0;
 };
 /**
+ * @method crossings
+ *
+ * Calculates the number of crossings for move segment.
+ *
+ * @param {Array[Number]} start start point in format `[x, y]`
+ * @param {Number} x X-coordinate of a point to check for crossings
+ * @param {Number} y Y-coordinate of a point to check for crossings
+ *
+ * @return {Number} number of crossings
+ */
+MSeg.prototype.crossings = function(start, x, y) {
+    return 0;
+};
+/**
  * @method last
  *
  * Get last point of a segment. For Move Segment it's always a point it was initialized with.
@@ -133,7 +147,7 @@ MSeg.prototype.clone = function() {
  *
  * See {@link anm.MSeg MSeg}, {@link anm.CSeg CSeg}, {@link anm.Path Path};
  *
- * @constuctor
+ * @constructor
  *
  * @param {Array[Number]} pts points to initialize with, in format `[x, y]`
  */
@@ -239,6 +253,25 @@ LSeg.prototype.tangentAt = function(start, t) {
                       this.pts[0] - start[0]);
 };
 /**
+ * @method crossings
+ *
+ * Calculates the number of times the line from (x0,y0) to (x1,y1)
+ * crosses the ray extending to the right from (px,py).
+ * If the point lies on the line, then no crossings are recorded.
+ * +1 is returned for a crossing where the Y coordinate is increasing
+ * -1 is returned for a crossing where the Y coordinate is decreasing
+ *
+ * @param {Array[Number]} start start point in format `[x, y]`
+ * @param {Number} x X-coordinate of a point to check for crossings
+ * @param {Number} y Y-coordinate of a point to check for crossings
+ *
+ * @return {Number} number of crossings
+ */
+LSeg.prototype.crossings = function(start, x, y) {
+    return Crossings.line(x, y, start[0], start[1],
+                          this.pts[0], this.pts[1]);
+};
+/**
  * @method last
  *
  * Get last point of a segment. For Line Segment it's always a point it was initialized with.
@@ -269,12 +302,14 @@ LSeg.prototype.clone = function() {
  *
  * See {@link anm.MSeg MSeg}, {@link anm.LSeg LSeg}, {@link anm.Path Path};
  *
- * @constuctor
+ * @constructor
  *
  * @param {Array[Number]} pts points to initialize with, in format `[x, y, x, y, ...]`
  */
 function CSeg(pts) {
     this.pts = pts;
+    this._cachedStart = null;
+    this._length = 0;
 };
 /**
  * @method draw
@@ -297,7 +332,10 @@ CSeg.prototype.draw = function(ctx) {
  * @return Number segment length
  */
 CSeg.prototype.length = function(start) {
-    return this.findLengthAndT(start, Number.MAX_VALUE)[0];
+    if (this._cachedStart && ((this._cachedStart[0] === start[0]) &&
+                              (this._cachedStart[1] === start[1]))) return this._length;
+    this._cachedStart = start;
+    return (this._length = this.findLengthAndT(start, Number.MAX_VALUE)[0]);
 };
 /**
  * @method findT
@@ -451,6 +489,32 @@ CSeg.prototype.tangentAt = function(start, t) {
                       (c * (this.pts[4] - this.pts[2])));
 };
 /**
+ * @method crossings
+ *
+ * Calculates the number of times the cubic from (x0,y0) to (x1,y1)
+ * crosses the ray extending to the right from (px,py).
+ * If the point lies on a part of the curve,
+ * then no crossings are counted for that intersection.
+ * the level parameter should be 0 at the top-level call and will count
+ * up for each recursion level to prevent infinite recursion
+ * +1 is added for each crossing where the Y coordinate is increasing
+ * -1 is added for each crossing where the Y coordinate is decreasing
+ *
+ * @param {Array[Number]} start start point in format `[x, y]`
+ * @param {Number} x X-coordinate of a point to check for crossings
+ * @param {Number} y Y-coordinate of a point to check for crossings
+ *
+ * @return {Number} number of crossings
+ */
+CSeg.prototype.crossings = function(start, x, y) {
+    var pts = this.pts;
+    return Crossings.curve(x, y, start[0], start[1],
+                           pts[0], pts[1],
+                           pts[2], pts[3],
+                           pts[4], pts[5],
+                           0);
+};
+/**
  * @method last
  *
  * Get last point of a segment.
@@ -506,8 +570,67 @@ CSeg.prototype.toString = function() {
     return "C" + this.pts.join(" ");
 };
 
+var Crossings = {
+    curve: function(px, py, x0, y0,
+                    xc0, yc0, xc1, yc1,
+                    x1, y1, level) {
+        if (py < y0 && py < yc0 && py < yc1 && py < y1) return 0;
+        if (py >= y0 && py >= yc0 && py >= yc1 && py >= y1) return 0;
+        // Note y0 could equal yc0...
+        if (px >= x0 && px >= xc0 && px >= xc1 && px >= x1) return 0;
+        if (px < x0 && px < xc0 && px < xc1 && px < x1) {
+            if (py >= y0) {
+                if (py < y1) return 1;
+            } else {
+                // py < y0
+                if (py >= y1) return -1;
+            }
+            // py outside of y01 range, and/or y0==yc0
+            return 0;
+        }
+        // double precision only has 52 bits of mantissa
+        if (level > 52) return Crossings.line(px, py, x0, y0, x1, y1);
+        var xmid = (xc0 + xc1) / 2;
+        var ymid = (yc0 + yc1) / 2;
+        xc0 = (x0 + xc0) / 2;
+        yc0 = (y0 + yc0) / 2;
+        xc1 = (xc1 + x1) / 2;
+        yc1 = (yc1 + y1) / 2;
+        var xc0m = (xc0 + xmid) / 2;
+        var yc0m = (yc0 + ymid) / 2;
+        var xmc1 = (xmid + xc1) / 2;
+        var ymc1 = (ymid + yc1) / 2;
+        xmid = (xc0m + xmc1) / 2;
+        ymid = (yc0m + ymc1) / 2;
+        if (isNaN(xmid) || isNaN(ymid)) {
+            // [xy]mid are NaN if any of [xy]c0m or [xy]mc1 are NaN
+            // [xy]c0m or [xy]mc1 are NaN if any of [xy][c][01] are NaN
+            // These values are also NaN if opposing infinities are added
+            return 0;
+        }
+        return (Crossings.curve(px, py,
+                x0, y0, xc0, yc0,
+                xc0m, yc0m, xmid, ymid, level + 1) +
+                Crossings.curve(px, py,
+                        xmid, ymid, xmc1, ymc1,
+                        xc1, yc1, x1, y1, level + 1));
+
+    },
+    line: function(px, py, x0, y0, x1, y1) {
+        if (py < y0 && py < y1) return 0;
+        if (py >= y0 && py >= y1) return 0;
+        // assert(y0 != y1);
+        if (px >= x0 && px >= x1) return 0;
+        if (px < x0 && px < x1) return (y0 < y1) ? 1 : -1;
+        var xintercept = x0 + (py - y0) * (x1 - x0) / (y1 - y0);
+        if (px >= xintercept) return 0;
+        return (y0 < y1) ? 1 : -1;
+    }
+};
+
 module.exports = {
-  MSeg: MSeg,
-  LSeg: LSeg,
-  CSeg: CSeg
+    MSeg: MSeg,
+    LSeg: LSeg,
+    CSeg: CSeg,
+    Crossings: Crossings
 };

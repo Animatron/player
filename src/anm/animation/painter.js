@@ -11,8 +11,6 @@ Painter.LAST_PNT = C.PNT_DEBUG;
 Painter.ALL_PAINTERS = [ C.PNT_SYSTEM, C.PNT_USER, C.PNT_DEBUG ];
 Painter.NODBG_PAINTERS = [ C.PNT_SYSTEM, C.PNT_USER ];
 
-// See description above for Modifier constructor for details, same technique
-
 /**
  * @class anm.Painter
  *
@@ -43,11 +41,24 @@ Painter.NODBG_PAINTERS = [ C.PNT_SYSTEM, C.PNT_USER ];
  * @return {anm.Painter} painter instance
  */
 function Painter(func, type) {
-    func.id = guid();
-    func.type = type || C.PNT_USER;
-    func[C.MARKERS.PAINTER_MARKER] = true;
-    return func;
+    this.id = guid();
+    this.func = func;
+    this.type = type || C.PNT_USER;
 }
 
+/**
+ * @method apply
+ *
+ * Run this painter with given 2D-context and time
+ *
+ * @param {anm.Element} elm element to be a context of a call
+ * @param {CanvasContext} ctx context to draw onto
+ * @param {Number} t local painter time
+ *
+ * @return {Any} result of the call
+ */
+Painter.prototype.apply = function(elm, ctx) {
+    return this.func.call(elm, ctx);
+};
 
 module.exports = Painter;

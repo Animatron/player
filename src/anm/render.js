@@ -15,16 +15,21 @@ var fit_rects = require('./utils.js').fit_rects;
 
 var Render = {}; // means "Render", render loop + system modifiers & painters
 
-// functions below, the ones named in a way like `__r_*` are the real functions
+// functions below, the ones named in a way like `r_*` are the real functions
 // acting under their aliases `Render.*`; it is done this way because probably
 // the separate function which is not an object propertly, will be a bit faster to
 // access during animation loop
+
+//time counters to emit S_TIME_UPDATE every second or so
+var timeCounters = {}, TIME_UPDATE_DELTA = 1;
 
 // draws current state of animation on canvas and postpones to call itself for
 // the next time period (so to start animation, you just need to call it once
 // when the first time must occur and it will chain its own calls automatically)
 function r_loop(ctx, player, anim, before, after, before_render, after_render) {
-
+    if (typeof timeCounters[player.id] === 'undefined') {
+        timeCounters[player.id] = 0;
+    }
     var pl_state = player.state;
 
     if (pl_state.happens !== C.PLAYING) return;
@@ -63,47 +68,52 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
         if (!after(time)) return;
     }
 
-    if (pl_state.__supressFrames) return;
+    //increase the counter and fire the event if necessary
+    timeCounters[player.id] += dt;
+    if (timeCounters[player.id] >= TIME_UPDATE_DELTA) {
+        player.fire(C.S_TIME_UPDATE, time);
+        timeCounters[player.id] = 0;
+    }
 
-    return nextFrame(function() {
+    return (pl_state.__lastReq = nextFrame(function() {
         r_loop(ctx, player, anim, before, after, before_render, after_render);
-    });
+    }));
 }
 
 function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, after) {
     ctx.save();
     var ratio = engine.PX_RATIO;
-    if (ratio !== 1) ctx.scale(ratio, ratio);
+    if (ratio !== 1) { ctx.scale(ratio, ratio); }
     width = width | 0;
     height = height | 0;
     var size_differs = (width  != anim.width) ||
                        (height != anim.height);
+    anim.factor = 1 * (zoom || 1) * (anim.zoom || 1);
     if (!size_differs) {
-        try {
-            ctx.clearRect(0, 0, anim.width,
-                                anim.height);
-            if (before) before(time, ctx);
-            if (zoom != 1) ctx.scale(zoom, zoom);
-            anim.render(ctx, time, dt);
-            if (after) after(time, ctx);
-        } finally { ctx.restore(); }
+        ctx.clearRect(0, 0, anim.width,
+                            anim.height);
+        if (before) before(time, ctx);
+        if (zoom != 1) { ctx.scale(zoom, zoom); }
+        anim.render(ctx, time, dt);
+        if (after) after(time, ctx);
+        ctx.restore();
     } else {
-        r_with_ribbons(ctx, width, height,
-                            anim.width, anim.height,
-                            rib_color,
+        r_with_ribbons(ctx, anim,
+                       width, height,
+                       anim.width, anim.height,
+                       rib_color,
             function(_scale) {
-                try {
-                  ctx.clearRect(0, 0, anim.width, anim.height);
-                  if (before) before(time, ctx);
-                  if (zoom != 1) ctx.scale(zoom, zoom);
-                  anim.render(ctx, time, dt);
-                  if (after) after(time, ctx);
-                } finally { ctx.restore(); }
+                ctx.clearRect(0, 0, anim.width, anim.height);
+                if (before) before(time, ctx);
+                if (zoom != 1) { ctx.scale(zoom, zoom); }
+                anim.render(ctx, time, dt);
+                if (after) after(time, ctx);
+                ctx.restore();
             });
     }
 }
 
-function r_with_ribbons(ctx, pw, ph, aw, ah, color, draw_f) {
+function r_with_ribbons(ctx, anim, pw, ph, aw, ah, color, draw_f) {
     // pw == player width, ph == player height
     // aw == anim width,   ah == anim height
     var f_rects   = fit_rects(pw, ph, aw, ah),
@@ -136,7 +146,8 @@ function r_with_ribbons(ctx, pw, ph, aw, ah, color, draw_f) {
         ctx.clip();
         ctx.translate(anim_rect[0], anim_rect[1]);
     }
-    if (factor != 1) ctx.scale(factor, factor);
+    anim.factor = anim.factor * factor; // anim.factor is always reset in r_at
+    if (factor != 1) { ctx.scale(factor, factor); }
     draw_f(factor);
     ctx.restore();
 }
@@ -163,12 +174,31 @@ Render.p_applyAComp = new Painter(function(ctx) { this.applyAComp(ctx); }, C.PNT
 
 // TODO: also move into Element class
 
+Render.p_drawBounds = new Painter(function(ctx, bounds) {
+    var my_bounds = this.myBounds();
+    if (!my_bounds || this.isEmpty()) return;
+    var stokeStyle = this.isEmpty() ? '#f00' : '#600';
+    var width = my_bounds.width, height = my_bounds.height;
+    ctx.save();
+    ctx.beginPath();
+    ctx.lineWidth = 1.0;
+    ctx.strokeStyle = stokeStyle;
+    ctx.moveTo(0, 0);
+    ctx.lineTo(width, 0);
+    ctx.lineTo(width, height);
+    ctx.lineTo(0, height);
+    ctx.lineTo(0, 0);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+}, C.PNT_DEBUG);
+
 Render.p_drawPivot = new Painter(function(ctx, pivot) {
     if (!(pivot = pivot || this.$pivot)) return;
     var my_bounds = this.myBounds();
     var stokeStyle = this.isEmpty() ? '#600' : '#f00';
     ctx.save();
-    if (bounds) {
+    if (my_bounds) {
         ctx.translate(pivot[0] * my_bounds.width,
                       pivot[1] * my_bounds.height);
     }

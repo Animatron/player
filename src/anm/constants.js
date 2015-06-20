@@ -10,12 +10,6 @@ C.L_INFO = 2;
 C.L_WARN = 4;
 C.L_ERROR = 8;
 
-// Markers
-// -----------------------------------------------------------------------------
-C.MARKERS = {};
-C.MARKERS.MODIFIER_MARKER = '__modifier';
-C.MARKERS.PAINTER_MARKER  = '__painter';
-
 // ### Player states
 /* ----------------- */
 
@@ -150,25 +144,25 @@ C.PC_BEVEL = 'bevel';
 
 // Easings constants
 
-C.E_PATH = 'PATH'; // Path
-C.E_FUNC = 'FUNC'; // Function
-C.E_CSEG = 'CSEG'; // Segment
-C.E_STDF = 'STDF'; // Standard function from editor
+C.E_PATH = 'path'; // Path
+C.E_FUNC = 'function'; // Function
+C.E_CSEG = 'segment'; // Segment
+C.E_STDF = 'standard'; // Standard function from editor
 
 // Tween constants
 
-C.T_TRANSLATE   = 'TRANSLATE';
-C.T_SCALE       = 'SCALE';
-C.T_ROTATE      = 'ROTATE';
-C.T_ROT_TO_PATH = 'ROT_TO_PATH';
-C.T_ALPHA       = 'ALPHA';
-C.T_SHEAR       = 'SHEAR';
-C.T_FILL        = 'FILL';
-C.T_STROKE      = 'STROKE';
-C.T_VOLUME = 'VOLUME';
-C.T_SHADOW = 'SHADOW';
-
-
+C.T_TRANSLATE   = 'translate';
+C.T_SCALE       = 'scale';
+C.T_ROTATE      = 'rotate';
+C.T_ROT_TO_PATH = 'rotatetopath';
+C.T_ALPHA       = 'alpha';
+C.T_SHEAR       = 'shear';
+C.T_FILL        = 'fill';
+C.T_STROKE      = 'stroke';
+C.T_SHADOW      = 'shadow';
+C.T_VOLUME      = 'volume';
+C.T_DISPLAY     = 'display';
+C.T_SWITCH      = 'switch';
 
 // modifiers classes
 C.MOD_SYSTEM = 'system';
@@ -180,5 +174,8 @@ C.MOD_EVENT = 'event';
 C.PNT_SYSTEM = 'system';
 C.PNT_USER = 'user';
 C.PNT_DEBUG = 'debug';
+
+// value for Switch tween where it means it's off
+C.SWITCH_OFF = '[None]';
 
 module.exports = C;

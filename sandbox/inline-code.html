@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>The Animatron HTML5 Player Sandbox</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <link rel="shortcut icon" type="image/x-icon" href="../favicon.ico" />
+    </head>
+
+    <script src="../dist/bundle/animatron.js" type="text/javascript"></script>
+
+    <body>
+        <div id="player-target" anm-player-target anm-src="http://clips.animatron.com/b178f154207e03d441057047.json" anm-width="200" anm-height="100" anm-importer="animatron" anm-controls="false" anm-repeat="false" anm-auto-play="true"/></div>
+
+        <!-- <div id="player-target"></div>
+        <script type="text/javascript">
+
+            var element = anm.Element._$;
+            var Tween = anm.Tween, tween = anm.Tween._$;
+
+            function getAnimation() {
+                return element()
+                    .add(
+                        element('blue-rect').rect(70)
+                                            .move(140, 25)
+                                            .fill('#009')
+                                            .stroke('#f00', 3)
+                                            .modify(Tween.rotate().band(0, 10).values(0, Math.PI / 2)))
+                    .add(
+                        element('red-rect').rect(60)
+                                           .move(115, 90)
+                                           .fill('#f00'))
+                    .modify(Tween.rotate().band(0, 10).from(0).to(Math.PI));
+            }
+
+            anm.createPlayer('player-target').load(getAnimation()).play();
+        </script> -->
+    </body>
+</html>

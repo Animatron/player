@@ -6,7 +6,10 @@ var utils = require('../utils.js'),
 var segments = require('./segments.js'),
     MSeg = segments.MSeg,
     LSeg = segments.LSeg,
-    CSeg = segments.CSeg;
+    CSeg = segments.CSeg,
+    Crossings = segments.Crossings,
+    engine = require('engine'),
+    useP2D = !!engine.Path2D;
 
 var Brush = require('./brush.js');
 
@@ -43,7 +46,7 @@ var Bounds = require('./bounds.js');
  * * `var path = new Path().move(0, 0).line(20, 20).curve(10, 20, 15, 30, 10, 9);`
  * * `var path = new Path().move(0, 0).line(20, 20).curve(10, 20, 15, 30, 10, 9).close();`
  *
- * See: {@link anm.Element#path Element.path()}, {@link anm.Element#translate_path Element.translate_path()}
+ * See: {@link anm.Element#path Element.path}, {@link anm.Element#translate_path Element.translate_path}
  *
  * @constructor
  *
@@ -57,10 +60,10 @@ function Path(val) {
 
     if (is.str(val)) {
         this.parse(val);
+        this.updatePath2D(val);
     } else if (is.arr(val)) {
         this.segs = val;
     }
-
     this.cached_hits = {};
 }
 
@@ -114,6 +117,7 @@ Path.prototype.length = function() {
  */
 Path.prototype.add = function(seg) {
     this.segs.push(seg);
+    this._p2dCurrent = false;
     return this;
 };
 /**
@@ -189,6 +193,24 @@ Path.prototype.close = function() {
  * @return {anm.Path} itself
  */
 Path.prototype.apply = function(ctx, fill, stroke, shadow) {
+    if (useP2D) {
+        this.updatePath2D();
+        if (shadow) {
+            shadow.apply(ctx);
+        }
+        if (fill) {
+            fill.apply(ctx);
+            ctx.fill(this.path2d);
+        }
+        if (shadow) {
+            Brush.clearShadow(ctx);
+        }
+        if (stroke) {
+            stroke.apply(ctx);
+            ctx.stroke(this.path2d);
+        }
+        return this;
+    }
     ctx.beginPath();
     // unrolled for speed
     var segments = this.segs;
@@ -202,6 +224,8 @@ Path.prototype.apply = function(ctx, fill, stroke, shadow) {
     if (fill) { fill.apply(ctx); ctx.fill(); }
     if (shadow) { Brush.clearShadow(ctx); }
     if (stroke) { stroke.apply(ctx); ctx.stroke(); }
+
+    return this;
 };
 /**
  * @method parse
@@ -234,8 +258,9 @@ Path.prototype.hitAt = function(t) {
     if (t < 0 || t > 1.0) return null;
 
     var startp = this.start(); // start point of segment
+    var cache_t = utils.roundTo(t, 3); // t for caching could be rounded
 
-    if (t === 0) return (this.cached_hits[t] = {
+    if (t === 0) return (this.cached_hits[cache_t] = {
         'seg': this.segs[0], 'start': startp, 'slen': 0.0, 'segt': 0.0
     });
 
@@ -255,7 +280,7 @@ Path.prototype.hitAt = function(t) {
         if (distance <= (length + slen)) {
             // inside current segment
             var segdist = distance - length;
-            return (this.cached_hits[t] = {
+            return (this.cached_hits[cache_t] = {
                 'seg': seg, 'start': p, 'slen': slen, 'segt': (slen != 0) ? seg.findT(p, segdist) : 0
             });
         }
@@ -284,6 +309,42 @@ Path.prototype.pointAt = function(t) {
     return hit.seg.atT(hit.start, hit.segt);
 };
 /**
+ * @method inside
+ *
+ * Checks if point is inside the path. _Does no test for bounds_, the point is
+ * assumed to be already inside of the bounds, so check `path.bounds().inside(pt)`
+ * before calling this method manually.
+ *
+ * @param {Object} pt point to check
+ * @param {Number} pt.x
+ * @param {Number} pt.y
+ * @return {Boolean} is point inside
+ */
+Path.prototype.inside = function(pt) {
+    var x = pt.x, y = pt.y;
+
+    var mask = /*(windingRule == WIND_NON_ZERO ?*/ -1 /*: 1)*/;
+    var nsegs = this.segs.length; // number of segments
+
+    if (nsegs < 2) return false;
+
+    var startp = this.start(); // start point of segment
+    var p = startp;
+
+    var crossings = 0;
+    for (var si = 0; si < nsegs; si++) {
+        var seg = this.segs[si];
+        crossings += seg.crossings(p, x, y);
+        p = seg.last();
+    }
+
+    if (startp !== p) {
+        crossings += Crossings.line(x, y, p[0], p[1], startp[0], startp[1]);
+    }
+
+    return ((crossings & mask) !== 0);
+};
+/**
  * @method tangentAt
  *
  * Find a tangent on a path at specified distance (t) of the path.
@@ -292,11 +353,6 @@ Path.prototype.pointAt = function(t) {
  * @return {[Number]} point in a form of [x, y]
  */
 Path.prototype.tangentAt = function(t) {
-    var t = t;
-    if (this.length() > 0) {
-        if (t == 0) t = 0.0001;
-        if (t == 1) t = 0.9999;
-    }
     var hit = this.hitAt(t);
     if (!hit) return 0;
     return hit.seg.tangentAt(hit.start, hit.segt);
@@ -469,28 +525,11 @@ Path.prototype.reset = function() {
 
 Path.prototype.dispose = function() { };
 
-// visits every chunk of path in string-form and calls
-// visitor function, so visitor function gets
-// chunk marker and positions sequentially
-// data argument will be also passed to visitor if specified
-Path.visitStrPath = function(path, visitor, data) {
-    var cur_pos = 0;
-    while (true) {
-        var marker = path[cur_pos];
-        if (marker === 'Z') {
-            visitor(marker, [], data);
-            return;
-        }
-        var pos_data = null;
-        if ((marker === 'M') || (marker === 'L')) {
-            pos_data = collectPositions(path, cur_pos, 2);
-        } else if (marker === 'C') {
-            pos_data = collectPositions(path, cur_pos, 6);
-        }
-        cur_pos += pos_data[0];
-        var positions = pos_data[1];
-        visitor(marker, positions, data);
-    }
+Path.prototype.updatePath2D = function(str) {
+    if (!useP2D || this._p2dCurrent) return;
+    str = str || Path.toSVGString(this);
+    this.path2d = new engine.Path2D(str);
+    this._p2dCurrent = true;
 };
 
 Path.toSVGString = function(path) {
@@ -498,45 +537,6 @@ Path.toSVGString = function(path) {
     path.visit(encodeVisitor, buffer);
     buffer.push('Z');
     return buffer.join(' ');
-};
-
-// parses `count` positions from path (string form),
-// starting at `start`, returns a length of parsed data and
-// positions array
-var collectPositions = function(path, start, count) {
-    var pos = start + 1;
-    var positions = [];
-    var got = 0;
-    while (got != count) {
-        var posstr = utils.collect_to(path, pos, ' ');
-        pos += posstr.length + 1; got++;
-        positions.push(parseFloat(posstr));
-    }
-    return [pos - start, positions];
-};
-
-// visitor to parse a string path into Path object
-var parserVisitor = function(marker, positions, path) {
-    if (marker === 'M') {
-        path.add(new MSeg(positions));
-    } else if (marker === 'L') {
-        path.add(new LSeg(positions));
-    } else if (marker === 'C') {
-        path.add(new CSeg(positions));
-    }
-};
-
-// visitor to apply string path to context
-var strApplyVisitor = function(marker, positions, ctx) {
-    if (marker === 'M') {
-        ctx.moveTo(positions[0], positions[1]);
-    } else if (marker === 'L') {
-        ctx.lineTo(positions[0], positions[1]);
-    } else if (marker === 'C') {
-        ctx.bezierCurveTo(positions[0], positions[1],
-                          positions[2], positions[3],
-                          positions[4], positions[5]);
-    }
 };
 
 var encodeVisitor = function(segment, buffer) {
@@ -547,20 +547,38 @@ var encodeVisitor = function(segment, buffer) {
 Path.parse = function(path, target) {
     target = target || new Path();
     target.segs = [];
-    Path.visitStrPath(path, parserVisitor, target);
+    var segPaths = path.match(/[a-z][^a-z]*/ig);
+    for (var i = 0; i < segPaths.length; i++) {
+        var seg = Path.parseSegment(segPaths[i]);
+        if (seg) {
+            target.segs.push(seg);
+        }
+    }
     target.str = path;
     return target;
 };
-/**
- * @static @method parseAndAppy
- *
- * Parses a path in string form and immediately applies it to context
- *
- * @param {Context2D} ctx context to apply to
- * @param {String} path SVG representation of a path
- */
-Path.parseAndApply = function(ctx, path) {
-    Path.visitStrPath(path, strApplyVisitor, ctx);
+
+Path.parseSegment = function(segment) {
+    segment = segment.toUpperCase();
+    var values = segment.substring(1).trim()
+        .replace(/,/g, ' ')
+        .split(' ').map(function(n){
+            return parseFloat(n);
+        });
+    switch(segment[0]) {
+        case 'M':{
+            return new MSeg(values);
+        }
+        case 'L':{
+            return new LSeg(values);
+        }
+        case 'C':{
+            return new CSeg(values);
+        }
+        default: {
+            return null;
+        }
+    }
 };
 
 module.exports = Path;

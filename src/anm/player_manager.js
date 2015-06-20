@@ -25,7 +25,7 @@ function PlayerManager() {
 
 events.provideEvents(PlayerManager, [ C.S_NEW_PLAYER, C.S_PLAYER_DETACH ]);
 
-PlayerManager.prototype.handle__x = function(evt, player) {
+PlayerManager.prototype.filterEvent = function(evt, player) {
     if (evt == C.S_NEW_PLAYER) {
         this.hash[player.id] = player;
         this.instances.push(player);
@@ -55,7 +55,7 @@ PlayerManager.prototype.getPlayer = function(cvs_id) {
  */
 PlayerManager.prototype.handleDocumentHiddenChange = function(hidden) {
     var i, player;
-    for(i=0;i<this.instances.length;i++) {
+    for(i=0; i<this.instances.length; i++) {
         player = this.instances[i];
         if (hidden && player.state.happens === C.PLAYING) {
             player._pausedViaHidden = true;

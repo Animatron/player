@@ -4,6 +4,8 @@ var conf = require('../conf.js'),
 
 var C = require('../constants.js');
 
+var errors = require('../errors.js');
+
 var engine = require('engine');
 
 var ResMan = require('../resource_manager.js');
@@ -53,7 +55,7 @@ function Audio(url) {
     this.audio = null;
 }
 /** @private @method load */
-Audio.prototype.load = function(player) {
+Audio.prototype.load = function(elm, player) {
     var me = this;
     ResMan.loadOrGet(player.id, me.url,
       function(notify_success, notify_error, notify_progress) { // loader
@@ -126,7 +128,7 @@ Audio.prototype.load = function(player) {
 
                   if (me.canPlay && window.chrome) {
                     el.volume = 0;
-                    el.currentTime = end;
+                    el.currentTime = buffered.end(0);
                     el.play();
                     el.pause();
                   }
@@ -134,6 +136,10 @@ Audio.prototype.load = function(player) {
                 // will skip preloading since it seems like it will not work properly anyway:
                 // it's a workaround for Android-based browsers which
                 // will not allow prebuffering until user will explicitly allow it (by touching something)
+                engine.unsubscribeElementEvents(el,
+                    { 'progress': progressAndLoadingListener,
+                      'loadedmetadata': loadingListener,
+                      'canplay': canPlayListener });
                 notify_success(el);
                 notify_progress(1);
               }
@@ -198,6 +204,7 @@ Audio.prototype.load = function(player) {
       },
       function(err) {
           log.error(err ? (err.message || err) : 'Unknown error');
+          throw errors.element(err ? err.message : 'Unknown', elm);
       });
 };
 /** @private @method play */
@@ -266,10 +273,7 @@ Audio.prototype.stop = function() {
     }
     this.playing = false;
 };
-/** @private @method stopIfNotMaster */
-Audio.prototype.stopIfNotMaster = function() {
-    if (!this.master) this.stop();
-};
+
 /**
  * @method setVolume
  * @chainable
@@ -331,19 +335,19 @@ Audio.prototype.toggleMute = function() {
     }
 };
 /** @private @method connect */
-Audio.prototype.connect = function(element) {
+Audio.prototype.connect = function(element, anim) {
     var me = this;
     element.on(C.X_START, function() {
         me.play.apply(me, arguments);
     });
     element.on(C.X_STOP, function() {
-        me.stopIfNotMaster();
+        me.stop();
     });
     var stop = function() {
         me.stop();
     };
-    element.on(C.S_STOP, stop);
-    element.on(C.S_PAUSE, stop);
+    anim.on(C.A_STOP, stop);
+    anim.on(C.A_PAUSE, stop);
 };
 /**
  * @method clone

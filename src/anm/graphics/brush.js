@@ -1,10 +1,14 @@
-var Color = require('./color.js'),
-    C = require('../constants.js'),
-    conf = require('../conf.js'),
+var C = require('../constants.js');
+
+var conf = require('../conf.js'),
     utils = require('../utils.js'),
-    is = utils.is,
-    engine = require('engine'),
-    AnimationError = require('../errors.js').AnimationError;
+    is = utils.is;
+
+var engine = require('engine');
+
+var errors = require('../errors.js');
+
+var Color = require('./color.js');
 
 // Brush
 // -----------------------------------------------------------------------------
@@ -20,18 +24,13 @@ var Color = require('./color.js'),
 // 'hsla(120, 50%, 100%,0.8)'
 // { r: 255, g: 170, b: 11 }
 // { r: 255, g: 170, b: 11, a: 0.8 }
-// { color: '#ffaa0b' }
-// { color: 'rgb(255,170,11)' }
-// { color: 'rgba(255,170,11,0.8)' }
-// { color: { r: 255, g: 170, b: 11 } }
-// { color: { r: 255, g: 170, b: 11, a: 0.8 } }
-// { grad: { stops: [ [ t, color ], ... ],
-//           dir: [ [ x0, y0 ], [ x1, y1] ]
-//           bounds: [ x, y, width, height ] } }
-// { grad: { stops: [ [ t, color ], ... ],
-//           dir: [ [ x0, y0 ], [ x1, y1] ]
-//           bounds: [ x, y, width, height ],
-//           r: [ r0, r1 ] } }
+// { stops: [ [ t, color ], ... ],
+//   dir: [ [ x0, y0 ], [ x1, y1] ]
+//   bounds: [ x, y, width, height ] }
+// { stops: [ [ t, color ], ... ],
+//   dir: [ [ x0, y0 ], [ x1, y1] ]
+//   bounds: [ x, y, width, height ],
+//   r: [ r0, r1 ] }
 
 // Fill Brush format == Brush
 
@@ -57,12 +56,12 @@ var Color = require('./color.js'),
  * * `var brush = Brush.fill('#ff0000');`
  * * `var brush = Brush.stroke('#ff0000', 10);`
  * * `var brush = Brush.stroke(Color.rgba(10, 20, 40, 0.5), 10);`
- * * `var brush = Brush.fill(Brush.grad({0: "#000", 0.5: "#ccc"}));`
- * * `var brush = Brush.fill(Brush.rgrad({0: "#000", 0.5: "#ccc"}, [0.5, 0.5]));`
+ * * `var brush = Brush.fill(Brush.gradient({0: "#000", 0.5: "#ccc"}));`
+ * * `var brush = Brush.fill(Brush.gradient({0: "#000", 0.5: "#ccc"}).size(200, 200).radial());`
  * * `var brush = Brush.shadow('rgb(10, 20, 40)', 3, 0, 0);`
  *
- * See: {@link anm.Color Color}, {@link anm.Element#fill Element.fill()}, {@link anm.Element#stroke Element.stroke()},
- * {@link anm.Element#shadow Element.shadow()}
+ * See: {@link anm.Color Color}, {@link anm.Element#fill Element.fill}, {@link anm.Element#stroke Element.stroke},
+ * {@link anm.Element#shadow Element.shadow}
  *
  */
 function Brush(value) {
@@ -144,7 +143,7 @@ Brush.prototype.adapt = function(ctx) {
         var src = this.grad,
             stops = src.stops,
             dir = src.dir || [ [0.5, 0], [0.5, 1] ],
-            r = src.r || 1.0;
+            r = src.r || [ 1.0, 1.0 ];
             bounds = src.bounds || [0, 0, 1, 1];
         var grad;
         if (is.defined(src.r)) {
@@ -152,10 +151,10 @@ Brush.prototype.adapt = function(ctx) {
                 ctx.createRadialGradient(
                                 bounds[0] + dir[0][0] * bounds[2], // b.x + x0 * b.width
                                 bounds[1] + dir[0][1] * bounds[3], // b.y + y0 * b.height
-                                Math.max(bounds[2], bounds[3]) * r[0], // max(width, height) * r0
+                                Math.max(bounds[2], bounds[3]) * r[0], // max(b.width, b.height) * r0
                                 bounds[0] + dir[1][0] * bounds[2], // b.x + x1 * b.width
                                 bounds[1] + dir[1][1] * bounds[3], // b.y + y1 * b.height
-                                Math.max(bounds[2], bounds[3]) * r[1]) // max(width, height) * r1
+                                Math.max(bounds[2], bounds[3]) * r[1]) // max(b.width, b.height) * r1
                 : ctx.createRadialGradient(
                                dir[0][0], dir[0][1], r[0],  // x0, y0, r0
                                dir[1][0], dir[1][1], r[1]); // x1, y1, r1
@@ -237,14 +236,14 @@ Brush.prototype.clone = function()  {
  *
  * Create a Fill-Brush
  *
- * See {@link anm.Element#fill Element.fill()}
+ * See {@link anm.Element#fill Element.fill}
  *
  * Examples:
  *
  * * `var brush = Brush.fill('#ff0000')`
  * * `var brush = Brush.fill(Color.rgba(70, 12, 35, 0.5))`
  * * `var brush = Brush.fill(Color.hsl(0.6, 100, 15))`
- * * `var brush = Brush.fill(Brush.grad({0: '#ffffff', 0.5: '#cccccc'}))`
+ * * `var brush = Brush.fill(Brush.gradient().stops({0: '#ffffff', 0.5: '#cccccc'}))`
  *
  * @param {String|Object} color color or gradient
  * @return {anm.Brush}
@@ -253,12 +252,13 @@ Brush.fill = function(value) {
     var brush = new Brush();
     brush.type = C.BT_FILL;
     if (is.obj(value)) {
-        if (value.stops) {
+        if (value instanceof Gradient) {
+            brush.grad = value.get();
+        } else if (value.stops) {
             brush.grad = value;
         } else if (value.elm) {
             brush.pattern = value;
         }
-
     } else {
         brush.color = value;
     }
@@ -270,14 +270,14 @@ Brush.fill = function(value) {
  *
  * Create a Stroke-Brush
  *
- * See {@link anm.Element#stroke Element.stroke()}
+ * See {@link anm.Element#stroke Element.stroke}
  *
  * Examples:
  *
  * * `var brush = Brush.stroke('#ff0000', 2)`
  * * `var brush = Brush.stroke(Color.rgba(70, 12, 35, 0.5), 5, C.PC_ROUND)`
  * * `var brush = Brush.stroke(Color.hsl(0.6, 100, 15), 1)`
- * * `var brush = Brush.stroke(Brush.grad({0: '#ffffff', 0.5: '#cccccc'}), 2)`
+ * * `var brush = Brush.stroke(Brush.gradient().stops({0: '#ffffff', 0.5: '#cccccc'}), 2)`
  *
  * @param {String|Object} color color or gradient
  * @param {Number} width width, in pixels
@@ -302,7 +302,7 @@ Brush.stroke = function(color, width, cap, join, mitter) {
  *
  * Create a Shadow-Brush
  *
- * See {@link anm.Element#shadow Element.shadow()}
+ * See {@link anm.Element#shadow Element.shadow}
  *
  * Examples:
  *
@@ -333,6 +333,7 @@ Brush.value = function(value, target) {
         brush.type = C.BT_FILL;
         brush.color = value;
     } else if (is.obj(value)) {
+        value = (value instanceof Gradient) ? value.get() : value;
         if (is.defined(value.r) && is.defined(value.g) && is.defined(value.b)) {
             brush.type = C.BT_FILL;
             brush.color = value;
@@ -350,33 +351,12 @@ Brush.value = function(value, target) {
                     brush[key] = value[key];
                 }
             }
-        } else throw new AnimationError('Unknown type of brush');
-    } else throw new AnimationError('Use Brush.fill, Brush.stroke or Brush.shadow to create brush from values');
+        } else throw errors.element('Unknown type of brush');
+    } else throw errors.element('Use Brush.fill, Brush.stroke or Brush.shadow to create brush from values');
 };
 
-Brush.grad = function(stops, bounds, dir) {
-    var new_stops = [];
-    for (var prop in stops) {
-        new_stops.push([prop, stops[prop]]);
-    }
-    return { grad: {
-        stops: stops,
-        bounds: bounds,
-        dir: dir
-    } };
-};
-
-Brush.rgrad = function(stops, r, bounds, dir) {
-    var new_stops = [];
-    for (var prop in stops) {
-        new_stops.push([prop, stops[prop]]);
-    }
-    return { grad: {
-        r: r,
-        stops: stops,
-        bounds: bounds,
-        dir: dir
-    } };
+Brush.gradient = function() {
+    return new Gradient();
 };
 
 Brush.qfill = function(ctx, color) {
@@ -418,13 +398,13 @@ Brush.clearShadow = function(ctx) {
  * NB: if you re-use the returned function, be aware that it shares and updates
  * the same instance between the calls.
  *
- * See {@link anm.Color#interpolate Color.interpolate()}
+ * See {@link anm.Color#interpolate Color.interpolate}
  *
  * @param {anm.Brush} from initial state of interpolation
  * @param {anm.Brush} to final state of interpolation
  * @return {Function} function that takes t and returns interpolation result
- * @param {Number} return.t distance between initial and final state, as `0..1`
- * @param {anm.Brush} return.return a brush value as a result of interpolation
+ * @return {Number} return.t distance between initial and final state, as `0..1`
+ * @return {anm.Brush} return.return a brush value as a result of interpolation
  */
 Brush.interpolateBrushes = function(from, to) {
     var equal = is.equal(from, to);
@@ -480,6 +460,67 @@ Brush.interpolateBrushes = function(from, to) {
         }
         result.invalidate();
         return result;
+    };
+};
+
+function Gradient() {
+    this.$radial = false;
+    this.$stops = {};
+    this.$radius = null;
+    this.$bounds = [ 0, 0, 1, 1 ];
+    this.$direction = [ [ 0.5, 0 ], [ 0.5, 1 ] ];
+};
+Gradient.prototype.stops = function(hash) {
+    if (!is.defined(hash)) {
+        hash = {}; var stops = this.$stops;
+        for (var i = 0; i < stops.length; i++) {
+            hash[stops[i][0]] = stops[i][1];
+        }
+        return hash;
+    } else {
+        var list = [];
+        for (var prop in hash) {
+            list.push([parseFloat(prop), hash[prop]]);
+        }
+        this.$stops = list;
+        return this;
+    }
+};
+Gradient.prototype.radial = function() {
+    this.$radial = true;
+    return this;
+};
+Gradient.prototype.radius = function(value) {
+    if (!is.defined(value)) return this.$radius;
+    this.$radial = true; this.$radius = value;
+    return this;
+};
+Gradient.prototype.start = function(left, top) {
+    if (!is.defined(left)) return [ this.$bounds[0], this.$bounds[1] ];
+    this.$bounds[0] = left; this.$bounds[1] = top;
+    return this;
+};
+Gradient.prototype.size = function(width, height) {
+    if (!is.defined(width)) return [ this.$bounds[2], this.$bounds[3] ];
+    this.$bounds[2] = width; this.$bounds[3] = height;
+    return this;
+};
+Gradient.prototype.from = function(x, y) {
+    if (!is.defined(x)) return this.$direction[0];
+    this.$direction[0][0] = x; this.$direction[0][1] = y;
+    return this;
+};
+Gradient.prototype.to = function(x, y) {
+    if (!is.defined(x)) return this.$direction[1];
+    this.$direction[1][0] = x; this.$direction[1][1] = y;
+    return this;
+};
+Gradient.prototype.get = function() {
+    return {
+        r: this.$radial ? (this.$radius || [ 1.0, 1.0 ]) : null,
+        stops: this.$stops,
+        bounds: this.$bounds,
+        dir: this.$direction
     };
 };
 
