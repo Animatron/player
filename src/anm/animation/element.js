@@ -832,7 +832,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
             // FIXME: call modifiers once for one moment of time. If there are several
             //        masked elements, they will be called that number of times
             renderMasked = mask.fits(mask_ltime) &&
-                           mask.matchesSwitch() &&
                            mask.modifiers(mask_ltime, dt) &&
                            mask.visible;
         }
