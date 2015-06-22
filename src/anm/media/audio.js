@@ -273,7 +273,10 @@ Audio.prototype.stop = function() {
     }
     this.playing = false;
 };
-
+/** @private @method stopIfNotMaster */
+Audio.prototype.stopIfNotMaster = function() {
+    if (!this.master) this.stop();
+};
 /**
  * @method setVolume
  * @chainable
@@ -341,7 +344,7 @@ Audio.prototype.connect = function(element, anim) {
         me.play.apply(me, arguments);
     });
     element.on(C.X_STOP, function() {
-        me.stop();
+        me.stopIfNotMaster();
     });
     var stop = function() {
         me.stop();
