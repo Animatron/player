@@ -141,8 +141,6 @@ function r_with_ribbons(ctx, anim, pw, ph, aw, ah, color, draw_f) {
     }
     if (anim_rect) {
         ctx.beginPath();
-        ctx.rect(anim_rect[0], anim_rect[1],
-                 anim_rect[2], anim_rect[3]);
         if (engine.isIE10) {
             //fix for IE10's clip bug
             anim_rect[0] = Math.floor(anim_rect[0]);
@@ -150,6 +148,8 @@ function r_with_ribbons(ctx, anim, pw, ph, aw, ah, color, draw_f) {
             anim_rect[2] = Math.ceil(anim_rect[2]);
             anim_rect[3] = Math.ceil(anim_rect[3]);
         }
+        ctx.rect(anim_rect[0], anim_rect[1],
+                 anim_rect[2], anim_rect[3]);
         ctx.clip();
         ctx.translate(anim_rect[0], anim_rect[1]);
     }
