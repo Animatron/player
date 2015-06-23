@@ -87,7 +87,7 @@ function createTween(type, value) {
     if (is.defined(value)) {
         mod.value(value);
     } else if ((def.from === nop) && (def.to === nop)) {
-        mod.$tween = def.func();
+        mod.$tween = def.func(undefined, mod);
     }
     return mod;
 }
@@ -128,7 +128,7 @@ Tween._$ = createTween;
 Tween.prototype.values = function(_from, to) {
     if (!is.defined(_from) && this.$value) return this.$value;
     this.$value = this.def.to(to, this.def.from(_from, null));
-    this.$tween = this.def.func(this.$value);
+    this.$tween = this.def.func(this.$value, this);
     return this;
 };
 
@@ -150,7 +150,7 @@ Tween.prototype.values = function(_from, to) {
 Tween.prototype.value = function(val) {
     if (!is.defined(val) && this.$value) return this.$value;
     this.$value = val;
-    this.$tween = this.def.func(this.$value);
+    this.$tween = this.def.func(this.$value, this);
     return this;
 };
 
@@ -171,7 +171,7 @@ Tween.prototype.value = function(val) {
  */
  Tween.prototype.from = function(val, val2) {
     this.$value = this.def.from(!is.defined(val2) ? val : [ val, val2 ], this.$value);
-    this.$tween = this.def.func(this.$value);
+    this.$tween = this.def.func(this.$value, this);
     return this;
 };
 
@@ -192,7 +192,7 @@ Tween.prototype.value = function(val) {
  */
 Tween.prototype.to = function(val, val2) {
     this.$value = this.def.to(!is.defined(val2) ? val : [ val, val2 ], this.$value);
-    this.$tween = this.def.func(this.$value);
+    this.$tween = this.def.func(this.$value, this);
     return this;
 };
 
@@ -257,7 +257,9 @@ Tween.register(C.T_ROT_TO_PATH, {
     func: function() {
         return function(t) {
             var path = this.$mpath;
-            if (path) this.angle = path.tangentAt(t);
+            // when t equals exact 0, it is replaced with 0.001
+            // or else returned angle would be 0
+            if (path) this.angle += path.tangentAt(t || 0.001);
         }
     },
     from: nop, to: nop
@@ -330,8 +332,9 @@ Tween.register(C.T_DISPLAY, {
 });
 
 Tween.register(C.T_SWITCH, {
-    func: function(value) {
-        return function(t) { this.switch = value; }
+    func: function(value, tween) {
+        return function(t) { this.switch_band = tween.$band;
+                             this.switch = value; }
     },
     from: nop, to: nop
 });

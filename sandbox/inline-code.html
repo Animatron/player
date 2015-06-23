@@ -6,11 +6,12 @@
         <link rel="shortcut icon" type="image/x-icon" href="../favicon.ico" />
     </head>
 
-    <script src="../dist/player.js" type="text/javascript"></script>
-    <script src="../src/module/shapes.js" type="text/javascript"></script>
+    <script src="../dist/bundle/animatron.js" type="text/javascript"></script>
 
     <body>
-        <div id="player-target"></div>
+        <div id="player-target" anm-player-target anm-src="http://clips.animatron.com/b178f154207e03d441057047.json" anm-width="200" anm-height="100" anm-importer="animatron" anm-controls="false" anm-repeat="false" anm-auto-play="true"/></div>
+
+        <!-- <div id="player-target"></div>
         <script type="text/javascript">
 
             var element = anm.Element._$;
@@ -32,6 +33,6 @@
             }
 
             anm.createPlayer('player-target').load(getAnimation()).play();
-        </script>
+        </script> -->
     </body>
 </html>

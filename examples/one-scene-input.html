@@ -50,22 +50,13 @@
 
       function createPlayer() {
           return anm.createPlayer('anm-player', { /*audioEnabled: false,*/
-                                                  loadingMode: anm.constants.LM_ONPLAY,
+                                                  //loadingMode: anm.constants.LM_ONPLAY,
                                                   ribbonsColor: 'rgba(255,0,0,0.01)',
-                                                  controlsEnabled: false,
-                                                  handleEvents: true,
-                                                  infiniteDuration: true
+                                                  //controlsEnabled: false,
+                                                  //handleEvents: true,
+                                                  //infiniteDuration: true
                                                   /*forceSceneSize: true*/
                                                   /*controlsEnabled: false, autoPlay: true*/ });
-      }
-
-      function logEvent(anim, elm_name, event) {
-         var elm = anim.find(elm_name);
-         if (elm) {
-             elm.on(event, function() {
-                 window.alert(elm_name + ' ' + event);
-             })
-         }
       }
 
       function load() {
@@ -77,20 +68,8 @@
           var importer = anm.importers.create('animatron');
           player.detach();
           player = createPlayer();
-          player.load(project, importer, function(anim) {
-              var _continue = false;
-              anim.prefix(function(t) {
-                 return ((t > 2.6) && !_continue) ? 2.0 : t;
-              });
-              anim.on('mouseclick', function() {
-                  _continue = true;
-              })
-              logEvent(anim, 'ForScript',  'mouseclick');
-              logEvent(anim, 'ForScript1', 'mouseclick');
-              logEvent(anim, 'ForScript2', 'mouseclick');
-              logEvent(anim, 'ForScript3', 'mouseclick');
-          });
-          player.play();
+          player.load(project, importer);
+          //player.play();
       }
 
       function start() {

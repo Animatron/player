@@ -124,6 +124,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'shadowsEnabled': true,
                                  'handleEvents': undefined, // undefined means 'auto'
                                  'controlsEnabled': undefined, // undefined means 'auto'
+                                 'controlsInvisible': undefined,
                                  'infoEnabled': undefined, // undefined means 'auto'
                                  'loadingMode': C.LM_DEFAULT, // undefined means 'auto'
                                  'thumbnail': undefined,
@@ -737,6 +738,8 @@ Player.prototype._addOpts = function(opts) {
                         opts.shadowsEnabled : this.shadowsEnabled;
     this.controlsEnabled = is.defined(opts.controlsEnabled) ?
                         opts.controlsEnabled : this.controlsEnabled;
+    this.controlsInvisible = is.defined(opts.controlsInvisible) ?
+                        opts.controlsInvisible : this.controlsInvisible;
     this.infoEnabled = is.defined(opts.infoEnabled) ?
                         opts.infoEnabled : this.infoEnabled;
     this.handleEvents = is.defined(opts.handleEvents) ?

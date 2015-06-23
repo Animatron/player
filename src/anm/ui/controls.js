@@ -25,6 +25,7 @@ function Controls(player) {
     this.bounds = [];
     this.theme = null;
     this.info = null;
+    this.invisible = player.controlsInvisible;
 
     this.state = {
         happens: C.NOTHING,
@@ -138,6 +139,11 @@ Controls.prototype.render = function(gtime) {
     var dt = gtime - this.state.gtime;
     var prevGtime = this.state.gtime;
     this.state.gtime = gtime;
+    this.state.time = this.player.state.time;
+
+    if (this.invisible) {
+        return;
+    }
 
     if (!this.bounds || !this.state.changed) {
         // no reason to render nothing or the same image again
@@ -152,7 +158,7 @@ Controls.prototype.render = function(gtime) {
         player = this.player,
         s = state.happens,
         coords = state.mpos,
-        time = state.time = player.state.time;
+        time = state.time;
 
     var ctx = this.ctx,
         theme = this.theme,
@@ -229,7 +235,7 @@ Controls.prototype.react = function() {
 
     //handle clicks in the bottom area, where the playhead
     //and mute buttons reside
-    if (Controls.isInProgressArea(coords, w, h)) {
+    if (!this.invisible && Controls.isInProgressArea(coords, w, h)) {
         if (coords.x > btnWidth && coords.x < w-btnWidth) {
             time = utils.roundTo(p.state.duration*(coords.x-btnWidth)/(w-2*btnWidth), 1);
             if (time > p.anim.duration) {

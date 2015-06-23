@@ -113,6 +113,7 @@ var optsFromUrlParams = function(params/* as object */) {
     opts.infiniteDuration = __extractBool('i', 'inf', 'infinite');
     opts.audioEnabled = __extractBool('s', 'snd', 'sound', 'audio');
     opts.controlsEnabled = __extractBool('c', 'controls');
+    opts.controlsInvisible = __extractBool('controlsInvisible');
     opts.infoEnabled = __extractBool('info');
     opts.loadingMode = params.lm || params.lmode || params.loadingmode || undefined;
     opts.thumbnail = params.th || params.thumb || undefined;
