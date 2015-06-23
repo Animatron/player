@@ -1194,6 +1194,28 @@ Element.prototype.jump = function(loc_t) {
 };
 
 /**
+ * @method jumpTo
+ * @chainable
+ *
+ * Jump to the given start time of the element given or found with passed selector (uses
+ * {@link anm.Animation#jumpTo animation.jumpTo} inside). It will skip a jump, if it's already in process
+ * of jumping.
+ *
+ * See also: {@link anm.Element#band band}, {@link anm.Element#freeze freeze}, {@link anm.Element#unfreeze unfreeze}
+ *
+ * @param {String|anm.Element} selector
+ *
+ * @return {anm.Element} itself
+ */
+ Element.prototype.jumpTo = function(element) {
+     var elm = is.str(selector) ? this.find(selector) : selector;
+     if (!elm) return;
+     if (this.anim) this.anim.jump(elm.gband[0]);
+     else this.jump(elm.lband[0]);
+     return this;
+ };
+
+/**
  * @method freeze
  * @chainable
  *
