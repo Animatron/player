@@ -638,7 +638,7 @@ Player.prototype.pause = function() {
     state.from = state.time;
     state.happens = C.PAUSED;
 
-    player.drawAt(state.time);
+    if (state.time !== Player.NO_TIME) player.drawAt(state.time);
 
     player.fire(C.S_CHANGE_STATE, C.PAUSED);
     player.fire(C.S_PAUSE, state.time);
