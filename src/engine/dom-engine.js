@@ -930,8 +930,11 @@ $DE.isHttps = https;
 var local = $win.location && $win.location.protocol === 'file:';
 $DE.isLocal = local;
 
-var isIE9 = $nav.userAgent && $nav.userAgent.indexOf('MSIE 9.0') !== -1;
-$DE.isIE9 = isIE9;
+
+var jscriptVersion = new Function("/*@cc_on return @_jscript_version; @*/")();
+$DE.isIE9 = jscriptVersion == 9;
+$DE.isIE10 = jscriptVersion == 10;
+
 
 var hidden, visibilityChange;
 if (typeof $doc.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and later support
