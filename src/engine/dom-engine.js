@@ -138,7 +138,7 @@ $DE.PX_RATIO = $win.devicePixelRatio || 1;
 
 $DE.ajax = function(url, callback, errback, method, headers) {
     var req;
-    if (isIE9) {
+    if ($DE.isIE9) {
         req = new $win.XDomainRequest();
     } else {
         req = new $win.XMLHttpRequest();
@@ -163,7 +163,7 @@ $DE.ajax = function(url, callback, errback, method, headers) {
     };
 
     req.onreadystatechange = whenDone;
-    if (isIE9) {
+    if ($DE.isIE9) {
         req.onload = function(){ callback(req); };
         req.onerror = function() {
             if(errback) errback(new Error('XDomainRequest Error'), req);
@@ -171,7 +171,7 @@ $DE.ajax = function(url, callback, errback, method, headers) {
     }
     req.open(method || 'GET', url, true);
 
-    if (headers && !isIE9) {
+    if (headers && !$DE.isIE9) {
         for (var header in headers) {
             req.setRequestHeader(header, headers[header]);
         }
@@ -930,8 +930,11 @@ $DE.isHttps = https;
 var local = $win.location && $win.location.protocol === 'file:';
 $DE.isLocal = local;
 
-var isIE9 = $nav.userAgent && $nav.userAgent.indexOf('MSIE 9.0') !== -1;
-$DE.isIE9 = isIE9;
+
+var jscriptVersion = new Function("/*@cc_on return @_jscript_version; @*/")();
+$DE.isIE9 = jscriptVersion == 9;
+$DE.isIE10 = jscriptVersion == 10;
+
 
 var hidden, visibilityChange;
 if (typeof $doc.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and later support
