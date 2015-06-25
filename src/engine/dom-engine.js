@@ -930,6 +930,16 @@ $DE.isHttps = https;
 var local = $win.location && $win.location.protocol === 'file:';
 $DE.isLocal = local;
 
+$DE.fixLocalUrl = function(url) {
+    // use http links instead of protocol-local
+    // which will be converted to file://uploads.animatron.com/...
+    // and obviously won't work
+    if (local && url.substring(0,2) === '//') {
+        url = 'http:' + url;
+    }
+    return url;
+};
+
 
 var jscriptVersion = new Function("/*@cc_on return @_jscript_version; @*/")();
 $DE.isIE9 = jscriptVersion == 9;

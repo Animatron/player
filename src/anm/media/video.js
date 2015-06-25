@@ -47,6 +47,7 @@ Video.prototype.load = function(elm, player) {
         function(notify_success, notify_error, notify_progress) { // loader
             var url = me.url;
             if (engine.isHttps) { url = url.replace('http:', 'https:'); }
+            url = engine.fixLocalUrl(url);
 
             var el = engine.createVideo();
             el.setAttribute("preload", "auto");

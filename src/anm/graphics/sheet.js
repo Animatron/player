@@ -68,6 +68,8 @@ Sheet.prototype.load = function(elm, player_id, callback, errback) {
             if (https) {
                 src = src.replace('http:', 'https:');
             }
+            src = engine.fixLocalUrl(src);
+
             if (!me._thumbnail && conf.doNotLoadImages) {
               notify_error('Loading images is turned off');
               return; }
