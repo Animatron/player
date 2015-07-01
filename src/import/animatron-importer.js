@@ -284,27 +284,13 @@ Import.branch = function(type, src, all, anim) {
 
         // apply tweens
         if (lsrc[7]) {
-            var translates;
             for (var tweens = lsrc[7], ti = 0, tl = tweens.length;
                  ti < tl; ti++) {
                 var t = Import.tween(tweens[ti]);
                 if (!t) continue;
-                if (t.tween_type === C.T_TRANSLATE) {
-                    if (!translates) translates = [];
-                    translates.push(t);
-                }
                 ltrg.tween(t);
             }
-            if (translates && (flags & L_ROT_TO_PATH)) {
-                var rtp_tween;
-                for (ti = 0, til = translates.length; ti < til; ti++) {
-                    rtp_tween = Tween[C.T_ROT_TO_PATH]();
-                    if (translates[ti].$band) rtp_tween.band(translates[ti].$band);
-                    if (translates[ti].$easing) rtp_tween.easing(translates[ti].$easing);
-                    ltrg.tween(rtp_tween);
-                }
-            }
-            translates = [];
+            if (flags & L_ROT_TO_PATH) ltrg.rotateToPath = true;
         }
 
         /** end-action **/
