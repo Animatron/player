@@ -998,7 +998,7 @@ $DE.postToContentWindow = function(message) {
     if (!iframe) {
         return;
     }
-    iframe.top.postMessage(JSON.stringify(message), origin);
+    iframe.top.postMessage(JSON.stringify(message), origin || '*');
 };
 
 module.exports = $DE;
