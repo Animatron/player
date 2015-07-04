@@ -187,13 +187,13 @@ Controls.prototype.render = function(gtime) {
         drawPlay(ctx, theme, w, h, this.focused);
         state.changed = false;
     } else if (s === C.PAUSED) {
-        drawBack(ctx, theme, w, h);
         if (duration) {
             drawProgress(ctx, theme, w, h, progress);
             drawTinyPlay(ctx, w, h);
             drawTime(ctx, theme, w, h, time, duration, progress, coords);
             drawVolumeBtn(ctx, w, h, player.muted);
         }
+        drawBack(ctx, theme, w, h);
         drawPlay(ctx, theme, w, h, this.focused);
         state.changed = false;
     } else if (s === C.NOTHING) {
