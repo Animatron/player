@@ -155,6 +155,7 @@ C.T_TRANSLATE   = 'translate';
 C.T_SCALE       = 'scale';
 C.T_ROTATE      = 'rotate';
 C.T_ROT_TO_PATH = 'rotatetopath';
+C.T_MRG_ROT_TO_PATH = 'mergedrotatetopath';
 C.T_ALPHA       = 'alpha';
 C.T_SHEAR       = 'shear';
 C.T_FILL        = 'fill';

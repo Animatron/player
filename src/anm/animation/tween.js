@@ -265,6 +265,17 @@ Tween.register(C.T_ROT_TO_PATH, {
     from: nop, to: nop
 });
 
+Tween.register(C.T_MRG_ROT_TO_PATH, function(values) {
+    var _from = values[0],
+        to = values[1];
+    return function(t) {
+        var path = this.$mpath;
+        var angle = _from * (1.0 - t) + to * t;
+        if (path) angle += path.tangentAt(t || 0.001);
+        this.angle = angle;
+    }
+});
+
 Tween.register(C.T_ALPHA, function(values) {
     var _from = values[0],
         to = values[1];
