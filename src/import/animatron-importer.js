@@ -303,12 +303,12 @@ Import.branch = function(type, src, all, anim) {
                                              .from(0).to(0));
                 }
                 if (last_rotate < Infinity) {
-                    ltrg.tween(Tween.rotate().start(last_rotate).stop(Infinity)
+                    ltrg.tween(Tween.rotate().start(last_rotate).stop(ltrg.lband[1] - ltrg.lband[0])
                                              .from(0).to(0));
                 }
             }
             if (flags & L_ROT_TO_PATH) {
-                ltrg.tween(Tween.rotatetopath().start(0).stop(Infinity));
+                ltrg.tween(Tween.rotatetopath().start(0).stop(ltrg.lband[1] - ltrg.lband[0]));
             }
         }
 
