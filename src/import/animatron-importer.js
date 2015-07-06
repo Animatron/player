@@ -284,30 +284,32 @@ Import.branch = function(type, src, all, anim) {
 
         // apply tweens
         if (lsrc[7]) {
-            var rotate_tweens;
+            var rotate_tweens = 0;
+            var first_rotate = 0, last_rotate = Infinity;
             for (var tweens = lsrc[7], ti = 0, tl = tweens.length;
                  ti < tl; ti++) {
                 var t = Import.tween(tweens[ti]);
                 if (!t) continue;
                 if ((flags & L_ROT_TO_PATH) && (t.tween_type === C.T_ROTATE)) {
-                    if (!rotate_tweens) rotate_tweens = [];
-                    rotate_tweens.push(t);
-                } else {
-                    ltrg.tween(t);
+                    first_rotate = Math.max(first_rotate, t.$band[0]);
+                    last_rotate = Math.min(last_rotate, t.$band[1]);
+                    rotate_tweens++;
+                }
+                ltrg.tween(t);
+            }
+            if ((flags & L_ROT_TO_PATH) && rotate_tweens) {
+                if (first_rotate > 0) {
+                    ltrg.tween(Tween.rotate().start(0).stop(first_rotate)
+                                             .from(0).to(0));
+                }
+                if (last_rotate < Infinity) {
+                    ltrg.tween(Tween.rotate().start(last_rotate).stop(Infinity)
+                                             .from(0).to(0));
                 }
             }
             if (flags & L_ROT_TO_PATH) {
-                var rtp_tween;
-                for (ri = 0, ril = rotate_tweens.length; ri < ril; ri++) {
-                    rtp_tween = Tween[C.T_MRG_ROT_TO_PATH]();
-                    if (rotate_tweens[ri].$band)   rtp_tween.band(rotate_tweens[ri].$band);
-                    if (rotate_tweens[ri].$easing) rtp_tween.easing(rotate_tweens[ri].$easing);
-                    if (rotate_tweens[ri].$value)  rtp_tween.from(rotate_tweens[ri].$value[0])
-                                                            .to(rotate_tweens[ri].$value[1]);
-                    ltrg.tween(rtp_tween);
-                }
+                ltrg.tween(Tween.rotatetopath().start(0).stop(Infinity));
             }
-            rotate_tweens = [];
         }
 
         /** end-action **/
