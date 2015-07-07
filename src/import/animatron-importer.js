@@ -286,26 +286,26 @@ Import.branch = function(type, src, all, anim) {
         if (lsrc[7]) {
             var rotate_tweens = 0;
             var translates = [];
-            var first_rotate = 0, last_rotate = Infinity;
+            var first_rotate = Infinity, last_rotate = 0;
             for (var tweens = lsrc[7], ti = 0, tl = tweens.length;
                  ti < tl; ti++) {
                 var t = Import.tween(tweens[ti]);
                 if (!t) continue;
                 if (flags & L_ROT_TO_PATH) {
                     if (t.tween_type === C.T_ROTATE) {
-                        first_rotate = Math.max(first_rotate, t.$band[0]);
-                        last_rotate = Math.min(last_rotate, t.$band[1]);
+                        first_rotate = Math.min(first_rotate, t.$band[0]);
+                        last_rotate = Math.max(last_rotate, t.$band[1]);
                         rotate_tweens++;
                     }
                 }
                 ltrg.tween(t);
             }
             if ((flags & L_ROT_TO_PATH) && rotate_tweens) {
-                if (first_rotate > 0) {
+                if ((first_rotate > 0) && (first_rotate < Infinity)) {
                     ltrg.tween(Tween.rotate().start(0).stop(first_rotate)
                                              .from(0).to(0));
                 }
-                if (last_rotate < Infinity) {
+                if ((last_rotate > 0) && (last_rotate < Infinity)) {
                     ltrg.tween(Tween.rotate().start(last_rotate).stop(ltrg.lband[1] - ltrg.lband[0])
                                              .from(0).to(0));
                 }
