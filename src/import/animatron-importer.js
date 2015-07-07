@@ -285,7 +285,6 @@ Import.branch = function(type, src, all, anim) {
         // apply tweens
         if (lsrc[7]) {
             var rotate_tweens = 0;
-            var translates = [];
             var first_rotate = Infinity, last_rotate = 0;
             for (var tweens = lsrc[7], ti = 0, tl = tweens.length;
                  ti < tl; ti++) {
