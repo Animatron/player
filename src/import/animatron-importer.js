@@ -444,6 +444,7 @@ Import.band = function(src) {
  */
 // -> Path
 Import.path = function(src) {
+    return null;
     var path = Import._pathDecode(src[4]);
     if (!path) return;
     return new Path(path);
