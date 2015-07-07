@@ -287,7 +287,6 @@ Import.branch = function(type, src, all, anim) {
             var rotate_tweens = 0;
             var translates = [];
             var first_rotate = 0, last_rotate = Infinity;
-            var first_translate = 0, last_translate = Infinity;
             for (var tweens = lsrc[7], ti = 0, tl = tweens.length;
                  ti < tl; ti++) {
                 var t = Import.tween(tweens[ti]);
@@ -297,10 +296,6 @@ Import.branch = function(type, src, all, anim) {
                         first_rotate = Math.max(first_rotate, t.$band[0]);
                         last_rotate = Math.min(last_rotate, t.$band[1]);
                         rotate_tweens++;
-                    } else if (t.tween_type === C.T_TRANSLATE) {
-                        first_translate = Math.max(first_translate, t.$band[0]);
-                        last_translate = Math.min(last_translate, t.$band[1]);
-                        translates.push(t);
                     }
                 }
                 ltrg.tween(t);
@@ -315,8 +310,8 @@ Import.branch = function(type, src, all, anim) {
                                              .from(0).to(0));
                 }
             }
-            if ((flags & L_ROT_TO_PATH) && translates.length) {
-                ltrg.tween(Tween.rotatetopath().start(0).stop(last_translate);
+            if (flags & L_ROT_TO_PATH) {
+                ltrg.tween(Tween.rotatetopath().start(0).stop(Infinity));
             }
         }
 
