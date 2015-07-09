@@ -61,7 +61,7 @@
     "markdown": "latest"
   },
   "scripts": {
-    "test": "jake test"
+    "test": "./node_modules/bin/karma start ./spec/karma.conf.js --single-run"
   },
   "browser": {
     "engine": "./src/engine/dom-engine.js"
