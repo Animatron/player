@@ -18,7 +18,8 @@ module.exports = function(config) {
     files: [
       './dist/bundle/animatron.min.js',
 
-      './spec/search.spec.js'
+      './spec/search.spec.js',
+      './spec/orient-to-path.spec.js'
     ],
 
 
@@ -37,8 +38,7 @@ module.exports = function(config) {
     // possible values: 'dots', 'progress'
     // available reporters: https://npmjs.org/browse/keyword/karma-reporter
     //reporters: ['nyan'],
-    //reporters: ['mocha'],
-    reporters: ['dots'],
+    reporters: ['mocha'],
 
 
     // web server port
