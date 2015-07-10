@@ -172,6 +172,9 @@ var Standard = [
     function(t) {             // 24     In/Out Bounce
         if (t < 0.5) return Standard[22](t*2) * 0.5;
         return Standard[23](t*2-1) * 0.5 + 0.5;
+    },
+    function(t) {             // 25     Instant
+        return 0;
     }
 ];
 
