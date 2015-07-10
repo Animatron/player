@@ -299,17 +299,19 @@ Import.branch = function(type, src, all, anim) {
                 }
                 ltrg.tween(t);
             }
-            if ((flags & L_ROT_TO_PATH) && rotate_tweens) {
-                if ((first_rotate > 0) && (first_rotate < Infinity)) {
-                    ltrg.tween(Tween.rotate().start(0).stop(first_rotate)
-                                             .from(0).to(0));
-                }
-                if ((last_rotate > 0) && (last_rotate < Infinity)) {
-                    ltrg.tween(Tween.rotate().start(last_rotate).stop(ltrg.lband[1] - ltrg.lband[0])
-                                             .from(0).to(0));
-                }
-            }
             if (flags & L_ROT_TO_PATH) {
+                if (rotate_tweens) {
+                    if ((first_rotate > 0) && (first_rotate < Infinity)) {
+                        ltrg.tween(Tween.rotate().start(0).stop(first_rotate)
+                                                 .from(0).to(0));
+                    }
+                    if ((last_rotate > 0) && (last_rotate < Infinity)) {
+                        ltrg.tween(Tween.rotate().start(last_rotate).stop(ltrg.lband[1] - ltrg.lband[0])
+                                                 .from(0).to(0));
+                    }
+                } else {
+                    ltrg.tween(Tween.rotate().start(0).stop(Infinity).from(0).to(0));
+                }
                 ltrg.tween(Tween.rotatetopath().start(0).stop(Infinity));
             }
         }
