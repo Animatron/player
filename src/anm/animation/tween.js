@@ -217,6 +217,7 @@ Tween.register(C.T_TRANSLATE, {
             this.x = p[0];
             this.y = p[1];
             // we should null the moving path, if it was empty
+            this.$mpath_t = t;
             this.$mpath = (path.length() > 0) ? path : null;
         }
     },
@@ -259,7 +260,7 @@ Tween.register(C.T_ROT_TO_PATH, {
             var path = this.$mpath;
             // when t equals exact 0, it is replaced with 0.001
             // or else returned angle would be 0
-            if (path) this.angle += path.tangentAt(t || 0.001);
+            if (path) this.angle += path.tangentAt(this.$mpath_t || 0.001);
         }
     },
     from: nop, to: nop

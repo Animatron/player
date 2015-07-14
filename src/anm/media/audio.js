@@ -63,6 +63,8 @@ Audio.prototype.load = function(elm, player) {
           if (engine.isHttps) {
               url = url.replace('http:', 'https:');
           }
+          url = engine.fixLocalUrl(url);
+
 
           if (anm.conf.doNotLoadAudio) {
             notify_error('Loading audio is turned off');

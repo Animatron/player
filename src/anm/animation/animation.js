@@ -695,6 +695,7 @@ Animation.prototype.loadFonts = function(player) {
                 woff = woff.replace('http:', 'https:');
             }
         }
+        url = engine.fixLocalUrl(url);
         fontsToLoad.push(font);
         css += '@font-face {\n' +
             'font-family: "' + font.face + '";\n' +

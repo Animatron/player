@@ -284,27 +284,36 @@ Import.branch = function(type, src, all, anim) {
 
         // apply tweens
         if (lsrc[7]) {
-            var translates;
+            var rotate_tweens = 0;
+            var first_rotate = Infinity, last_rotate = 0;
             for (var tweens = lsrc[7], ti = 0, tl = tweens.length;
                  ti < tl; ti++) {
                 var t = Import.tween(tweens[ti]);
                 if (!t) continue;
-                if (t.tween_type === C.T_TRANSLATE) {
-                    if (!translates) translates = [];
-                    translates.push(t);
+                if (flags & L_ROT_TO_PATH) {
+                    if (t.tween_type === C.T_ROTATE) {
+                        first_rotate = Math.min(first_rotate, t.$band[0]);
+                        last_rotate = Math.max(last_rotate, t.$band[1]);
+                        rotate_tweens++;
+                    }
                 }
                 ltrg.tween(t);
             }
-            if (translates && (flags & L_ROT_TO_PATH)) {
-                var rtp_tween;
-                for (ti = 0, til = translates.length; ti < til; ti++) {
-                    rtp_tween = Tween[C.T_ROT_TO_PATH]();
-                    if (translates[ti].$band) rtp_tween.band(translates[ti].$band);
-                    if (translates[ti].$easing) rtp_tween.easing(translates[ti].$easing);
-                    ltrg.tween(rtp_tween);
+            if (flags & L_ROT_TO_PATH) {
+                if (rotate_tweens) {
+                    if ((first_rotate > 0) && (first_rotate < Infinity)) {
+                        ltrg.tween(Tween.rotate().start(0).stop(first_rotate)
+                                                 .from(0).to(0));
+                    }
+                    if ((last_rotate > 0) && (last_rotate < Infinity)) {
+                        ltrg.tween(Tween.rotate().start(last_rotate).stop(ltrg.lband[1] - ltrg.lband[0])
+                                                 .from(0).to(0));
+                    }
+                } else {
+                    ltrg.tween(Tween.rotate().start(0).stop(Infinity).from(0).to(0));
                 }
+                ltrg.tween(Tween.rotatetopath().start(0).stop(Infinity));
             }
-            translates = [];
         }
 
         /** end-action **/
