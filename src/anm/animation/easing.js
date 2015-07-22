@@ -49,6 +49,26 @@ function registerSegEasing(alias, points) {
     };
 }
 
+function findBounds(ease) {
+    var min = 1;
+    var max = 0;
+
+    for (var i = 0, t; i <= 100; i++) {
+        t = ease(i / 100.0);
+        min = Math.min(min, t);
+        max = Math.max(max, t);
+    }
+
+    return [ min, max ];
+}
+
+function boundedEasing(ease) {
+    var bounds = findBounds(ease);
+    return function(t) {
+        return (ease(t) - bounds[0]) / (bounds[1] - bounds[0]);
+    };
+}
+
 registerSegEasing('default',    [0.250, 0.100, 0.250, 1.000, 1.000, 1.000]); // Default
 registerSegEasing('in',         [0.420, 0.000, 1.000, 1.000, 1.000, 1.000]); // In
 registerSegEasing('out',        [0.000, 0.000, 0.580, 1.000, 1.000, 1.000]); // Out
@@ -142,23 +162,27 @@ var Standard = [
         if ((t*=2) < 1) return -(Math.sqrt(1 - t*t) - 1)/2;
         return (Math.sqrt(1 - (t-=2)*t) + 1)/2;
     },
-    function(t) {              // 19    Back In
+    boundedEasing(function(t) {  // 19    Back In
         var s = 1.70158;
         return t*t*((s+1)*t - s);
-    },
-    function(t) {             // 20     Back Out
+    }),
+    (function(ease) {  // 20     Back Out
+        return function(t) {
+            return (ease(t)-(-0.2))/1.4;
+        }
+    })(function(t) {
         var s = 1.70158;
         return ((t-=1)*t*((s+1)*t + s) + 1);
-    },
-    function(t) {             // 21     Back In/Out
+    }),
+    boundedEasing(function(t) { // 21     Back In/Out
         var s = 1.70158;
         if ((t*=2) < 1) return (t*t*(((s*=(1.525))+1)*t - s))/2;
         return ((t-=2)*t*(((s*=(1.525))+1)*t + s) + 2)/2;
-    },
-    function(t) {             // 22     Bounce In
+    }),
+    function(t) {  // 22     Bounce In
         return 1 - Standard[23](1-t);
     },
-    function(t) {              // 23    Bounce Out
+    boundedEasing(function(t) {  // 23    Bounce Out
         if (t < (1/2.75)) {
             return (7.5625*t*t);
         } else if (t < (2/2.75)) {
@@ -168,14 +192,14 @@ var Standard = [
         } else {
             return (7.5625*(t-=(2.625/2.75))*t + 0.984375);
         }
-    },
+    }),
     function(t) {             // 24     Bounce In/Out
         if (t < 0.5) return Standard[22](t*2) * 0.5;
         return Standard[23](t*2-1) * 0.5 + 0.5;
     },
     function(t) { return 0; },             // 25     Instant In
-    function(t) { return 0; },             // 26     Instant Out
-    function(t) { return 0; }              // 27     Instant In/Out
+    function(t) { return 1; },             // 26     Instant Out
+    function(t) { return (t < 0.5) ? 0 : 1; }              // 27     Instant In/Out
 ];
 
 module.exports = EasingImpl;
