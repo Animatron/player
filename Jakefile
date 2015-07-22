@@ -59,6 +59,7 @@ var Binaries = {
     JASMINE_NODE: NODE_GLOBAL ? 'jasmine-node' : (LOCAL_NODE_DIR + '/jasmine-node/bin/jasmine-node'),
     JSDUCK: 'jsduck',
     JASMINE: 'jasmine',
+    KARMA: NODE_GLOBAL ? 'karma' : (LOCAL_NODE_DIR + '/karma/bin/karma'),
     CAT: 'cat',
     MV: 'mv',
     MARKDOWN: 'python -m markdown',
@@ -70,7 +71,7 @@ var Binaries = {
 var Dirs = {
     SRC: 'src',
     DIST: 'dist',
-    TESTS: 'tests',
+    TESTS: 'spec',
     DOCS: 'doc'
 };
 
@@ -111,8 +112,7 @@ var Bundles = [
 ];
 
 var Tests = {
-    RUN_SCRIPT: Dirs.TESTS + '/' + 'run-jasmine.phantom.js',
-    PAGE_FOR_CLI: Dirs.TESTS + '/' + 'run-for-terminal.html'
+    Config: Dirs.TESTS + '/karma.conf.js'
 };
 
 var Docs = {
@@ -240,11 +240,21 @@ task('dist-min', ['clean', 'build-min'], function() {});
 
 desc(_dfit_nl(['Run tests for the distribution.',
                'Usage: Just call {jake test}.',
-               'Requires: `jasmine`.']));
-task('test', { async: true }, function() {
+               'Requires: `karma`, `karma-mocha-reporter`.']));
+task('test', ['dist-min', 'test-dist']);
+
+// test-dist ===================================================================
+
+desc(_dfit_nl(['Test the distribution which already exists.',
+               'Usage: Just call {jake test-dist}.',
+               'Requires: `karma`, `karma-mocha-reporter`.']));
+task('test-dist', { async: true }, function() {
     _print('Running tests');
 
-    jake.exec(Binaries.JASMINE, EXEC_OPTS,
+    jake.exec([ Binaries.KARMA, 'start',
+                _loc(Tests.Config),
+                '--single-run'
+              ].join(' '), EXEC_OPTS,
               function() { _print('Tests finished successfully');
                            _print(DONE_MARKER);
                            complete(); });

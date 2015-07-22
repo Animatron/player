@@ -1,8 +1,3 @@
-if (typeof anm === 'undefined') {
-    // running from a server
-    require('../dist/player.js');
-}
-
 describe('search', function() {
 
     var element = anm.Element._$;
@@ -274,7 +269,6 @@ describe('search', function() {
 
         expect(subRootElement.find('/:7')).toBeNull();
         expect(subRootElement.findAll('/:7')).toBeEmpty();
-
 
     });
 
