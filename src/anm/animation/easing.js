@@ -175,7 +175,7 @@ var Standard = [
     },
     function(t) { return 0; },             // 25     Instant In
     function(t) { return 0; },             // 26     Instant Out
-    function(t) { return 0; },             // 27     Instant In/Out
+    function(t) { return 0; }              // 27     Instant In/Out
 ];
 
 module.exports = EasingImpl;
