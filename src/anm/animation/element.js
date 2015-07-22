@@ -319,7 +319,7 @@ Element.prototype.initTime = function() {
     this.t = null; // user-defined
     this.rt = null; // user-defined
 
-    this.switch = null;
+    this['switch'] = null;
 
     this.__resetTimeCache();
 
@@ -2677,10 +2677,10 @@ Element.prototype.__checkJump = function(at) {
     return (t !== null) ? t : Element.NO_TIME;
 }
 Element.prototype.__checkSwitcher = function(gtime) {
-    if (!this.parent || !this.parent.switch) return gtime;
+    if (!this.parent || !this.parent['switch']) return gtime;
     var parent = this.parent;
-    if (parent.switch === C.SWITCH_OFF) return Element.NO_TIME;
-    if ((parent.switch === this.name) && parent.switch_band) {
+    if (parent['switch'] === C.SWITCH_OFF) return Element.NO_TIME;
+    if ((parent['switch'] === this.name) && parent.switch_band) {
         if (gtime === Element.NO_TIME) return Element.NO_TIME;
         return gtime - parent.switch_band[0];
     } else return Element.NO_TIME;
