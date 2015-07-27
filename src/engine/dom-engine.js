@@ -196,7 +196,7 @@ $DE.getCookie = function(name) {
 
 $DE.onDocReady = function(callback) {
     //check if the document isn't already ready (sorry for the wording)
-    if ($doc.readyState === 'complete') {
+    if ($DE.isDocReady()) {
       callback();
       return;
     }
@@ -216,6 +216,10 @@ $DE.onDocReady = function(callback) {
         $doc.attachEvent('onreadystatechange', listener);
     }
 };
+
+$DE.isDocReady = function() {
+    return ($doc.readyState === 'complete') || ($doc.readyState === 'interactive');
+}
 
 
 $DE.__stylesTag = null;
