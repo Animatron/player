@@ -373,24 +373,20 @@ Controls.prototype.disableInfo = function() {
 };
 
 var nextFrame = engine.getRequestFrameFunc(),
-    stopAnim = engine.getCancelFrameFunc();
-
-var getRenderFunc = function(controls) {
-    var renderFunc = function(t) {
-        controls.render.call(controls, t);
-        nextFrame(renderFunc);
-    };
-
-    return renderFunc;
-};
+    stopAnim = engine.getCancelFrameFunc(),
+    lastRequest = null;
 
 Controls.prototype.setupRenderLoop = function() {
-    this.renderFunc = getRenderFunc(this);
-    nextFrame(this.renderFunc);
+    var controls = this;
+    var renderFunc = function(t) {
+        controls.render.call(controls, t);
+        lastRequest = nextFrame(renderFunc);
+    };
+    lastRequest = nextFrame(renderFunc);
 };
 
 Controls.prototype.stopRenderLoop = function() {
-    stopAnim(this.renderFunc);
+    if (lastRequest) stopAnim(lastRequest);
 };
 
 //check whether the mpos coordinates are within the bottom area

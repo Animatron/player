@@ -62,13 +62,13 @@
       function load() {
           if (!player) return;
 
-          var project = JSON.parse(document.getElementById('scene-input').value);
+          //var project = JSON.parse(document.getElementById('scene-input').value);
 
           // canvas0
-          var importer = anm.importers.create('animatron');
+          //var importer = anm.importers.create('animatron');
           player.detach();
-          player = createPlayer();
-          player.load(project, importer);
+          //player = createPlayer();
+          //player.load(project, importer);
           //player.play();
       }
 
@@ -80,6 +80,9 @@
           document.getElementById('scene-input').value = DEFAULT_SCENE;
 
           player = createPlayer();
+          var project = JSON.parse(document.getElementById('scene-input').value);
+          var importer = anm.importers.create('animatron');
+          player.load(project, importer);
           //load();
       }
     </script>
