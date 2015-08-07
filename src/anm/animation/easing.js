@@ -49,6 +49,26 @@ function registerSegEasing(alias, points) {
     };
 }
 
+function findBounds(ease) {
+    var min = 1;
+    var max = 0;
+
+    for (var i = 0, t; i <= 100; i++) {
+        t = ease(i / 100.0);
+        min = Math.min(min, t);
+        max = Math.max(max, t);
+    }
+
+    return [ min, max ];
+}
+
+function boundedEasing(ease) {
+    var bounds = findBounds(ease);
+    return function(t) {
+        return (ease(t) - bounds[0]) / (bounds[1] - bounds[0]);
+    };
+}
+
 registerSegEasing('default',    [0.250, 0.100, 0.250, 1.000, 1.000, 1.000]); // Default
 registerSegEasing('in',         [0.420, 0.000, 1.000, 1.000, 1.000, 1.000]); // In
 registerSegEasing('out',        [0.000, 0.000, 0.580, 1.000, 1.000, 1.000]); // Out
@@ -83,23 +103,23 @@ var Standard = [
     function(t) { return Functions['in'](t); },  // In
     function(t) { return Functions['out'](t); }, // Out
     function(t) { return Functions['inout'](t); }, // InOut
-    function(t) { return t*t; },    // 4    In Quad
-    function(t) { return t*(2-t); },// 5    Out Quad
-    function(t) {                   // 6    In/Out Quad
+    function(t) { return t*t; },    // 4    Quad In
+    function(t) { return t*(2-t); },// 5    Quad Out
+    function(t) {                   // 6    Quad In/Out
         if (t < 0.5) return 2*t*t;
         else {
             t = (t-0.5)*2;
             return -(t*(t-2)-1)/2;
         }
     },
-    function(t) {                   // 7    In Cubic
+    function(t) {                   // 7    Cubic In
         return t*t*t;
     },
-    function(t) {                  // 8     Out Cubic
+    function(t) {                  // 8     Cubic Out
         t = t-1;
         return t*t*t + 1;
     },
-    function(t) {                  // 9     In/Out Cubic
+    function(t) {                  // 9     Cubic In/Out
         if (t < 0.5) {
             t = t*2;
             return t*t*t/2;
@@ -108,22 +128,22 @@ var Standard = [
             return (t*t*t+2)/2;
         }
     },
-    function(t) {                  // 10   In Sine
+    function(t) {                  // 10   Sine In
         return 1 - Math.cos(t * (Math.PI/2));
     },
-    function(t) {                 // 11    Out Sine
+    function(t) {                 // 11    Sine Out
         return Math.sin(t * (Math.PI/2));
     },
-    function(t) {                 // 12    In/Out Sine
+    function(t) {                 // 12    Sine In/Out
         return -(Math.cos(Math.PI*t) - 1)/2;
     },
-    function(t) {                 // 13   In Expo
+    function(t) {                 // 13   Expo In
         return (t<=0) ? 0 : Math.pow(2, 10 * (t - 1));
     },
-    function(t) {                // 14    Out Expo
+    function(t) {                // 14    Expo Out
         return t>=1 ? 1 : (-Math.pow(2, -10 * t) + 1);
     },
-    function(t) {                // 15    In/Out Expo
+    function(t) {                // 15    Expo In/Out
         if (t<=0) return 0;
         if (t>=1) return 1;
         if (t < 0.5) return Math.pow(2, 10 * (t*2 - 1))/2;
@@ -131,34 +151,38 @@ var Standard = [
             return (-Math.pow(2, -10 * (t-0.5)*2) + 2)/2;
         }
     },
-    function(t) {               // 16    In Circle
+    function(t) {               // 16    Circle In
         return 1-Math.sqrt(1 - t*t);
     },
-    function(t) {              // 17     Out Circle
+    function(t) {              // 17     Circle Out
         t = t-1;
         return Math.sqrt(1 - t*t);
     },
-    function(t) {              // 18     In/Out Cicrle
+    function(t) {              // 18     Cicrle In/Out
         if ((t*=2) < 1) return -(Math.sqrt(1 - t*t) - 1)/2;
         return (Math.sqrt(1 - (t-=2)*t) + 1)/2;
     },
-    function(t) {              // 19    In Back
+    boundedEasing(function(t) {  // 19    Back In
         var s = 1.70158;
         return t*t*((s+1)*t - s);
-    },
-    function(t) {             // 20     Out Back
+    }),
+    (function(ease) {  // 20     Back Out
+        return function(t) {
+            return (ease(t)-(-0.2))/1.4;
+        }
+    })(function(t) {
         var s = 1.70158;
         return ((t-=1)*t*((s+1)*t + s) + 1);
-    },
-    function(t) {             // 21     In/Out Back
+    }),
+    boundedEasing(function(t) { // 21     Back In/Out
         var s = 1.70158;
         if ((t*=2) < 1) return (t*t*(((s*=(1.525))+1)*t - s))/2;
         return ((t-=2)*t*(((s*=(1.525))+1)*t + s) + 2)/2;
-    },
-    function(t) {             // 22     In Bounce
+    }),
+    function(t) {  // 22     Bounce In
         return 1 - Standard[23](1-t);
     },
-    function(t) {              // 23    Out Bounce
+    boundedEasing(function(t) {  // 23    Bounce Out
         if (t < (1/2.75)) {
             return (7.5625*t*t);
         } else if (t < (2/2.75)) {
@@ -168,14 +192,14 @@ var Standard = [
         } else {
             return (7.5625*(t-=(2.625/2.75))*t + 0.984375);
         }
-    },
-    function(t) {             // 24     In/Out Bounce
+    }),
+    function(t) {             // 24     Bounce In/Out
         if (t < 0.5) return Standard[22](t*2) * 0.5;
         return Standard[23](t*2-1) * 0.5 + 0.5;
     },
-    function(t) {             // 25     Instant
-        return 0;
-    }
+    function(t) { return 0; },             // 25     Instant In
+    function(t) { return 1; },             // 26     Instant Out
+    function(t) { return (t < 0.5) ? 0 : 1; }              // 27     Instant In/Out
 ];
 
 module.exports = EasingImpl;

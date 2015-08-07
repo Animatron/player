@@ -271,7 +271,7 @@ Import.branch = function(type, src, all, anim) {
         // if it is a leaf, it will be the element itself
         var ltrg = Import.node(nsrc, all, trg, anim);
         if (!ltrg) continue;
-        if (!ltrg.name) { ltrg.name = lsrc[1]; }
+        ltrg.name = lsrc[1];
 
         // apply bands, pivot and registration point
         var flags = lsrc[6];

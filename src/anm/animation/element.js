@@ -824,7 +824,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
             mask_ltime, mask_gtime;
 
         if (mask) {
-            mask_ltime = mask.ltime(gtime),
+            mask_ltime = mask.ltime(ltime),
             mask_gtime = mask.gtime(mask_ltime);
 
             // FIXME: move this chain completely into one method, or,
