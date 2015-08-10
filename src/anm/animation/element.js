@@ -2757,6 +2757,7 @@ Element.prototype._hasRemoteResources = function(anim, player) {
     if (player.imagesEnabled && this.$image) return true;
     if (this.is(C.ET_AUDIO) && player.audioEnabled) return true;
     if (this.is(C.ET_VIDEO) && player.videoEnabled) return true;
+    if (this.$mask) return this.$mask._hasRemoteResources(anim, player);
 
     return false;
 };
@@ -2776,6 +2777,10 @@ Element.prototype._collectRemoteResources = function(anim, player) {
         resources.push(this.$video.url);
     }
 
+    if (this.$mask) {
+        resources = resources.concat(this.$mask._collectRemoteResources(anim, player));
+    }
+
     return resources;
 };
 
@@ -2788,6 +2793,9 @@ Element.prototype._loadRemoteResources = function(anim, player) {
     }
     if (this.is(C.ET_VIDEO) && player.videoEnabled) {
         this.$video.load(this, player);
+    }
+    if (this.$mask) {
+        this.$mask._loadRemoteResources(this, player);
     }
 };
 
