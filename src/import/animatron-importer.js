@@ -102,7 +102,7 @@ Import.project = function(prj) {
     for (var i = 0, il = scenes_ids.length; i < il; i++) {
         var node_src = Import._find(scenes_ids[i], elems);
         if (Import._type(node_src) != TYPE_SCENE) _reportError('Given Scene ID ' + scenes_ids[i] + ' points to something else');
-        node_res = Import.node(node_src, elems, null, root);
+        node_res = Import.node(node_src, null, elems, null, root);
 
         if (i > 0) { // start from second scene, if there is one
             // FIXME: smells like a hack
@@ -235,7 +235,7 @@ var L_ROT_TO_PATH = 1,
  * } *group_element*;
  */
 // -> Element
-Import.branch = function(type, src, psrc, all, anim, band) {
+Import.branch = function(type, src, psrc, all, anim) {
     var trg = new Element();
     trg.name = src[1];
     var _layers = (type == TYPE_SCENE) ? src[3] : src[2],
