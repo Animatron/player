@@ -276,10 +276,10 @@ Import.branch = function(type, src, psrc, all, anim) {
         // apply bands, pivot and registration point
         var flags = lsrc[6];
         ltrg.disabled = !(flags & L_VISIBLE);
-        var pb = (psrc && psrc[2]) ? psrc[2] : [0, 0],
+        var pb = ((type === TYPE_GROUP) && psrc && psrc[2]) ? psrc[2] : [0, 0],
             b = Import.band(lsrc[2]);
-        ltrg.lband = [b[0] - pb[0], b[1] - pb[1]];
-        ltrg.gband = [b[0] - pb[0], b[1] - pb[1]];
+        ltrg.lband = [b[0] - pb[0], b[1] - pb[0]];
+        ltrg.gband = b;
         ltrg.$pivot = [ 0, 0 ];
         ltrg.$reg = lsrc[4] || [ 0, 0 ];
 
@@ -333,11 +333,6 @@ Import.branch = function(type, src, psrc, all, anim) {
         } else {
             ltrg.mode = Import.mode(null);
         }
-
-        /* if (type === TYPE_GROUP) {
-            ltrg.lband = [ trg.lband[0] - ltrg.lband[0], trg.lband[1] - ltrg.lband[1] ];
-            ltrg.gband = [ trg.gband[0] - ltrg.gband[0], trg.gband[1] - ltrg.gband[1] ];
-        } */
 
         // Clips' end-actions like in Editor are not supported in Player,
         // but they may be adapted to Player's model (same as Group in Editor)
