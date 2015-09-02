@@ -102,7 +102,7 @@ Import.project = function(prj) {
     for (var i = 0, il = scenes_ids.length; i < il; i++) {
         var node_src = Import._find(scenes_ids[i], elems);
         if (Import._type(node_src) != TYPE_SCENE) _reportError('Given Scene ID ' + scenes_ids[i] + ' points to something else');
-        node_res = Import.node(node_src, null, elems, null, root);
+        node_res = Import.node(node_src, elems, null, root);
 
         if (i > 0) { // start from second scene, if there is one
             // FIXME: smells like a hack
@@ -199,15 +199,15 @@ function isPath(type) {
  * } *element*;
  */
 // -> Element
-Import.node = function(src, lsrc, all, parent, anim) {
+Import.node = function(src, all, parent, anim) {
     var type = Import._type(src),
         trg = null;
     if ((type == TYPE_CLIP) ||
         (type == TYPE_SCENE) ||
         (type == TYPE_GROUP)) {
-        trg = Import.branch(type, src, lsrc, all, anim);
+        trg = Import.branch(type, src, all, anim);
     } else if (type != TYPE_UNKNOWN) {
-        trg = Import.leaf(type, src, lsrc, parent, anim);
+        trg = Import.leaf(type, src, parent, anim);
     }
     if (trg) {
         trg._anm_type = type;
@@ -235,12 +235,12 @@ var L_ROT_TO_PATH = 1,
  * } *group_element*;
  */
 // -> Element
-Import.branch = function(type, src, psrc, all, anim) {
+Import.branch = function(type, src, all, anim) {
     var trg = new Element();
     trg.name = src[1];
     var _layers = (type == TYPE_SCENE) ? src[3] : src[2],
         _layers_targets = [];
-    if (type === TYPE_SCENE) {
+    if (type == TYPE_SCENE) {
         trg.gband = [ 0, src[2] ];
         trg.lband = [ 0, src[2] ];
     } else {
@@ -269,16 +269,15 @@ Import.branch = function(type, src, psrc, all, anim) {
 
         // if there is a branch under the node, it will be a wrapper
         // if it is a leaf, it will be the element itself
-        var ltrg = Import.node(nsrc, lsrc, all, trg, anim);
+        var ltrg = Import.node(nsrc, all, trg, anim);
         if (!ltrg) continue;
         ltrg.name = lsrc[1];
 
         // apply bands, pivot and registration point
         var flags = lsrc[6];
         ltrg.disabled = !(flags & L_VISIBLE);
-        var pb = ((type === TYPE_GROUP) && psrc && psrc[2]) ? psrc[2] : [0, 0],
-            b = Import.band(lsrc[2]);
-        ltrg.lband = [b[0] - pb[0], b[1] - pb[0]];
+        var b = Import.band(lsrc[2]);
+        ltrg.lband = b;
         ltrg.gband = b;
         ltrg.$pivot = [ 0, 0 ];
         ltrg.$reg = lsrc[4] || [ 0, 0 ];
@@ -336,7 +335,7 @@ Import.branch = function(type, src, psrc, all, anim) {
 
         // Clips' end-actions like in Editor are not supported in Player,
         // but they may be adapted to Player's model (same as Group in Editor)
-        if ((ltrg._anm_type === TYPE_CLIP) && (ltrg.mode !== C.R_ONCE)) {
+        if ((ltrg._anm_type == TYPE_CLIP) && (ltrg.mode != C.R_ONCE)) {
             ltrg.asClip([0, ltrg.lband[1] - ltrg.lband[0]], ltrg.mode, ltrg.nrep);
             ltrg.lband = [ ltrg.lband[0], Infinity ];
             ltrg.gband = [ ltrg.gband[0], Infinity ];
@@ -383,7 +382,7 @@ Import.branch = function(type, src, psrc, all, anim) {
 
 /** leaf **/
 // -> Element
-Import.leaf = function(type, src, lsrc, parent, anim) {
+Import.leaf = function(type, src, parent, anim) {
     var trg = new Element();
     var hasUrl = !!src[1];
     if (!hasUrl &&
