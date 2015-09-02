@@ -11,17 +11,27 @@
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
     <link rel="shortcut icon" type="image/x-icon" href="../favicon.ico" />
     <!--<script type="text/javascript" language="javascript" src="http://player.animatron.com/latest/bundle/animatron.js"></script>-->
-    <script src="../dist/bundle/animatron.js"></script>
+    <script src="../dist/bundle/animatron.min.js"></script>
 
     <script>
         var snapshotsUrl = 'https://clips.animatron-test.com/',
             defaultSnapshotId = '057f9821e527adaf005b6a2d64487cf0',
             snapshotId = defaultSnapshotId;
 
-        var currentMode = 'embed';
+        var currentMode; // embed, config, publish, html
+
+        function getElm(id) { return document.getElementById(id); }
+
+        function switchMode(target) {
+            if (currentMode) getElm('mode-' + currentMode).className = '';
+            currentMode = target;
+            getElm('mode-' + target).className = 'current';
+        }
 
         function collectOptions() {
             var options = {};
+            if (!getElm('opts-width').disabled) options.width = getElm('opts-width').value;
+            if (!getElm('opts-height').disabled) options.height = getElm('opts-height').value;
         }
 
         function getCode(options) {
@@ -29,38 +39,54 @@
         }
 
         function onChange() {
-
+            snapshotId = getElm('snapshot-id').value;
+            getElm('code').value = getCode(collectOptions());
         }
+
+        function init() {
+            getElm('snapshot-id').value = defaultSnapshotId;
+            switchMode('embed');
+
+            getElm('opts-width-default').addEventListener('click', function() { getElm('opts-width').disabled = this.checked; });
+            getElm('opts-height-default').addEventListener('click', function() { getElm('opts-height').disabled = this.checked; });
+        }
+
     </script>
 
     <style>
-        label {
+        body > label {
             display: block;
             font-size: 1.3em;
             font-weight: bold;
             margin: 20px 0;
         }
+
+        #code-type a.current {
+            color: #f00;
+        }
     </style>
 </head>
-<body>
+<body onload="init()">
     <label for="snapshot">Snapshot ID:</label>
 
     <form id="snapshot">
-
+        <input type="text" id="snapshot-id"></input>
     </form>
 
     <label for="options">Options:</label>
 
     <form id="options">
+        <label for="opts-width">Width:</label><input type="text" disabled id="opts-width" /><label for="opts-width-default">Default:</label><input type="checkbox" id="opts-width-default" checked /><br/>
+        <label for="opts-height">Height:</label><input type="text" disabled id="opts-height" /><label for="opts-height-default">Default:</label><input type="checkbox" id="opts-height-default" checked />
     </form>
 
     <label for="code-type">Get code for:</label>
 
     <ul id="code-type">
-        <li><a href="#" onlick="switchEmbed()">Embedding</a></li>
-        <li><a href="#" onlick="switchConfig()">Player Configuration</a></li>
-        <li><a href="#" onlick="switchPublish()">Publish URL</a></li>
-        <li><a href="#" onlick="switchAttributes()">HTML Attributes</a></li>
+        <li><a href="#embed" id="mode-embed" onclick="switchMode('embed')">Embedding</a></li>
+        <li><a href="#config" id="mode-config" onclick="switchMode('config')">Player Configuration</a></li>
+        <li><a href="#publish" id="mode-publish" onclick="switchMode('publish')">Publish URL</a></li>
+        <li><a href="#html" id="mode-html" onclick="switchMode('html')">HTML Attributes</a></li>
     </ul>
 
     <label for="code">The Code:</label>
