@@ -1,0 +1,70 @@
+<!--
+ ~ Copyright (c) 2011-2014 by Animatron.
+ ~ All rights are reserved.
+ ~
+ ~ Animatron player is licensed under the MIT License, see LICENSE.
+ -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <link rel="shortcut icon" type="image/x-icon" href="../favicon.ico" />
+    <!--<script type="text/javascript" language="javascript" src="http://player.animatron.com/latest/bundle/animatron.js"></script>-->
+    <script src="../dist/bundle/animatron.js"></script>
+
+    <script>
+        var snapshotsUrl = 'https://clips.animatron-test.com/',
+            defaultSnapshotId = '057f9821e527adaf005b6a2d64487cf0',
+            snapshotId = defaultSnapshotId;
+
+        var currentMode = 'embed';
+
+        function collectOptions() {
+            var options = {};
+        }
+
+        function getCode(options) {
+
+        }
+
+        function onChange() {
+
+        }
+    </script>
+
+    <style>
+        label {
+            display: block;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <label for="snapshot">Snapshot ID:</label>
+
+    <form id="snapshot">
+
+    </form>
+
+    <label for="options">Options:</label>
+
+    <form id="options">
+    </form>
+
+    <label for="code-type">Get code for:</label>
+
+    <ul id="code-type">
+        <li><a href="#" onlick="switchEmbed()">Embedding</a></li>
+        <li><a href="#" onlick="switchConfig()">Player Configuration</a></li>
+        <li><a href="#" onlick="switchPublish()">Publish URL</a></li>
+        <li><a href="#" onlick="switchAttributes()">HTML Attributes</a></li>
+    </ul>
+
+    <label for="code">The Code:</label>
+    <textarea id="code"></textarea>
+
+    <label for="preview">Preview:</label>
+</body>
