@@ -18,6 +18,9 @@
             defaultSnapshotId = '057f9821e527adaf005b6a2d64487cf0',
             snapshotId = defaultSnapshotId;
 
+        var embedPrefix = '<iframe src="',
+            embedPostfix = '" width="640" height="360" frameborder="0"></iframe>';
+
         var currentMode; // embed, config, publish, html
 
         function getElm(id) { return document.getElementById(id); }
@@ -32,10 +35,17 @@
             var options = {};
             if (!getElm('opts-width').disabled) options.width = getElm('opts-width').value;
             if (!getElm('opts-height').disabled) options.height = getElm('opts-height').value;
+            return options;
         }
 
         function getCode(options) {
-
+            if (currentMode === 'embed') {
+                var result = embedPrefix + snapshotsUrl + snapshotId + '?';
+                if (options.width) embedPrefix += 'w=' + options.width;
+                if (options.height) embedPrefix += 'h=' + options.height;
+                result += embedPostfix;
+                return result;
+            }
         }
 
         function onChange() {
@@ -49,7 +59,25 @@
 
             getElm('opts-width-default').addEventListener('click', function() { getElm('opts-width').disabled = this.checked; });
             getElm('opts-height-default').addEventListener('click', function() { getElm('opts-height').disabled = this.checked; });
+
+            onChange();
         }
+
+        var optionsMapper = {
+            'embed': function() {}
+        }
+
+        var conversions = (function() {
+
+            var numberOption = function(prop) { return function(o) { if (o[prop]) return o[prop]; } }
+
+            return {
+                'embed': {
+                    width: numberOption('width'),
+                }
+            };
+
+        })();
 
     </script>
 
@@ -90,7 +118,7 @@
     </ul>
 
     <label for="code">The Code:</label>
-    <textarea id="code"></textarea>
+    <textarea id="code" cols="100" rows="10"></textarea>
 
     <label for="preview">Preview:</label>
 </body>
