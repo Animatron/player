@@ -19,8 +19,13 @@ function collectOptions() {
 
 function getCode(mode, options) {
     if (mode === 'embed') {
-        return embedPrefix + snapshotsUrl + snapshotId + '?' +
-               optionsMapper('embed', options) + embedPostfix;
+        var params = optionsMapper('embed', options);
+        return embedPrefix + snapshotsUrl + snapshotId +
+               (params ? ('?' + params) : '') + embedPostfix;
+    } else if (mode === 'publish') {
+        var params = optionsMapper('embed', options);
+        return snapshotsUrl + snapshotId +
+               (params ? ('?' + params) : '');
     }
 }
 
@@ -35,7 +40,10 @@ function updateWithCode(mode, code) {
         getElm('preview').classList.remove('updated');
     }, 500);
 
-    if (mode === 'embed') previewElm.innerHTML = code;
+    if (mode === 'embed') { previewElm.innerHTML = code; }
+    else if (mode === 'publish') {
+        previewElm.innerHTML = '<a href="' + code + '" target="_blank">Click Me</a>';
+    }
 }
 
 function onChange() {
@@ -100,6 +108,8 @@ var optionsMapper = function(mode, options) {
 
         })()
     };
+
+    map['publish'] = map['embed']; // they are the same
 
     var map_f = {
         'embed': function(results) { return results.join('&'); }
