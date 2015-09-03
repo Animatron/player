@@ -13,6 +13,7 @@ function collectOptions() {
     var options = {};
     if (!getElm('opts-width').disabled) options.width = getElm('opts-width').value;
     if (!getElm('opts-height').disabled) options.height = getElm('opts-height').value;
+    if (!getElm('opts-controls').disabled) options.controlsEnabled = getElm('opts-controls').checked;
     return options;
 }
 
@@ -57,8 +58,10 @@ function init() {
 
     getElm('opts-width-default').addEventListener('click', function() { getElm('opts-width').disabled = this.checked; });
     getElm('opts-height-default').addEventListener('click', function() { getElm('opts-height').disabled = this.checked; });
+    getElm('opts-controls-default').addEventListener('click', function() { getElm('opts-controls').disabled = this.checked; });
 
-    var subjects = [ 'opts-width', 'opts-width-default', 'opts-height', 'opts-height-default' ];
+    var subjects = [ 'opts-width', 'opts-width-default', 'opts-height', 'opts-height-default',
+                     'opts-controls', 'opts-controls-default' ];
 
     for (var i = 0, il = subjects.length; i < il; i++) {
         getElm(subjects[i]).addEventListener('change', onChange);
@@ -82,12 +85,17 @@ var optionsMapper = function(mode, options) {
         'embed': (function() {
 
             function numberOption(prop, label) { return function(o) {
-                if (o[prop]) return label + '=' + o[prop];
+                if (typeof o[prop] !== 'undefined') return label + '=' + o[prop];
+            } };
+
+            function booleanOption(prop, label) { return function(o) {
+                if (typeof o[prop] !== 'undefined') return label + '=' + (o[prop] ? '1' : '0');
             } };
 
             return {
                 width: numberOption('width', 'w'),
-                height: numberOption('height', 'h')
+                height: numberOption('height', 'h'),
+                controlsEnabled: booleanOption('controlsEnabled', 'c')
             };
 
         })()
