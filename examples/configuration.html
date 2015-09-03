@@ -12,21 +12,8 @@
     <link rel="shortcut icon" type="image/x-icon" href="../favicon.ico" />
     <!--<script type="text/javascript" language="javascript" src="http://player.animatron.com/latest/bundle/animatron.js"></script>-->
     <script src="../dist/bundle/animatron.min.js"></script>
-
+    <link rel="stylesheet" href="./configuration.css" type="text/css" />
     <script src="./configuration.js"></script>
-
-    <style>
-        body > label {
-            display: block;
-            font-size: 1.3em;
-            font-weight: bold;
-            margin: 20px 0;
-        }
-
-        #code-type a.current {
-            color: #f00;
-        }
-    </style>
 </head>
 <body onload="init()">
     <label for="snapshot">Snapshot ID:</label>
@@ -38,9 +25,9 @@
     <label for="options">Options:</label>
 
     <form id="options">
-        <label for="opts-width">Width:</label><input type="text" disabled id="opts-width" />
+        <label for="opts-width">Width:</label><input type="number" disabled id="opts-width" value="640" />
         <label for="opts-width-default">Default:</label><input type="checkbox" id="opts-width-default" checked /><br/>
-        <label for="opts-height">Height:</label><input type="text" disabled id="opts-height" />
+        <label for="opts-height">Height:</label><input type="number" disabled id="opts-height" value="360" />
         <label for="opts-height-default">Default:</label><input type="checkbox" id="opts-height-default" checked />
     </form>
 
@@ -54,7 +41,7 @@
     </ul>
 
     <label for="code">The Code:</label>
-    <textarea id="code" cols="100" rows="10"></textarea>
+    <textarea id="code" cols="70" rows="10"></textarea>
 
     <label for="preview">Preview:</label>
     <div id="preview"></div>

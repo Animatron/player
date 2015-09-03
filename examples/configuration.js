@@ -9,12 +9,6 @@ var currentMode; // embed, config, publish, html
 
 function getElm(id) { return document.getElementById(id); }
 
-function switchMode(target) {
-    if (currentMode) getElm('mode-' + currentMode).className = '';
-    currentMode = target;
-    getElm('mode-' + target).className = 'current';
-}
-
 function collectOptions() {
     var options = {};
     if (!getElm('opts-width').disabled) options.width = getElm('opts-width').value;
@@ -22,16 +16,39 @@ function collectOptions() {
     return options;
 }
 
-function getCode(options) {
-    if (currentMode === 'embed') {
+function getCode(mode, options) {
+    if (mode === 'embed') {
         return embedPrefix + snapshotsUrl + snapshotId + '?' +
                optionsMapper('embed', options) + embedPostfix;
     }
 }
 
+function updateWithCode(mode, code) {
+    var previewElm = getElm('preview');
+    while (previewElm.firstChild) previewElm.removeChild(previewElm.firstChild);
+
+    getElm('code').classList.add('updated');
+    getElm('preview').classList.add('updated');
+    setTimeout(function() {
+        getElm('code').classList.remove('updated');
+        getElm('preview').classList.remove('updated');
+    }, 500);
+
+    if (mode === 'embed') previewElm.innerHTML = code;
+}
+
 function onChange() {
     snapshotId = getElm('snapshot-id').value;
-    getElm('code').value = getCode(collectOptions());
+    var code = getCode(currentMode, collectOptions());
+
+    getElm('code').value = code;
+    updateWithCode(currentMode, code);
+}
+
+function switchMode(target) {
+    if (currentMode) getElm('mode-' + currentMode).className = '';
+    currentMode = target;
+    getElm('mode-' + target).className = 'current';
 }
 
 function init() {
@@ -46,6 +63,15 @@ function init() {
     for (var i = 0, il = subjects.length; i < il; i++) {
         getElm(subjects[i]).addEventListener('change', onChange);
     }
+
+    getElm('mode-embed').addEventListener('click', onChange);
+    getElm('mode-config').addEventListener('click', onChange);
+    getElm('mode-publish').addEventListener('click', onChange);
+    getElm('mode-html').addEventListener('click', onChange);
+
+    getElm('code').addEventListener('change', function() {
+        updateWithCode('embed', getElm('code').value);
+    });
 
     onChange();
 }
