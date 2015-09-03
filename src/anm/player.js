@@ -43,7 +43,8 @@ var Loader = require('./loader.js'),
 var Animation = require('./animation/animation.js'),
     Element = require('./animation/element.js'),
     Render = require('./render.js'),
-    Sheet = require('./graphics/sheet.js');
+    Sheet = require('./graphics/sheet.js'),
+    analytics = require('./analytics.js');
 
 
 // Player
@@ -215,6 +216,7 @@ Player.EMPTY_BG = 'rgba(0,0,0,.05)';
  */
 
 Player.prototype.init = function(elm, opts) {
+    this.viewId = analytics.getObjectId();
     if (!engine.isDocReady()) { log.warn(ErrLoc.P.DOM_NOT_READY); };
     this._initHandlers(); /* TODO: make automatic */
     this.on(C.S_ERROR, this.__onerror());
@@ -544,6 +546,8 @@ Player.prototype.play = function(from, speed, stopAfter) {
     player.fire(C.S_CHANGE_STATE, C.PLAYING);
     player.fire(C.S_PLAY, state.from);
 
+    analytics.trackPlayingStart(player);
+
     return player;
 };
 
@@ -643,6 +647,8 @@ Player.prototype.pause = function() {
 
     player.fire(C.S_CHANGE_STATE, C.PAUSED);
     player.fire(C.S_PAUSE, state.time);
+
+    analytics.trackPlayingPause(player);
 
     return player;
 };
@@ -1536,6 +1542,7 @@ Player.prototype.__beforeFrame = function(anim) {
                 (is.finite(state.duration) &&
                  (time > (state.duration + Player.PEFF)))) {
                 player.fire(C.S_COMPLETE);
+                analytics.trackPlayingComplete(player);
                 state.time = 0;
                 anim.reset();
                 player.stop();
