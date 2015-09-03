@@ -1,9 +1,7 @@
-var snapshotsUrl = 'https://clips.animatron-test.com/',
+var snapshotsUrl = 'http://clips.animatron-test.com/',
     defaultSnapshotId = '057f9821e527adaf005b6a2d64487cf0',
-    snapshotId = defaultSnapshotId;
-
-var embedPrefix = '<iframe src="',
-    embedPostfix = '" width="640" height="360" frameborder="0"></iframe>';
+    snapshotId = defaultSnapshotId,
+    targetDivId = 'player-target';
 
 var currentMode; // embed, config, publish, html
 
@@ -20,23 +18,37 @@ function collectOptions() {
 function getCode(mode, options) {
     if (mode === 'embed') {
         var params = optionsMapper('embed', options);
-        return embedPrefix + snapshotsUrl + snapshotId +
-               (params ? ('?' + params) : '') + embedPostfix;
+        return '<iframe src="' + snapshotsUrl + snapshotId +
+               (params ? ('?' + params) : '') +
+               '" width="640" height="360" frameborder="0"></iframe>';
     } else if (mode === 'publish') {
         var params = optionsMapper('embed', options);
         return snapshotsUrl + snapshotId +
                (params ? ('?' + params) : '');
     } else if (mode === 'config') {
         var list = optionsMapper('config', options);
-        return list ? '{\n    ' + list + '\n}' : '{ }';
+        var config = list ? '{\n    ' + list + '\n}' : '{ }';
+        return 'var options = ' + config + ';\n' +
+               'var snapshotUrl = \'' + snapshotsUrl + '\';\n' +
+               'var snapshotId = \'' + snapshotId + '.json\';\n' +
+               'anm.Player.forSnapshot(\'' + targetDivId + '\',\n' +
+               '                       snapshotUrl + snapshotId,\n' +
+               '                       anm.importers.create(\'animatron\'),\n' +
+               '                       null, /* callback */\n' +
+               '                       options);';
     } else if (mode === 'html') {
         var attributes = optionsMapper('html', options);
-        return '<div id="anm-player" anm-player-target' +
+        return '<div id="anm-player" anm-player-target ' +
+               'anm-src="' + snapshotsUrl + snapshotId + '.json"' +
               (attributes ? ' ' + attributes : '') + '></div>';
     }
 }
 
 function updateWithCode(mode, code) {
+    if (anm.player_manager.instances.length) {
+        anm.player_manager.instances[0].detach();
+    }
+
     var previewElm = getElm('preview');
     while (previewElm.firstChild) previewElm.removeChild(previewElm.firstChild);
 
@@ -50,6 +62,12 @@ function updateWithCode(mode, code) {
     if (mode === 'embed') { previewElm.innerHTML = code; }
     else if (mode === 'publish') {
         previewElm.innerHTML = '<a href="' + code + '" target="_blank">Click Me</a>';
+    } else if (mode === 'config') {
+        previewElm.innerHTML = '<div id="player-target"></div>';
+        eval(code);
+    } else if (mode === 'html') {
+        previewElm.innerHTML = code;
+        findAndInitPotentialPlayers();
     }
 }
 
@@ -172,3 +190,10 @@ var optionsMapper = function(mode, options) {
     return map_f[mode](results);
 
 };
+
+function findAndInitPotentialPlayers() {
+    var matches = anm.engine.findPotentialPlayers();
+    for (var i = 0, il = matches.length; i < il; i++) {
+        anm.createPlayer(matches[i]);
+    }
+}
