@@ -40,11 +40,8 @@
 
         function getCode(options) {
             if (currentMode === 'embed') {
-                var result = embedPrefix + snapshotsUrl + snapshotId + '?';
-                if (options.width) embedPrefix += 'w=' + options.width;
-                if (options.height) embedPrefix += 'h=' + options.height;
-                result += embedPostfix;
-                return result;
+                return embedPrefix + snapshotsUrl + snapshotId + '?' +
+                       optionsMapper('embed', options) + embedPostfix;
             }
         }
 
@@ -60,24 +57,47 @@
             getElm('opts-width-default').addEventListener('click', function() { getElm('opts-width').disabled = this.checked; });
             getElm('opts-height-default').addEventListener('click', function() { getElm('opts-height').disabled = this.checked; });
 
+            var subjects = [ 'opts-width', 'opts-width-default', 'opts-height', 'opts-height-default' ];
+
+            for (var i = 0, il = subjects.length; i < il; i++) {
+                getElm(subjects[i]).addEventListener('change', onChange);
+            }
+
             onChange();
         }
 
-        var optionsMapper = {
-            'embed': function() {}
-        }
+        var optionsMapper = function(mode, options) {
 
-        var conversions = (function() {
+            var map = {
+                'embed': (function() {
 
-            var numberOption = function(prop) { return function(o) { if (o[prop]) return o[prop]; } }
+                    function numberOption(prop, label) { return function(o) {
+                        if (o[prop]) return label + '=' + o[prop];
+                    } };
 
-            return {
-                'embed': {
-                    width: numberOption('width'),
-                }
+                    return {
+                        width: numberOption('width', 'w'),
+                        height: numberOption('height', 'h')
+                    };
+
+                })()
             };
 
-        })();
+            var map_f = {
+                'embed': function(results) { return results.join('&'); }
+            };
+
+            var mapKeys = Object.keys(map[mode]);
+            var results = [];
+            var result;
+            for (var i = 0, il = mapKeys.length; i < il; i++) {
+                result = map[mode][mapKeys[i]](options);
+                if (result) results.push(result);
+            }
+
+            return map_f[mode](results);
+
+        };
 
     </script>
 
@@ -104,8 +124,10 @@
     <label for="options">Options:</label>
 
     <form id="options">
-        <label for="opts-width">Width:</label><input type="text" disabled id="opts-width" /><label for="opts-width-default">Default:</label><input type="checkbox" id="opts-width-default" checked /><br/>
-        <label for="opts-height">Height:</label><input type="text" disabled id="opts-height" /><label for="opts-height-default">Default:</label><input type="checkbox" id="opts-height-default" checked />
+        <label for="opts-width">Width:</label><input type="text" disabled id="opts-width" />
+        <label for="opts-width-default">Default:</label><input type="checkbox" id="opts-width-default" checked /><br/>
+        <label for="opts-height">Height:</label><input type="text" disabled id="opts-height" />
+        <label for="opts-height-default">Default:</label><input type="checkbox" id="opts-height-default" checked />
     </form>
 
     <label for="code-type">Get code for:</label>
@@ -121,4 +143,5 @@
     <textarea id="code" cols="100" rows="10"></textarea>
 
     <label for="preview">Preview:</label>
+    <div id="preview"></div>
 </body>
