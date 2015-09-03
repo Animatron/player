@@ -1,4 +1,4 @@
-body > label {
+body label.title {
     display: block;
     font-size: 1.3em;
     font-weight: bold;

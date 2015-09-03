@@ -16,13 +16,13 @@
     <script src="./configuration.js"></script>
 </head>
 <body onload="init()">
-    <label for="snapshot">Snapshot ID:</label>
+    <label for="snapshot" class="title">Snapshot ID:</label>
 
     <form id="snapshot">
         <input type="text" id="snapshot-id"></input>
     </form>
 
-    <label for="options">Options:</label>
+    <label for="options" class="title">Options:</label>
 
     <form id="options">
         <label for="opts-width">Width:</label><input type="number" disabled id="opts-width" value="640" />
@@ -33,18 +33,19 @@
         <label for="opts-controls-default">Default:</label><input type="checkbox" id="opts-controls-default" checked /><br>
     </form>
 
-    <label for="code-type">Get code for:</label>
+    <label for="code-type" class="title">Get code for:</label>
 
     <ul id="code-type">
         <li><a href="#embed" id="mode-embed" onclick="switchMode('embed')">Embedding</a></li>
         <li><a href="#config" id="mode-config" onclick="switchMode('config')">Player Configuration</a></li>
-        <li><a href="#publish" id="mode-publish" onclick="switchMode('publish')">Publish URL</a></li>
         <li><a href="#html" id="mode-html" onclick="switchMode('html')">HTML Attributes</a></li>
+        <li><a href="#publish" id="mode-publish" onclick="switchMode('publish')">Publish URL</a></li>
     </ul>
 
-    <label for="code">The Code:</label>
-    <textarea id="code" cols="70" rows="10"></textarea>
+    <label for="code" class="title">The Code:</label>
+    <textarea id="code" cols="70" rows="10"></textarea><br/>
+    <input type="checkbox" id="short-version" checked /><label id="short-version-label" for="short-version">Abbreviated Parameters</label>
 
-    <label for="preview">Preview:</label>
+    <label for="preview" class="title">Preview:</label>
     <div id="preview"></div>
 </body>

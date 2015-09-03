@@ -5,6 +5,8 @@ var snapshotsUrl = 'http://clips.animatron-test.com/',
 
 var currentMode; // embed, config, publish, html
 
+var shortVersion = true;
+
 function getElm(id) { return document.getElementById(id); }
 
 function collectOptions() {
@@ -83,6 +85,8 @@ function switchMode(target) {
     if (currentMode) getElm('mode-' + currentMode).className = '';
     currentMode = target;
     getElm('mode-' + target).className = 'current';
+    getElm('short-version').style.visibility = ((currentMode === 'embed') || (currentMode === 'publish')) ? 'visible' : 'hidden';
+    getElm('short-version-label').style.visibility = ((currentMode === 'embed') || (currentMode === 'publish')) ? 'visible' : 'hidden';
 }
 
 function init() {
@@ -109,6 +113,11 @@ function init() {
         updateWithCode('embed', getElm('code').value);
     });
 
+    getElm('short-version').addEventListener('change', function() {
+        shortVersion = getElm('short-version').checked;
+        onChange();
+    });
+
     onChange();
 }
 
@@ -117,18 +126,18 @@ var optionsMapper = function(mode, options) {
     var map = {
         'embed': (function() {
 
-            function numberOption(prop, label) { return function(o) {
-                if (typeof o[prop] !== 'undefined') return label + '=' + o[prop];
+            function numberOption(prop, shortLabel, fullLabel) { return function(o) {
+                if (typeof o[prop] !== 'undefined') return (shortVersion ? shortLabel : fullLabel) + '=' + o[prop];
             } };
 
-            function booleanOption(prop, label) { return function(o) {
-                if (typeof o[prop] !== 'undefined') return label + '=' + (o[prop] ? '1' : '0');
+            function booleanOption(prop, shortLabel, fullLabel) { return function(o) {
+                if (typeof o[prop] !== 'undefined') return (shortVersion ? shortLabel : fullLabel) + '=' + (o[prop] ? '1' : '0');
             } };
 
             return {
-                width: numberOption('width', 'w'),
-                height: numberOption('height', 'h'),
-                controlsEnabled: booleanOption('controlsEnabled', 'c')
+                width: numberOption('width', 'w', 'width'),
+                height: numberOption('height', 'h', 'height'),
+                controlsEnabled: booleanOption('controlsEnabled', 'c', 'controls')
             };
 
         })(),
