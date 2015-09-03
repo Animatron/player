@@ -26,6 +26,13 @@ function getCode(mode, options) {
         var params = optionsMapper('embed', options);
         return snapshotsUrl + snapshotId +
                (params ? ('?' + params) : '');
+    } else if (mode === 'config') {
+        var list = optionsMapper('config', options);
+        return list ? '{\n    ' + list + '\n}' : '{ }';
+    } else if (mode === 'html') {
+        var attributes = optionsMapper('html', options);
+        return '<div id="anm-player" anm-player-target' +
+              (attributes ? ' ' + attributes : '') + '></div>';
     }
 }
 
@@ -106,13 +113,52 @@ var optionsMapper = function(mode, options) {
                 controlsEnabled: booleanOption('controlsEnabled', 'c')
             };
 
+        })(),
+
+        'config': (function() {
+
+            function numberOption(prop) { return function(o) {
+                if (typeof o[prop] !== 'undefined') return prop + ': ' + o[prop];
+            } };
+
+            function booleanOption(prop) { return function(o) {
+                if (typeof o[prop] !== 'undefined') return prop + ': ' + (o[prop] ? 'true' : 'false');
+            } };
+
+            return {
+                width: numberOption('width'),
+                height: numberOption('height'),
+                controlsEnabled: booleanOption('controlsEnabled')
+            };
+
+        })(),
+
+        'html': (function() {
+
+            function numberOption(prop, attr) { return function(o) {
+                if (typeof o[prop] !== 'undefined') return attr + '="' + o[prop] + '"';
+            } };
+
+            function booleanOption(prop, attr) { return function(o) {
+                if (typeof o[prop] !== 'undefined') return attr + '="' + (o[prop] ? 'true' : 'false') + '"';
+            } };
+
+            return {
+                width: numberOption('width', 'anm-width'),
+                height: numberOption('height', 'anm-height'),
+                controlsEnabled: booleanOption('controlsEnabled', 'anm-controls')
+            };
+
         })()
     };
 
     map['publish'] = map['embed']; // they are the same
 
     var map_f = {
-        'embed': function(results) { return results.join('&'); }
+        'embed': function(results) { return results.join('&'); },
+        'publish': function(results) { return results.join('&'); },
+        'html': function(results) { return results.join(' '); },
+        'config': function(results) { return results.join(',\n    '); }
     };
 
     var mapKeys = Object.keys(map[mode]);
