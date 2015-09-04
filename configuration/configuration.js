@@ -14,7 +14,7 @@ function collectOptions() {
     if (!getElm('opts-width').disabled) options.width = getElm('opts-width').value;
     if (!getElm('opts-height').disabled) options.height = getElm('opts-height').value;
     if (!getElm('opts-controls').disabled) options.controlsEnabled = getElm('opts-controls').checked;
-    if (!getElm('opts-start').disabled) options.startAt = getElm('opts-start').value;
+    if (!getElm('opts-start').disabled) options.startFrom = getElm('opts-start').value;
     if (!getElm('opts-auto-play').disabled) options.autoPlay = getElm('opts-auto-play').checked;
     if (!getElm('opts-repeat').disabled) options.repeat = getElm('opts-repeat').checked;
     if (!getElm('opts-infinite').disabled) options.infiniteDuration = getElm('opts-infinite').checked;
@@ -40,7 +40,8 @@ function getCode(mode, options) {
                'anm.Player.forSnapshot(\'' + targetDivId + '\',\n' +
                '                       snapshotUrl + snapshotId,\n' +
                '                       anm.importers.create(\'animatron\'),\n' +
-               '                       null, /* callback */\n' +
+               (options.startFrom ? '                       function() { this.play(' + (parseTime(options.startFrom) / 100) + '); },\n'
+                                : '                       null, /* callback */\n') +
                '                       options);';
     } else if (mode === 'html') {
         var attributes = optionsMapper('html', options);
@@ -92,8 +93,6 @@ function switchMode(target) {
 
     getElm('short-version').style.visibility = ((currentMode === 'embed') || (currentMode === 'publish')) ? 'visible' : 'hidden';
     getElm('short-version-label').style.visibility = ((currentMode === 'embed') || (currentMode === 'publish')) ? 'visible' : 'hidden';
-    if (getElm('opts-start')) getElm('opts-start').style.visibility = ((currentMode === 'embed') || (currentMode === 'publish')) ? 'visible' : 'hidden';
-    if (getElm('opts-start-default')) getElm('opts-start-default').style.visibility = ((currentMode === 'embed') || (currentMode === 'publish')) ? 'visible' : 'hidden';
 }
 
 function init() {
@@ -107,7 +106,7 @@ function init() {
         'auto-play': { label: 'Auto Play', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
         'repeat': { label: 'Repeat', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
         'infinite': { label: 'Infinite Duration', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
-        'start': { label: 'Start at', type: 'text', modify: function(elm, form) { elm.value = '0.00s'; } },
+        'start': { label: 'Start at', type: 'text', modify: function(elm, form) { elm.value = '0.00s'; } }
     });
 
     /* getElm('opts-width-default').addEventListener('click', function() { getElm('opts-width').disabled = this.checked; });
@@ -127,7 +126,7 @@ function init() {
     getElm('mode-html').addEventListener('click', onChange);
 
     getElm('code').addEventListener('change', function() {
-        updateWithCode('embed', getElm('code').value);
+        updateWithCode(currentMode, getElm('code').value);
     });
 
     getElm('short-version').addEventListener('change', function() {
@@ -157,10 +156,9 @@ var optionsMapper = function(mode, options) {
                 height: extractOption('height', 'h', 'height', numberOption),
                 controlsEnabled: extractOption('controlsEnabled', 'c', 'controls', booleanOption),
                 autoPlay: extractOption('autoPlay', 'a', 'auto', booleanOption),
+                startFrom: extractOption('startFrom', 't', 'from', parseTime),
                 repeat: extractOption('repeat', 'r', 'repeat', booleanOption),
-                infiniteDuration: extractOption('infiniteDuration', 'i', 'inf', booleanOption),
-                startAt: extractOption('startAt', 't', 'from', function(v) {
-                                  return Math.floor(Number.parseFloat((v.indexOf('s') >= 0) ? v.slice(0, v.length - 1) : v) * 10); })
+                infiniteDuration: extractOption('infiniteDuration', 'i', 'inf', booleanOption)
             };
 
         })(),
@@ -199,6 +197,7 @@ var optionsMapper = function(mode, options) {
                 height: extractOption('height', 'anm-height', numberOption),
                 controlsEnabled: extractOption('controlsEnabled', 'anm-controls', booleanOption),
                 autoPlay: extractOption('autoPlay', 'anm-auto-play', booleanOption),
+                startFrom: extractOption('startFrom', 'anm-start-from', parseTime),
                 repeat: extractOption('repeat', 'anm-repeat', booleanOption),
                 infiniteDuration: extractOption('infiniteDuration', 'anm-infinite', booleanOption)
             };
@@ -266,4 +265,8 @@ function buildOptionsHTML(spec) {
         optionsForm.appendChild(defaultCheckboxElm);
         optionsForm.appendChild(document.createElement('br'));
     }
+}
+
+function parseTime(v) {
+    return Math.floor(Number.parseFloat((v.indexOf('s') >= 0) ? v.slice(0, v.length - 1) : v) * 100);
 }
