@@ -541,6 +541,13 @@ $DE.extractUserOptions = function(elm) {
         if (val == 'yes') return true;
     }
 
+    function __timeAttr(val) {
+        if (typeof val === 'undefined') return undefined;
+        if (val === null) return null;
+        if (!val) return 0;
+        return Number.parseFloat(val) / 100;
+    }
+
     var ratio = $DE.PX_RATIO;
     var width = elm.getAttribute('anm-width');
     if (!width) {
@@ -560,6 +567,8 @@ $DE.extractUserOptions = function(elm) {
              'width': width,
              'height': height,
              'autoPlay': __boolAttr(elm.getAttribute('anm-autoplay') || elm.getAttribute('anm-auto-play')),
+             'startFrom': __timeAttr(elm.getAttribute('anm-start-from')),
+             'stopAt': __timeAttr(elm.getAttribute('anm-stop-at')),
              'bgColor': elm.getAttribute('anm-bgcolor') || elm.getAttribute('anm-bg-color'),
              'ribbonsColor': elm.getAttribute('anm-ribbons') || elm.getAttribute('anm-ribcolor') || elm.getAttribute('anm-rib-color'),
              'drawStill': __boolAttr(elm.getAttribute('anm-draw-still') ||
