@@ -1,5 +1,5 @@
-var snapshotsUrl = 'https://clips.animatron-test.com/',
-    defaultSnapshotId = '057f9821e527adaf005b6a2d64487cf0',
+var snapshotsUrl = 'https://clips.animatron.com/',
+    defaultSnapshotId = 'e340aeb5ca2c2d51b266ecfc386a9cee',
     snapshotId = defaultSnapshotId,
     targetDivId = 'player-target';
 
