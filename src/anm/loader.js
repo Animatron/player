@@ -56,8 +56,8 @@ Loader.loadFromUrl = function(player, url, importer, callback) {
     var success = function(req) {
         try {
             Loader.loadFromObj(player, JSON.parse(req.responseText), importer, function(anim) {
-                player._applyUrlParamsToAnimation(params);
                 if (callback) callback.call(player, anim);
+                player._applyUrlParamsToAnimation(params);
             });
         } catch(e) { failure(e); }
     };

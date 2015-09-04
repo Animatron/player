@@ -244,8 +244,8 @@ URL | `IFRAME`/`div` | JS Object | Default | Description
 `i`/`inf` | `anm-infinite` | `infiniteDuration` | `false` | keep playing animation even when it finished (do not repeat, but stay at last frame, if there are no inner loops)
 `v`/`speed` | `anm-speed` | `speed` | `1` | playing speed
 `z`/`zoom` | `anm-zoom` | `zoom` | `1` | animation zoom
-`t`/`from` | - | - | `0` | a time to start playing from (multiplier is 100ms, so `31` means _3s 100ms_)
-`p`/`at` | - | - | - | a time of animation where to pause at, when Player was initialized (multiplier is 100ms, so `31` means _3s 100ms_)
+`t`/`from` | `anm-start-from` | - | `0` | a time to start playing from (multiplier is 10ms, so `310` means _3s 100ms_)
+`p`/`at` | `anm-stop-at` | - | - | a time of animation where to stop at, when Player was initialized (multiplier is 10ms, so `310` means _3s 100ms_)
 - | _`div`-only:_ `anm-src` | - | - | JSON for the animation  to load from
 `m`/`mode` | `anm-mode` | `mode` | - | (_deprecated_) a mode of a Player, one of: ...
 `lm`/`lmode` | `anm-loading-mode` | `loadingMode` | `onplay` | `onplay` means to start loading an animation when user clicks _Play_ button (and show _thumbnail_ before), `onrequest` means to start loading animation only when the script asked for it and expect it to be completely loaded when user clicks _Play_ button

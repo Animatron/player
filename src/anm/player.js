@@ -357,13 +357,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             player.fire(C.S_LOAD, result);
             if (!player.handleEvents) player.stop();
             if (callback) callback.call(player, result);
-            // player may appear already playing something if autoPlay or a similar time-jump
-            // flag was set from some different source of options (async, for example),
-            // then the rule (for the moment) is: last one wins
-            if (player.autoPlay) {
-                if (player.state.happens === C.PLAYING) player.stop();
-                player.play();
-            }
+            player._applyTimeOptionsIfSet();
         } else {
             state.happens = C.RES_LOADING;
             player.fire(C.S_CHANGE_STATE, C.RES_LOADING);
@@ -383,13 +377,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                             if (!player.handleEvents) player.stop();
                             player._callPostpones();
                             if (callback) callback.call(player, result);
-                            // player may appear already playing something if autoPlay or a similar time-jump
-                            // flag was set from some different source of options (async, for example),
-                            // then the rule (for the moment) is: last one wins
-                            if (player.autoPlay) {
-                                if (player.state.happens === C.PLAYING) player.stop();
-                                player.play();
-                            }
+                            player._applyTimeOptionsIfSet();
                         });
                     }
                 }
@@ -711,9 +699,11 @@ Player.prototype._prepare = function(elm) {
 };
 
 Player.prototype._addOpts = function(opts) {
-    this.debug =    is.defined(opts.debug)    ? opts.debug    : this.debug;
-    this.repeat =   is.defined(opts.repeat)   ? opts.repeat   : this.repeat;
-    this.autoPlay = is.defined(opts.autoPlay) ? opts.autoPlay : this.autoPlay;
+    this.debug =      is.defined(opts.debug)     ? opts.debug     : this.debug;
+    this.repeat =     is.defined(opts.repeat)    ? opts.repeat    : this.repeat;
+    this.autoPlay =   is.defined(opts.autoPlay)  ? opts.autoPlay  : this.autoPlay;
+    this.startFrom =  is.defined(opts.startFrom) ? opts.startFrom : this.startFrom;
+    this.stopAt =     is.defined(opts.stopAt)    ? opts.stopAt    : this.stopAt;
 
     this.zoom =    opts.zoom || this.zoom;
     this.speed =   opts.speed || this.speed;
@@ -1733,5 +1723,20 @@ Player.prototype._applyUrlParamsToAnimation = function(params) {
         this.play(params.at / 100).pause();
     }
 };
+
+Player.prototype._applyTimeOptionsIfSet = function() {
+    // player may appear already playing something if autoPlay or a similar time-jump
+    // flag was set from some different source of options (async, for example),
+    // then the rule (for the moment) is: last one wins
+    if (this.autoPlay) {
+        if (this.state.happens === C.PLAYING) this.stop();
+        this.play(this.startFrom || this.state.from || 0);
+    } else if (this.startFrom) {
+        if (this.state.happens === C.PLAYING) this.stop();
+        this.play(this.startFrom);
+    } else if (this.stopAt) {
+        this.pause(this.stopAt);
+    }
+}
 
 module.exports = Player;
