@@ -14,6 +14,10 @@ function collectOptions() {
     if (!getElm('opts-width').disabled) options.width = getElm('opts-width').value;
     if (!getElm('opts-height').disabled) options.height = getElm('opts-height').value;
     if (!getElm('opts-controls').disabled) options.controlsEnabled = getElm('opts-controls').checked;
+    if (!getElm('opts-start').disabled) options.startAt = getElm('opts-start').value;
+    if (!getElm('opts-auto-play').disabled) options.autoPlay = getElm('opts-auto-play').checked;
+    if (!getElm('opts-repeat').disabled) options.repeat = getElm('opts-repeat').checked;
+    if (!getElm('opts-infinite').disabled) options.infiniteDuration = getElm('opts-infinite').checked;
     return options;
 }
 
@@ -85,8 +89,11 @@ function switchMode(target) {
     if (currentMode) getElm('mode-' + currentMode).className = '';
     currentMode = target;
     getElm('mode-' + target).className = 'current';
+
     getElm('short-version').style.visibility = ((currentMode === 'embed') || (currentMode === 'publish')) ? 'visible' : 'hidden';
     getElm('short-version-label').style.visibility = ((currentMode === 'embed') || (currentMode === 'publish')) ? 'visible' : 'hidden';
+    if (getElm('opts-start')) getElm('opts-start').style.visibility = ((currentMode === 'embed') || (currentMode === 'publish')) ? 'visible' : 'hidden';
+    if (getElm('opts-start-default')) getElm('opts-start-default').style.visibility = ((currentMode === 'embed') || (currentMode === 'publish')) ? 'visible' : 'hidden';
 }
 
 function init() {
@@ -96,7 +103,11 @@ function init() {
     buildOptionsHTML({
         'width': { label: 'Width', type: 'number', modify: function(elm) { elm.value = 640; } },
         'height': { label: 'Height', type: 'number', modify: function(elm) { elm.value = 360; } },
-        'controls': { label: 'Controls', type: 'checkbox', modify: function(elm) { elm.checked = true; } }
+        'controls': { label: 'Controls', type: 'checkbox', modify: function(elm) { elm.checked = true; } },
+        'auto-play': { label: 'Auto Play', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
+        'repeat': { label: 'Repeat', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
+        'infinite': { label: 'Infinite Duration', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
+        'start': { label: 'Start at', type: 'text', modify: function(elm, form) { elm.value = '0.00s'; } },
     });
 
     /* getElm('opts-width-default').addEventListener('click', function() { getElm('opts-width').disabled = this.checked; });
@@ -132,54 +143,64 @@ var optionsMapper = function(mode, options) {
     var map = {
         'embed': (function() {
 
-            function numberOption(prop, shortLabel, fullLabel) { return function(o) {
-                if (typeof o[prop] !== 'undefined') return (shortVersion ? shortLabel : fullLabel) + '=' + o[prop];
-            } };
+            function extractOption(prop, shortLabel, fullLabel, format) {
+                return function(o) {
+                    if (typeof o[prop] !== 'undefined') return (shortVersion ? shortLabel : fullLabel) + '=' + format(o[prop])
+                };
+            }
 
-            function booleanOption(prop, shortLabel, fullLabel) { return function(o) {
-                if (typeof o[prop] !== 'undefined') return (shortVersion ? shortLabel : fullLabel) + '=' + (o[prop] ? '1' : '0');
-            } };
+            function numberOption(v) { return v; };
+            function booleanOption(v) { return v ? '1' : '0'; };
 
             return {
-                width: numberOption('width', 'w', 'width'),
-                height: numberOption('height', 'h', 'height'),
-                controlsEnabled: booleanOption('controlsEnabled', 'c', 'controls')
+                width: extractOption('width', 'w', 'width', numberOption),
+                height: extractOption('height', 'h', 'height', numberOption),
+                controlsEnabled: extractOption('controlsEnabled', 'c', 'controls', booleanOption),
+                autoPlay: extractOption('autoPlay', 'a', 'auto', booleanOption),
+                repeat: extractOption('repeat', 'r', 'repeat', booleanOption),
+                infiniteDuration: extractOption('infiniteDuration', 'i', 'inf', booleanOption),
+                startAt: extractOption('startAt', 't', 'from', function(v) {
+                                  return Math.floor(Number.parseFloat((v.indexOf('s') >= 0) ? v.slice(0, v.length - 1) : v) * 10); })
             };
 
         })(),
 
         'config': (function() {
 
-            function numberOption(prop) { return function(o) {
-                if (typeof o[prop] !== 'undefined') return prop + ': ' + o[prop];
-            } };
+            function extractOption(prop, format) {
+                return function(o) { if (typeof o[prop] !== 'undefined') return prop + ': ' + format(o[prop]); };
+            }
 
-            function booleanOption(prop) { return function(o) {
-                if (typeof o[prop] !== 'undefined') return prop + ': ' + (o[prop] ? 'true' : 'false');
-            } };
+            function numberOption(v) { return v; };
+            function booleanOption(v) { return v ? 'true' : 'false'; };
 
             return {
-                width: numberOption('width'),
-                height: numberOption('height'),
-                controlsEnabled: booleanOption('controlsEnabled')
+                width: extractOption('width', numberOption),
+                height: extractOption('height', numberOption),
+                controlsEnabled: extractOption('controlsEnabled', booleanOption),
+                autoPlay: extractOption('autoPlay', booleanOption),
+                repeat: extractOption('repeat', booleanOption),
+                infiniteDuration: extractOption('infiniteDuration', booleanOption)
             };
 
         })(),
 
         'html': (function() {
 
-            function numberOption(prop, attr) { return function(o) {
-                if (typeof o[prop] !== 'undefined') return attr + '="' + o[prop] + '"';
-            } };
+            function extractOption(prop, attr, format) {
+                return function(o) { if (typeof o[prop] !== 'undefined') return attr + '="' + format(o[prop]) + '"' };
+            }
 
-            function booleanOption(prop, attr) { return function(o) {
-                if (typeof o[prop] !== 'undefined') return attr + '="' + (o[prop] ? 'true' : 'false') + '"';
-            } };
+            function numberOption(v) { return v; };
+            function booleanOption(v) { return v ? 'true' : 'false'; };
 
             return {
-                width: numberOption('width', 'anm-width'),
-                height: numberOption('height', 'anm-height'),
-                controlsEnabled: booleanOption('controlsEnabled', 'anm-controls')
+                width: extractOption('width', 'anm-width', numberOption),
+                height: extractOption('height', 'anm-height', numberOption),
+                controlsEnabled: extractOption('controlsEnabled', 'anm-controls', booleanOption),
+                autoPlay: extractOption('autoPlay', 'anm-auto-play', booleanOption),
+                repeat: extractOption('repeat', 'anm-repeat', booleanOption),
+                infiniteDuration: extractOption('infiniteDuration', 'anm-infinite', booleanOption)
             };
 
         })()
@@ -227,7 +248,7 @@ function buildOptionsHTML(spec) {
         inputElm.setAttribute('type', optSpec.type);
         inputElm.setAttribute('disabled', true);
         inputElm.addEventListener('change', onChange);
-        if (optSpec.modify) optSpec.modify(inputElm);
+        if (optSpec.modify) optSpec.modify(inputElm, optionsForm);
         optionsForm.appendChild(inputElm);
         var defaultLabelElm = document.createElement('label');
         defaultLabelElm.setAttribute('for', 'opts-' + name + '-default');
