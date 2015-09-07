@@ -1,5 +1,5 @@
 var snapshotsUrl = 'https://clips.animatron-test.com/',
-    defaultSnapshotId = '057f9821e527adaf005b6a2d64487cf0',
+    defaultSnapshotId = '6eaba40eb372f8181627159fa94b126a',
     snapshotId = defaultSnapshotId,
     targetDivId = 'player-target';
 
@@ -22,6 +22,7 @@ function collectOptions() {
     if (!getElm('opts-speed').disabled) options.speed = getElm('opts-speed').value;
     if (!getElm('opts-zoom').disabled) options.zoom = getElm('opts-zoom').value;
     if (!getElm('opts-bg-color').disabled) options.bgColor = getElm('opts-bg-color').value;
+    if (!getElm('opts-loading').disabled) options.loadingMode = getElm('opts-loading').selectedIndex;
     return options;
 }
 
@@ -47,7 +48,7 @@ function getCode(mode, options) {
                '                       ' + ((options.startFrom || options.stopAt)
                                             ? 'function() { ' +
                                                 (options.startFrom ? 'this.play(' + (parseTime(options.startFrom) / 100) + ');\n' : '') +
-                                                (options.stopAt ? 'this.pause(' + (parseTime(options.stopAt) / 100) + ');\n' : '')
+                                                (options.stopAt ? 'this.play(' + (parseTime(options.stopAt) / 100) + ').pause();\n' : '')
                                               + '},\n'
                                             : 'null, /* callback */\n') +
                '                       options);';
@@ -118,7 +119,19 @@ function init() {
         'zoom': { label: 'Zoom', type: 'number', modify: function(elm, form) { elm.value = 1; } },
         'start': { label: 'Start from', type: 'text', modify: function(elm, form) { elm.value = '0.00s'; } },
         'stop': { label: 'Pause at', type: 'text', modify: function(elm, form) { elm.value = '0.00s'; } },
-        'bg-color': { label: 'Background', type: 'text', modify: function(elm, form) { elm.value = 'transparent'; } }
+        'bg-color': { label: 'Background', type: 'text', modify: function(elm, form) { elm.value = 'transparent'; } },
+        'loading': { label: 'Loading', type: 'select',
+                     create: function() {
+                         var select = document.createElement('select');
+                         var onPlay = document.createElement('option');
+                         onPlay.innerText = onPlay.textContent = 'on play';
+                         var onRequest = document.createElement('option');
+                         onRequest.innerText = onRequest.textContent = 'on request';
+                         select.appendChild(onPlay);
+                         select.appendChild(onRequest);
+                         return select;
+                     },
+                     modify: function(elm, form) { elm.selectedIndex = 0; } }
     });
 
     /* getElm('opts-width-default').addEventListener('click', function() { getElm('opts-width').disabled = this.checked; });
@@ -163,8 +176,9 @@ var optionsMapper = function(mode, options) {
             }
 
             function numberOption(v) { return v; };
-            function colorOption(v) { return v; };
+            function colorOption(v) { return (v.indexOf('#') >= 0) ? v.slice(1) : v; };
             function booleanOption(v) { return v ? '1' : '0'; };
+            function loadingModeOption(v) { return (v === 1) ? 'onrequest' : 'onplay' };
 
             return {
                 width: extractOption('width', 'w', 'width', numberOption),
@@ -177,6 +191,7 @@ var optionsMapper = function(mode, options) {
                 zoom: extractOption('zoom', 'z', 'zoom', numberOption),
                 startFrom: extractOption('startFrom', 't', 'from', parseTime),
                 stopAt: extractOption('stopAt', 'p', 'at', parseTime),
+                loadingMode: extractOption('loadingMode', 'lm', 'lmode', loadingModeOption),
                 bgColor: extractOption('bgColor', 'bg', 'bgcolor', colorOption)
             };
 
@@ -191,6 +206,7 @@ var optionsMapper = function(mode, options) {
             function numberOption(v) { return v; };
             function colorOption(v) { return '\'' + v + '\''; };
             function booleanOption(v) { return v ? 'true' : 'false'; };
+            function loadingModeOption(v) { return (v === 1) ? '\'onrequest\'' : '\'onplay\'' };
 
             return {
                 width: extractOption('width', numberOption),
@@ -201,6 +217,7 @@ var optionsMapper = function(mode, options) {
                 infiniteDuration: extractOption('infiniteDuration', booleanOption),
                 speed: extractOption('speed', numberOption),
                 zoom: extractOption('zoom', numberOption),
+                loadingMode: extractOption('loadingMode', loadingModeOption),
                 bgColor: extractOption('bgColor', colorOption)
             };
 
@@ -215,6 +232,7 @@ var optionsMapper = function(mode, options) {
             function colorOption(v) { return v; };
             function numberOption(v) { return v; };
             function booleanOption(v) { return v ? 'true' : 'false'; };
+            function loadingModeOption(v) { return (v === 1) ? 'onrequest' : 'onplay' };
 
             return {
                 width: extractOption('width', 'anm-width', numberOption),
@@ -227,6 +245,7 @@ var optionsMapper = function(mode, options) {
                 zoom: extractOption('zoom', 'anm-zoom', numberOption),
                 startFrom: extractOption('startFrom', 'anm-start-from', parseTime),
                 stopAt: extractOption('stopAt', 'anm-stop-at', parseTime),
+                loadingMode: extractOption('loadingMode', 'anm-loading-mode', loadingModeOption),
                 bgColor: extractOption('bgColor', 'anm-bg-color', colorOption)
             };
 
@@ -317,19 +336,24 @@ function buildOptionsHTML(spec) {
         optionRow.appendChild(labelCell);
 
         var valueCell = document.createElement('td');
-        var inputElm = document.createElement('input');
-        inputElm.setAttribute('id', 'opts-' + name);
-        inputElm.setAttribute('type', optSpec.type);
-        inputElm.setAttribute('disabled', true);
-        inputElm.addEventListener('change', onChange);
-        if (optSpec.modify) optSpec.modify(inputElm, optionsForm);
+        var targetElm;
+        if (!optSpec.create) {
+            targetElm = document.createElement('input');
+            targetElm.setAttribute('type', optSpec.type);
+        } else {
+            targetElm = optSpec.create();
+        }
+        targetElm.setAttribute('id', 'opts-' + name);
+        targetElm.setAttribute('disabled', true);
+        targetElm.addEventListener('change', onChange);
+        if (optSpec.modify) optSpec.modify(targetElm, optionsForm);
         defaultCheckboxElm.addEventListener('click',
-            (function(inputElm) {
-                return function() { inputElm.disabled = this.checked; }
-            })(inputElm));
+            (function(targetElm) {
+                return function() { targetElm.disabled = this.checked; }
+            })(targetElm));
         defaultCheckboxElm.addEventListener('change', onChange);
         defaultCheckboxes.push(defaultCheckboxElm);
-        valueCell.appendChild(inputElm);
+        valueCell.appendChild(targetElm);
         optionRow.appendChild(valueCell);
 
         optionsTable.appendChild(optionRow);
