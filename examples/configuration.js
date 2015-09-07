@@ -14,10 +14,13 @@ function collectOptions() {
     if (!getElm('opts-width').disabled) options.width = getElm('opts-width').value;
     if (!getElm('opts-height').disabled) options.height = getElm('opts-height').value;
     if (!getElm('opts-controls').disabled) options.controlsEnabled = getElm('opts-controls').checked;
-    if (!getElm('opts-start').disabled) options.startFrom = getElm('opts-start').value;
     if (!getElm('opts-auto-play').disabled) options.autoPlay = getElm('opts-auto-play').checked;
     if (!getElm('opts-repeat').disabled) options.repeat = getElm('opts-repeat').checked;
     if (!getElm('opts-infinite').disabled) options.infiniteDuration = getElm('opts-infinite').checked;
+    if (!getElm('opts-start').disabled) options.startFrom = getElm('opts-start').value;
+    if (!getElm('opts-speed').disabled) options.speed = getElm('opts-speed').value;
+    if (!getElm('opts-zoom').disabled) options.zoom = getElm('opts-zoom').value;
+    if (!getElm('opts-bg-color').disabled) options.bgColor = getElm('opts-bg-color').value;
     return options;
 }
 
@@ -106,7 +109,10 @@ function init() {
         'auto-play': { label: 'Auto-play', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
         'repeat': { label: 'Repeat', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
         'infinite': { label: 'Infinite duration', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
-        'start': { label: 'Start at', type: 'text', modify: function(elm, form) { elm.value = '0.00s'; } }
+        'speed': { label: 'Speed', type: 'number', modify: function(elm, form) { elm.value = 1; } },
+        'zoom': { label: 'Zoom', type: 'number', modify: function(elm, form) { elm.value = 1; } },
+        'start': { label: 'Start from', type: 'text', modify: function(elm, form) { elm.value = '0.00s'; } },
+        'bg-color': { label: 'Background', type: 'text', modify: function(elm, form) { elm.value = 'transparent'; } }
     });
 
     /* getElm('opts-width-default').addEventListener('click', function() { getElm('opts-width').disabled = this.checked; });
@@ -149,6 +155,7 @@ var optionsMapper = function(mode, options) {
             }
 
             function numberOption(v) { return v; };
+            function colorOption(v) { return v; };
             function booleanOption(v) { return v ? '1' : '0'; };
 
             return {
@@ -156,9 +163,12 @@ var optionsMapper = function(mode, options) {
                 height: extractOption('height', 'h', 'height', numberOption),
                 controlsEnabled: extractOption('controlsEnabled', 'c', 'controls', booleanOption),
                 autoPlay: extractOption('autoPlay', 'a', 'auto', booleanOption),
-                startFrom: extractOption('startFrom', 't', 'from', parseTime),
                 repeat: extractOption('repeat', 'r', 'repeat', booleanOption),
-                infiniteDuration: extractOption('infiniteDuration', 'i', 'inf', booleanOption)
+                infiniteDuration: extractOption('infiniteDuration', 'i', 'inf', booleanOption),
+                speed: extractOption('speed', 'v', 'speed', numberOption),
+                zoom: extractOption('zoom', 'z', 'zoom', numberOption),
+                startFrom: extractOption('startFrom', 't', 'from', parseTime),
+                bgColor: extractOption('bgColor', 'bg', 'bgcolor', colorOption)
             };
 
         })(),
@@ -170,6 +180,7 @@ var optionsMapper = function(mode, options) {
             }
 
             function numberOption(v) { return v; };
+            function colorOption(v) { return '\'' + v + '\''; };
             function booleanOption(v) { return v ? 'true' : 'false'; };
 
             return {
@@ -178,7 +189,10 @@ var optionsMapper = function(mode, options) {
                 controlsEnabled: extractOption('controlsEnabled', booleanOption),
                 autoPlay: extractOption('autoPlay', booleanOption),
                 repeat: extractOption('repeat', booleanOption),
-                infiniteDuration: extractOption('infiniteDuration', booleanOption)
+                infiniteDuration: extractOption('infiniteDuration', booleanOption),
+                speed: extractOption('speed', numberOption),
+                zoom: extractOption('zoom', numberOption),
+                bgColor: extractOption('bgColor', colorOption)
             };
 
         })(),
@@ -189,6 +203,7 @@ var optionsMapper = function(mode, options) {
                 return function(o) { if (typeof o[prop] !== 'undefined') return attr + '="' + format(o[prop]) + '"' };
             }
 
+            function colorOption(v) { return v; };
             function numberOption(v) { return v; };
             function booleanOption(v) { return v ? 'true' : 'false'; };
 
@@ -197,9 +212,12 @@ var optionsMapper = function(mode, options) {
                 height: extractOption('height', 'anm-height', numberOption),
                 controlsEnabled: extractOption('controlsEnabled', 'anm-controls', booleanOption),
                 autoPlay: extractOption('autoPlay', 'anm-auto-play', booleanOption),
-                startFrom: extractOption('startFrom', 'anm-start-from', parseTime),
                 repeat: extractOption('repeat', 'anm-repeat', booleanOption),
                 infiniteDuration: extractOption('infiniteDuration', 'anm-infinite', booleanOption),
+                speed: extractOption('speed', 'anm-speed', numberOption),
+                zoom: extractOption('zoom', 'anm-zoom', numberOption),
+                startFrom: extractOption('startFrom', 'anm-start-from', parseTime),
+                bgColor: extractOption('bgColor', 'anm-bg-color', colorOption)
             };
 
         })()
