@@ -35,17 +35,19 @@
         -->
     </form>
 
-    <label for="code-type" class="title">Get code:</label>
+    <div id="code-block">
+        <label for="code-type" class="title">Get code:</label>
 
-    <ul id="code-type">
-        <li><a href="#embed" id="mode-embed" onclick="switchMode('embed')">Embedding</a></li>
-        <li><a href="#config" id="mode-config" onclick="switchMode('config')">Player Configuration</a></li>
-        <li><a href="#html" id="mode-html" onclick="switchMode('html')">HTML Attributes</a></li>
-        <li><a href="#publish" id="mode-publish" onclick="switchMode('publish')">Publish URL</a></li>
-    </ul>
+        <ul id="code-type">
+            <li><a href="#embed" id="mode-embed" onclick="switchMode('embed')">Embedding</a></li>
+            <li><a href="#config" id="mode-config" onclick="switchMode('config')">Player Configuration</a></li>
+            <li><a href="#html" id="mode-html" onclick="switchMode('html')">HTML Attributes</a></li>
+            <li><a href="#publish" id="mode-publish" onclick="switchMode('publish')">Publish URL</a></li>
+        </ul>
 
-    <textarea id="code" cols="70" rows="10"></textarea><br/>
-    <input type="checkbox" id="short-version" checked /><label id="short-version-label" for="short-version">Abbreviated Parameters</label>
+        <textarea id="code" cols="70" rows="10"></textarea><br/>
+        <input type="checkbox" id="short-version" checked /><label id="short-version-label" for="short-version">Abbreviated Parameters</label>
+    </div>
 
     <label for="preview" class="title">Preview:</label>
     <div id="preview"></div>

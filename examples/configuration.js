@@ -18,6 +18,7 @@ function collectOptions() {
     if (!getElm('opts-repeat').disabled) options.repeat = getElm('opts-repeat').checked;
     if (!getElm('opts-infinite').disabled) options.infiniteDuration = getElm('opts-infinite').checked;
     if (!getElm('opts-start').disabled) options.startFrom = getElm('opts-start').value;
+    if (!getElm('opts-stop').disabled) options.stopAt = getElm('opts-stop').value;
     if (!getElm('opts-speed').disabled) options.speed = getElm('opts-speed').value;
     if (!getElm('opts-zoom').disabled) options.zoom = getElm('opts-zoom').value;
     if (!getElm('opts-bg-color').disabled) options.bgColor = getElm('opts-bg-color').value;
@@ -43,8 +44,12 @@ function getCode(mode, options) {
                'anm.Player.forSnapshot(\'' + targetDivId + '\',\n' +
                '                       snapshotUrl + snapshotId,\n' +
                '                       anm.importers.create(\'animatron\'),\n' +
-               (options.startFrom ? '                       function() { this.play(' + (parseTime(options.startFrom) / 100) + '); },\n'
-                                : '                       null, /* callback */\n') +
+               '                       ' + ((options.startFrom || options.stopAt)
+                                            ? 'function() { ' +
+                                                (options.startFrom ? 'this.play(' + (parseTime(options.startFrom) / 100) + ');\n' : '') +
+                                                (options.stopAt ? 'this.pause(' + (parseTime(options.stopAt) / 100) + ');\n' : '')
+                                              + '},\n'
+                                            : 'null, /* callback */\n') +
                '                       options);';
     } else if (mode === 'html') {
         var attributes = optionsMapper('html', options);
@@ -112,6 +117,7 @@ function init() {
         'speed': { label: 'Speed', type: 'number', modify: function(elm, form) { elm.value = 1; } },
         'zoom': { label: 'Zoom', type: 'number', modify: function(elm, form) { elm.value = 1; } },
         'start': { label: 'Start from', type: 'text', modify: function(elm, form) { elm.value = '0.00s'; } },
+        'stop': { label: 'Pause at', type: 'text', modify: function(elm, form) { elm.value = '0.00s'; } },
         'bg-color': { label: 'Background', type: 'text', modify: function(elm, form) { elm.value = 'transparent'; } }
     });
 
@@ -125,6 +131,8 @@ function init() {
     for (var i = 0, il = subjects.length; i < il; i++) {
         getElm(subjects[i]).addEventListener('change', onChange);
     } */
+
+    getElm('snapshot-id').addEventListener('change', onChange);
 
     getElm('mode-embed').addEventListener('click', onChange);
     getElm('mode-config').addEventListener('click', onChange);
@@ -168,6 +176,7 @@ var optionsMapper = function(mode, options) {
                 speed: extractOption('speed', 'v', 'speed', numberOption),
                 zoom: extractOption('zoom', 'z', 'zoom', numberOption),
                 startFrom: extractOption('startFrom', 't', 'from', parseTime),
+                stopAt: extractOption('stopAt', 'p', 'at', parseTime),
                 bgColor: extractOption('bgColor', 'bg', 'bgcolor', colorOption)
             };
 
@@ -217,6 +226,7 @@ var optionsMapper = function(mode, options) {
                 speed: extractOption('speed', 'anm-speed', numberOption),
                 zoom: extractOption('zoom', 'anm-zoom', numberOption),
                 startFrom: extractOption('startFrom', 'anm-start-from', parseTime),
+                stopAt: extractOption('stopAt', 'anm-stop-at', parseTime),
                 bgColor: extractOption('bgColor', 'anm-bg-color', colorOption)
             };
 

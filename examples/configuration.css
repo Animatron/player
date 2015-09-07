@@ -88,6 +88,14 @@ label[for="preview"] {
     right: 20px;
 }
 
+#code-block {
+    position: absolute;
+    right: 10px;
+    bottom: 20px;
+    z-index: 10;
+    background-color: white;
+}
+
 @media (max-width: 1300px) {
     body {
         font-size: 12px;
