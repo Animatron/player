@@ -1,7 +1,8 @@
 var snapshotsUrl = 'https://clips.animatron-test.com/',
     defaultSnapshotId = '6eaba40eb372f8181627159fa94b126a',
     snapshotId = defaultSnapshotId,
-    targetDivId = 'player-target';
+    targetDivId = 'player-target',
+    defaultThumbnail = 'https://pbs.twimg.com/profile_images/461136247558123521/gb0JxgvW_400x400.png';
 
 var currentMode; // embed, config, publish, html
 
@@ -22,7 +23,15 @@ function collectOptions() {
     if (!getElm('opts-speed').disabled) options.speed = getElm('opts-speed').value;
     if (!getElm('opts-zoom').disabled) options.zoom = getElm('opts-zoom').value;
     if (!getElm('opts-bg-color').disabled) options.bgColor = getElm('opts-bg-color').value;
+    if (!getElm('opts-ribbons').disabled) options.ribbonsColor = getElm('opts-ribbons').value;
     if (!getElm('opts-loading').disabled) options.loadingMode = getElm('opts-loading').selectedIndex;
+    if (!getElm('opts-thumbnail').disabled) options.thumbnail = getElm('opts-thumbnail').value;
+    //if (!getElm('opts-images').disabled) options.imagesEnabled = getElm('opts-images').checked;
+    if (!getElm('opts-audio').disabled) options.audioEnabled = getElm('opts-audio').checked;
+    //if (!getElm('opts-video').disabled) options.videoEnabled = getElm('opts-video').checked;
+    if (!getElm('opts-shadows').disabled) options.shadowsEnabled = getElm('opts-shadows').checked;
+    if (!getElm('opts-scene-size').disabled) options.forceSceneSize = getElm('opts-scene-size').checked;
+    if (!getElm('opts-errors').disabled) options.muteErrors = getElm('opts-errors').checked;
     return options;
 }
 
@@ -120,6 +129,7 @@ function init() {
         'start': { label: 'Start from', type: 'text', modify: function(elm, form) { elm.value = '0.00s'; } },
         'stop': { label: 'Pause at', type: 'text', modify: function(elm, form) { elm.value = '0.00s'; } },
         'bg-color': { label: 'Background', type: 'text', modify: function(elm, form) { elm.value = 'transparent'; } },
+        'ribbons': { label: 'Ribbons color', type: 'text', modify: function(elm, form) { elm.value = 'black'; } },
         'loading': { label: 'Loading', type: 'select',
                      create: function() {
                          var select = document.createElement('select');
@@ -131,7 +141,12 @@ function init() {
                          select.appendChild(onRequest);
                          return select;
                      },
-                     modify: function(elm, form) { elm.selectedIndex = 0; } }
+                     modify: function(elm, form) { elm.selectedIndex = 0; } },
+        'thumbnail': { label: 'Thumbnail', type: 'text', modify: function(elm, form) { elm.value = defaultThumbnail; } },
+        'audio': { label: 'Audio', type: 'checkbox', modify: function(elm, form) { elm.checked = true; } },
+        'shadows': { label: 'Shadows', type: 'checkbox', modify: function(elm, form) { elm.checked = true; } },
+        'scene-size': { label: 'Force scene size', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
+        'errors': { label: 'Mute errors', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } }
     });
 
     /* getElm('opts-width-default').addEventListener('click', function() { getElm('opts-width').disabled = this.checked; });
@@ -192,7 +207,10 @@ var optionsMapper = function(mode, options) {
                 startFrom: extractOption('startFrom', 't', 'from', parseTime),
                 stopAt: extractOption('stopAt', 'p', 'at', parseTime),
                 loadingMode: extractOption('loadingMode', 'lm', 'lmode', loadingModeOption),
-                bgColor: extractOption('bgColor', 'bg', 'bgcolor', colorOption)
+                bgColor: extractOption('bgColor', 'bg', 'bgcolor', colorOption),
+                ribbonsColor: extractOption('ribbonsColor', 'rc', 'ribcolor', colorOption),
+                audioEnabled: extractOption('audioEnabled', 's', 'audio', booleanOption),
+                muteErrors: extractOption('muteErrors', 'me', 'errors', booleanOption)
             };
 
         })(),
@@ -204,9 +222,11 @@ var optionsMapper = function(mode, options) {
             }
 
             function numberOption(v) { return v; };
+            function textOption(v) { return '\'' + v + '\''; };
             function colorOption(v) { return '\'' + v + '\''; };
             function booleanOption(v) { return v ? 'true' : 'false'; };
             function loadingModeOption(v) { return (v === 1) ? '\'onrequest\'' : '\'onplay\'' };
+            function thumbnailOption(v) { return v; };
 
             return {
                 width: extractOption('width', numberOption),
@@ -218,7 +238,13 @@ var optionsMapper = function(mode, options) {
                 speed: extractOption('speed', numberOption),
                 zoom: extractOption('zoom', numberOption),
                 loadingMode: extractOption('loadingMode', loadingModeOption),
-                bgColor: extractOption('bgColor', colorOption)
+                bgColor: extractOption('bgColor', colorOption),
+                ribbonsColor: extractOption('ribbonsColor', colorOption),
+                thumbnail: extractOption('thumbnail', textOption),
+                audioEnabled: extractOption('audioEnabled', booleanOption),
+                shadowsEnabled: extractOption('shadowsEnabled', booleanOption),
+                forceSceneSize: extractOption('forceSceneSize', booleanOption),
+                muteErrors: extractOption('muteErrors', booleanOption)
             };
 
         })(),
@@ -230,6 +256,7 @@ var optionsMapper = function(mode, options) {
             }
 
             function colorOption(v) { return v; };
+            function textOption(v) { return v; };
             function numberOption(v) { return v; };
             function booleanOption(v) { return v ? 'true' : 'false'; };
             function loadingModeOption(v) { return (v === 1) ? 'onrequest' : 'onplay' };
@@ -246,7 +273,13 @@ var optionsMapper = function(mode, options) {
                 startFrom: extractOption('startFrom', 'anm-start-from', parseTime),
                 stopAt: extractOption('stopAt', 'anm-stop-at', parseTime),
                 loadingMode: extractOption('loadingMode', 'anm-loading-mode', loadingModeOption),
-                bgColor: extractOption('bgColor', 'anm-bg-color', colorOption)
+                bgColor: extractOption('bgColor', 'anm-bg-color', colorOption),
+                ribbonsColor: extractOption('ribbonsColor', 'anm-rib-color', colorOption),
+                thumbnail: extractOption('thumbnail', 'anm-thumbnail', textOption),
+                audioEnabled: extractOption('audioEnabled', 'anm-audio', booleanOption),
+                shadowsEnabled: extractOption('shadowsEnabled', 'anm-shadows', booleanOption),
+                forceSceneSize: extractOption('forceSceneSize', 'anm-scene-size', booleanOption),
+                muteErrors: extractOption('muteErrors', 'anm-mute-errors', booleanOption)
             };
 
         })()
