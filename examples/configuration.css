@@ -1,6 +1,11 @@
+body {
+    font-size: 14px;
+    /* font-family: sans-serif; */
+}
+
 body label.title {
     display: block;
-    font-size: 1.3em;
+    font-size: 1.2em;
     font-weight: bold;
     margin: 20px 0;
 }
@@ -28,6 +33,7 @@ input#snapshot-id {
 
 ul#code-type {
     list-style-type: none;
+    padding-left: 0;
 }
 
 ul#code-type li a {
@@ -80,4 +86,10 @@ label[for="preview"] {
     position: fixed;
     top: 50px;
     right: 20px;
+}
+
+@media (max-width: 1300px) {
+    body {
+        font-size: 12px;
+    }
 }

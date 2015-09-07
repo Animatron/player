@@ -26,7 +26,7 @@ function getCode(mode, options) {
         var params = optionsMapper('embed', options);
         return '<iframe src="' + snapshotsUrl + snapshotId +
                (params ? ('?' + params) : '') +
-               '" width="640" height="360" frameborder="0"></iframe>';
+               '" width="480" height="270" frameborder="0"></iframe>';
     } else if (mode === 'publish') {
         var params = optionsMapper('embed', options);
         return snapshotsUrl + snapshotId +
@@ -100,12 +100,12 @@ function init() {
     switchMode('embed');
 
     buildOptionsHTML({
-        'width': { label: 'Width', type: 'number', modify: function(elm) { elm.value = 640; } },
-        'height': { label: 'Height', type: 'number', modify: function(elm) { elm.value = 360; } },
+        'width': { label: 'Width', type: 'number', modify: function(elm) { elm.value = 480; } },
+        'height': { label: 'Height', type: 'number', modify: function(elm) { elm.value = 270; } },
         'controls': { label: 'Controls', type: 'checkbox', modify: function(elm) { elm.checked = true; } },
-        'auto-play': { label: 'Auto Play', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
+        'auto-play': { label: 'Auto-play', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
         'repeat': { label: 'Repeat', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
-        'infinite': { label: 'Infinite Duration', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
+        'infinite': { label: 'Infinite duration', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
         'start': { label: 'Start at', type: 'text', modify: function(elm, form) { elm.value = '0.00s'; } }
     });
 
@@ -235,36 +235,79 @@ function findAndInitPotentialPlayers() {
 
 function buildOptionsHTML(spec) {
     var optionsForm = getElm('options');
+    var defaultCheckboxes = [];
+
+    var optionsTable = document.createElement('table');
+    var header = document.createElement('thead');
+    var headerRow = document.createElement('tr');
+
+    var defaultValuesHeader = document.createElement('td');
+    var labelSpan = document.createElement('span');
+    labelSpan.innerText = labelSpan.textContent = 'Default?';
+    /*var allDefaultCheckboxElm = document.createElement('input');
+    allDefaultCheckboxElm.setAttribute('type', 'checkbox');
+    allDefaultCheckboxElm.setAttribute('checked', true);
+    allDefaultCheckboxElm.addEventListener('click', function() {
+        for (var i = 0, il = defaultCheckboxes.length; i < il; i++) {
+            defaultCheckboxes[i].checked = this.checked;
+        }
+    });
+    allDefaultCheckboxElm.addEventListener('change', onChange);
+    defaultValuesHeader.appendChild(allDefaultCheckboxElm);*/
+    defaultValuesHeader.appendChild(labelSpan);
+
+    var namesHeader = document.createElement('td');
+    namesHeader.innerText = namesHeader.textContent = 'Name';
+    var valuesHeader = document.createElement('td');
+    valuesHeader.innerText = valuesHeader.textContent = 'Value';
+    headerRow.appendChild(defaultValuesHeader);
+    headerRow.appendChild(namesHeader);
+    headerRow.appendChild(valuesHeader);
+    header.appendChild(headerRow);
+    optionsTable.appendChild(header);
+
+    var body = document.createElement('tbody');
+
     var names = Object.keys(spec);
     for (var i = 0, il = names.length; i < il; i++) {
         var name = names[i], optSpec = spec[names[i]];
+        var optionRow = document.createElement('tr');
+
+        var defaultCell = document.createElement('td');
+        var defaultCheckboxElm = document.createElement('input');
+        defaultCheckboxElm.setAttribute('type', 'checkbox');
+        defaultCheckboxElm.setAttribute('id', 'opts-' + name + '-default');
+        defaultCheckboxElm.setAttribute('checked', true);
+        defaultCell.appendChild(defaultCheckboxElm);
+        optionRow.appendChild(defaultCell);
+
+        var labelCell = document.createElement('td');
         var labelElm = document.createElement('label');
         labelElm.setAttribute('for', 'opts-' + name);
         labelElm.textContent = labelElm.innerText = optSpec.label + ':';
-        optionsForm.appendChild(labelElm);
+        labelCell.appendChild(labelElm);
+        optionRow.appendChild(labelCell);
+
+        var valueCell = document.createElement('td');
         var inputElm = document.createElement('input');
         inputElm.setAttribute('id', 'opts-' + name);
         inputElm.setAttribute('type', optSpec.type);
         inputElm.setAttribute('disabled', true);
         inputElm.addEventListener('change', onChange);
         if (optSpec.modify) optSpec.modify(inputElm, optionsForm);
-        optionsForm.appendChild(inputElm);
-        var defaultLabelElm = document.createElement('label');
-        defaultLabelElm.setAttribute('for', 'opts-' + name + '-default');
-        defaultLabelElm.textContent = defaultLabelElm.innerText = 'Default:';
-        optionsForm.appendChild(defaultLabelElm);
-        var defaultCheckboxElm = document.createElement('input');
-        defaultCheckboxElm.setAttribute('type', 'checkbox');
-        defaultCheckboxElm.setAttribute('id', 'opts-' + name + '-default');
-        defaultCheckboxElm.setAttribute('checked', true);
         defaultCheckboxElm.addEventListener('click',
             (function(inputElm) {
                 return function() { inputElm.disabled = this.checked; }
             })(inputElm));
         defaultCheckboxElm.addEventListener('change', onChange);
-        optionsForm.appendChild(defaultCheckboxElm);
-        optionsForm.appendChild(document.createElement('br'));
+        defaultCheckboxes.push(defaultCheckboxElm);
+        valueCell.appendChild(inputElm);
+        optionRow.appendChild(valueCell);
+
+        optionsTable.appendChild(optionRow);
     }
+
+    optionsForm.appendChild(optionsTable);
 }
 
 function parseTime(v) {
