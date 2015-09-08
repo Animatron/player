@@ -5,19 +5,20 @@ var Analytics = function () {
         supportSendBeacon = !!navigator.sendBeacon,
         timeout = supportSendBeacon ? 2000 : 1000,
         beacon = null,
-        animatronUrl = 'http://localhost:8080/analytics?';
+        animatronUrl = 'http://localhost:8080/analytics';
 
     self.queue = [];
 
     var event = function () {
         if (self.queue.length > 0) {
-            var trackUrl = animatronUrl + 'player=' + encodeURIComponent(JSON.stringify(self.queue));
+            var data = JSON.stringify(self.queue);
             self.queue = [];
 
             if (supportSendBeacon) {
-                navigator.sendBeacon(trackUrl);
+                navigator.sendBeacon(animatronUrl, data);
                 setTimeout(event, timeout);
             } else {
+                var trackUrl = animatronUrl + '?player=' + encodeURIComponent(data);
                 sendViaGif(trackUrl);
             }
         } else {
