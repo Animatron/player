@@ -1,7 +1,8 @@
 var snapshotsUrl = 'https://clips.animatron-test.com/',
-    defaultSnapshotId = '057f9821e527adaf005b6a2d64487cf0',
+    defaultSnapshotId = '6eaba40eb372f8181627159fa94b126a',
     snapshotId = defaultSnapshotId,
-    targetDivId = 'player-target';
+    targetDivId = 'player-target',
+    defaultThumbnail = 'https://pbs.twimg.com/profile_images/461136247558123521/gb0JxgvW_400x400.png';
 
 var currentMode; // embed, config, publish, html
 
@@ -14,10 +15,23 @@ function collectOptions() {
     if (!getElm('opts-width').disabled) options.width = getElm('opts-width').value;
     if (!getElm('opts-height').disabled) options.height = getElm('opts-height').value;
     if (!getElm('opts-controls').disabled) options.controlsEnabled = getElm('opts-controls').checked;
-    if (!getElm('opts-start').disabled) options.startFrom = getElm('opts-start').value;
     if (!getElm('opts-auto-play').disabled) options.autoPlay = getElm('opts-auto-play').checked;
     if (!getElm('opts-repeat').disabled) options.repeat = getElm('opts-repeat').checked;
     if (!getElm('opts-infinite').disabled) options.infiniteDuration = getElm('opts-infinite').checked;
+    if (!getElm('opts-start').disabled) options.startFrom = getElm('opts-start').value;
+    if (!getElm('opts-stop').disabled) options.stopAt = getElm('opts-stop').value;
+    if (!getElm('opts-speed').disabled) options.speed = getElm('opts-speed').value;
+    if (!getElm('opts-zoom').disabled) options.zoom = getElm('opts-zoom').value;
+    if (!getElm('opts-bg-color').disabled) options.bgColor = getElm('opts-bg-color').value;
+    if (!getElm('opts-ribbons').disabled) options.ribbonsColor = getElm('opts-ribbons').value;
+    if (!getElm('opts-loading').disabled) options.loadingMode = getElm('opts-loading').selectedIndex;
+    if (!getElm('opts-thumbnail').disabled) options.thumbnail = getElm('opts-thumbnail').value;
+    //if (!getElm('opts-images').disabled) options.imagesEnabled = getElm('opts-images').checked;
+    if (!getElm('opts-audio').disabled) options.audioEnabled = getElm('opts-audio').checked;
+    //if (!getElm('opts-video').disabled) options.videoEnabled = getElm('opts-video').checked;
+    if (!getElm('opts-shadows').disabled) options.shadowsEnabled = getElm('opts-shadows').checked;
+    if (!getElm('opts-scene-size').disabled) options.forceSceneSize = getElm('opts-scene-size').checked;
+    if (!getElm('opts-errors').disabled) options.muteErrors = getElm('opts-errors').checked;
     return options;
 }
 
@@ -26,7 +40,7 @@ function getCode(mode, options) {
         var params = optionsMapper('embed', options);
         return '<iframe src="' + snapshotsUrl + snapshotId +
                (params ? ('?' + params) : '') +
-               '" width="640" height="360" frameborder="0"></iframe>';
+               '" width="480" height="270" frameborder="0"></iframe>';
     } else if (mode === 'publish') {
         var params = optionsMapper('embed', options);
         return snapshotsUrl + snapshotId +
@@ -40,8 +54,12 @@ function getCode(mode, options) {
                'anm.Player.forSnapshot(\'' + targetDivId + '\',\n' +
                '                       snapshotUrl + snapshotId,\n' +
                '                       anm.importers.create(\'animatron\'),\n' +
-               (options.startFrom ? '                       function() { this.play(' + (parseTime(options.startFrom) / 100) + '); },\n'
-                                : '                       null, /* callback */\n') +
+               '                       ' + ((options.startFrom || options.stopAt)
+                                            ? 'function() { ' +
+                                                (options.startFrom ? 'this.play(' + (parseTime(options.startFrom) / 100) + ');\n' : '') +
+                                                (options.stopAt ? 'this.play(' + (parseTime(options.stopAt) / 100) + ').pause();\n' : '')
+                                              + '},\n'
+                                            : 'null, /* callback */\n') +
                '                       options);';
     } else if (mode === 'html') {
         var attributes = optionsMapper('html', options);
@@ -100,13 +118,35 @@ function init() {
     switchMode('embed');
 
     buildOptionsHTML({
-        'width': { label: 'Width', type: 'number', modify: function(elm) { elm.value = 640; } },
-        'height': { label: 'Height', type: 'number', modify: function(elm) { elm.value = 360; } },
+        'width': { label: 'Width', type: 'number', modify: function(elm) { elm.value = 480; } },
+        'height': { label: 'Height', type: 'number', modify: function(elm) { elm.value = 270; } },
         'controls': { label: 'Controls', type: 'checkbox', modify: function(elm) { elm.checked = true; } },
-        'auto-play': { label: 'Auto Play', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
+        'auto-play': { label: 'Auto-play', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
         'repeat': { label: 'Repeat', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
-        'infinite': { label: 'Infinite Duration', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
-        'start': { label: 'Start at', type: 'text', modify: function(elm, form) { elm.value = '0.00s'; } }
+        'infinite': { label: 'Infinite duration', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
+        'speed': { label: 'Speed', type: 'number', modify: function(elm, form) { elm.value = 1; } },
+        'zoom': { label: 'Zoom', type: 'number', modify: function(elm, form) { elm.value = 1; } },
+        'start': { label: 'Start from', type: 'text', modify: function(elm, form) { elm.value = '0.00s'; } },
+        'stop': { label: 'Pause at', type: 'text', modify: function(elm, form) { elm.value = '0.00s'; } },
+        'bg-color': { label: 'Background', type: 'text', modify: function(elm, form) { elm.value = 'transparent'; } },
+        'ribbons': { label: 'Ribbons color', type: 'text', modify: function(elm, form) { elm.value = 'black'; } },
+        'loading': { label: 'Loading', type: 'select',
+                     create: function() {
+                         var select = document.createElement('select');
+                         var onPlay = document.createElement('option');
+                         onPlay.innerText = onPlay.textContent = 'on play';
+                         var onRequest = document.createElement('option');
+                         onRequest.innerText = onRequest.textContent = 'on request';
+                         select.appendChild(onPlay);
+                         select.appendChild(onRequest);
+                         return select;
+                     },
+                     modify: function(elm, form) { elm.selectedIndex = 0; } },
+        'thumbnail': { label: 'Thumbnail', type: 'text', modify: function(elm, form) { elm.value = defaultThumbnail; } },
+        'audio': { label: 'Audio', type: 'checkbox', modify: function(elm, form) { elm.checked = true; } },
+        'shadows': { label: 'Shadows', type: 'checkbox', modify: function(elm, form) { elm.checked = true; } },
+        'scene-size': { label: 'Force scene size', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
+        'errors': { label: 'Mute errors', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } }
     });
 
     /* getElm('opts-width-default').addEventListener('click', function() { getElm('opts-width').disabled = this.checked; });
@@ -119,6 +159,8 @@ function init() {
     for (var i = 0, il = subjects.length; i < il; i++) {
         getElm(subjects[i]).addEventListener('change', onChange);
     } */
+
+    getElm('snapshot-id').addEventListener('change', onChange);
 
     getElm('mode-embed').addEventListener('click', onChange);
     getElm('mode-config').addEventListener('click', onChange);
@@ -149,16 +191,26 @@ var optionsMapper = function(mode, options) {
             }
 
             function numberOption(v) { return v; };
+            function colorOption(v) { return (v.indexOf('#') >= 0) ? v.slice(1) : v; };
             function booleanOption(v) { return v ? '1' : '0'; };
+            function loadingModeOption(v) { return (v === 1) ? 'onrequest' : 'onplay' };
 
             return {
                 width: extractOption('width', 'w', 'width', numberOption),
                 height: extractOption('height', 'h', 'height', numberOption),
                 controlsEnabled: extractOption('controlsEnabled', 'c', 'controls', booleanOption),
                 autoPlay: extractOption('autoPlay', 'a', 'auto', booleanOption),
-                startFrom: extractOption('startFrom', 't', 'from', parseTime),
                 repeat: extractOption('repeat', 'r', 'repeat', booleanOption),
-                infiniteDuration: extractOption('infiniteDuration', 'i', 'inf', booleanOption)
+                infiniteDuration: extractOption('infiniteDuration', 'i', 'inf', booleanOption),
+                speed: extractOption('speed', 'v', 'speed', numberOption),
+                zoom: extractOption('zoom', 'z', 'zoom', numberOption),
+                startFrom: extractOption('startFrom', 't', 'from', parseTime),
+                stopAt: extractOption('stopAt', 'p', 'at', parseTime),
+                loadingMode: extractOption('loadingMode', 'lm', 'lmode', loadingModeOption),
+                bgColor: extractOption('bgColor', 'bg', 'bgcolor', colorOption),
+                ribbonsColor: extractOption('ribbonsColor', 'rc', 'ribcolor', colorOption),
+                audioEnabled: extractOption('audioEnabled', 's', 'audio', booleanOption),
+                muteErrors: extractOption('muteErrors', 'me', 'errors', booleanOption)
             };
 
         })(),
@@ -170,7 +222,11 @@ var optionsMapper = function(mode, options) {
             }
 
             function numberOption(v) { return v; };
+            function textOption(v) { return '\'' + v + '\''; };
+            function colorOption(v) { return '\'' + v + '\''; };
             function booleanOption(v) { return v ? 'true' : 'false'; };
+            function loadingModeOption(v) { return (v === 1) ? '\'onrequest\'' : '\'onplay\'' };
+            function thumbnailOption(v) { return v; };
 
             return {
                 width: extractOption('width', numberOption),
@@ -178,7 +234,17 @@ var optionsMapper = function(mode, options) {
                 controlsEnabled: extractOption('controlsEnabled', booleanOption),
                 autoPlay: extractOption('autoPlay', booleanOption),
                 repeat: extractOption('repeat', booleanOption),
-                infiniteDuration: extractOption('infiniteDuration', booleanOption)
+                infiniteDuration: extractOption('infiniteDuration', booleanOption),
+                speed: extractOption('speed', numberOption),
+                zoom: extractOption('zoom', numberOption),
+                loadingMode: extractOption('loadingMode', loadingModeOption),
+                bgColor: extractOption('bgColor', colorOption),
+                ribbonsColor: extractOption('ribbonsColor', colorOption),
+                thumbnail: extractOption('thumbnail', textOption),
+                audioEnabled: extractOption('audioEnabled', booleanOption),
+                shadowsEnabled: extractOption('shadowsEnabled', booleanOption),
+                forceSceneSize: extractOption('forceSceneSize', booleanOption),
+                muteErrors: extractOption('muteErrors', booleanOption)
             };
 
         })(),
@@ -189,17 +255,31 @@ var optionsMapper = function(mode, options) {
                 return function(o) { if (typeof o[prop] !== 'undefined') return attr + '="' + format(o[prop]) + '"' };
             }
 
+            function colorOption(v) { return v; };
+            function textOption(v) { return v; };
             function numberOption(v) { return v; };
             function booleanOption(v) { return v ? 'true' : 'false'; };
+            function loadingModeOption(v) { return (v === 1) ? 'onrequest' : 'onplay' };
 
             return {
                 width: extractOption('width', 'anm-width', numberOption),
                 height: extractOption('height', 'anm-height', numberOption),
                 controlsEnabled: extractOption('controlsEnabled', 'anm-controls', booleanOption),
                 autoPlay: extractOption('autoPlay', 'anm-auto-play', booleanOption),
-                startFrom: extractOption('startFrom', 'anm-start-from', parseTime),
                 repeat: extractOption('repeat', 'anm-repeat', booleanOption),
                 infiniteDuration: extractOption('infiniteDuration', 'anm-infinite', booleanOption),
+                speed: extractOption('speed', 'anm-speed', numberOption),
+                zoom: extractOption('zoom', 'anm-zoom', numberOption),
+                startFrom: extractOption('startFrom', 'anm-start-from', parseTime),
+                stopAt: extractOption('stopAt', 'anm-stop-at', parseTime),
+                loadingMode: extractOption('loadingMode', 'anm-loading-mode', loadingModeOption),
+                bgColor: extractOption('bgColor', 'anm-bg-color', colorOption),
+                ribbonsColor: extractOption('ribbonsColor', 'anm-rib-color', colorOption),
+                thumbnail: extractOption('thumbnail', 'anm-thumbnail', textOption),
+                audioEnabled: extractOption('audioEnabled', 'anm-audio', booleanOption),
+                shadowsEnabled: extractOption('shadowsEnabled', 'anm-shadows', booleanOption),
+                forceSceneSize: extractOption('forceSceneSize', 'anm-scene-size', booleanOption),
+                muteErrors: extractOption('muteErrors', 'anm-mute-errors', booleanOption)
             };
 
         })()
@@ -235,36 +315,84 @@ function findAndInitPotentialPlayers() {
 
 function buildOptionsHTML(spec) {
     var optionsForm = getElm('options');
+    var defaultCheckboxes = [];
+
+    var optionsTable = document.createElement('table');
+    var header = document.createElement('thead');
+    var headerRow = document.createElement('tr');
+
+    var defaultValuesHeader = document.createElement('td');
+    var labelSpan = document.createElement('span');
+    labelSpan.innerText = labelSpan.textContent = 'Default?';
+    /*var allDefaultCheckboxElm = document.createElement('input');
+    allDefaultCheckboxElm.setAttribute('type', 'checkbox');
+    allDefaultCheckboxElm.setAttribute('checked', true);
+    allDefaultCheckboxElm.addEventListener('click', function() {
+        for (var i = 0, il = defaultCheckboxes.length; i < il; i++) {
+            defaultCheckboxes[i].checked = this.checked;
+        }
+    });
+    allDefaultCheckboxElm.addEventListener('change', onChange);
+    defaultValuesHeader.appendChild(allDefaultCheckboxElm);*/
+    defaultValuesHeader.appendChild(labelSpan);
+
+    var namesHeader = document.createElement('td');
+    namesHeader.innerText = namesHeader.textContent = 'Name';
+    var valuesHeader = document.createElement('td');
+    valuesHeader.innerText = valuesHeader.textContent = 'Value';
+    headerRow.appendChild(defaultValuesHeader);
+    headerRow.appendChild(namesHeader);
+    headerRow.appendChild(valuesHeader);
+    header.appendChild(headerRow);
+    optionsTable.appendChild(header);
+
+    var body = document.createElement('tbody');
+
     var names = Object.keys(spec);
     for (var i = 0, il = names.length; i < il; i++) {
         var name = names[i], optSpec = spec[names[i]];
-        var labelElm = document.createElement('label');
-        labelElm.setAttribute('for', 'opts-' + name);
-        labelElm.textContent = labelElm.innerText = optSpec.label + ':';
-        optionsForm.appendChild(labelElm);
-        var inputElm = document.createElement('input');
-        inputElm.setAttribute('id', 'opts-' + name);
-        inputElm.setAttribute('type', optSpec.type);
-        inputElm.setAttribute('disabled', true);
-        inputElm.addEventListener('change', onChange);
-        if (optSpec.modify) optSpec.modify(inputElm, optionsForm);
-        optionsForm.appendChild(inputElm);
-        var defaultLabelElm = document.createElement('label');
-        defaultLabelElm.setAttribute('for', 'opts-' + name + '-default');
-        defaultLabelElm.textContent = defaultLabelElm.innerText = 'Default:';
-        optionsForm.appendChild(defaultLabelElm);
+        var optionRow = document.createElement('tr');
+
+        var defaultCell = document.createElement('td');
         var defaultCheckboxElm = document.createElement('input');
         defaultCheckboxElm.setAttribute('type', 'checkbox');
         defaultCheckboxElm.setAttribute('id', 'opts-' + name + '-default');
         defaultCheckboxElm.setAttribute('checked', true);
+        defaultCell.appendChild(defaultCheckboxElm);
+        optionRow.appendChild(defaultCell);
+
+        var labelCell = document.createElement('td');
+        var labelElm = document.createElement('label');
+        labelElm.setAttribute('for', 'opts-' + name);
+        labelElm.textContent = labelElm.innerText = optSpec.label + ':';
+        labelCell.appendChild(labelElm);
+        optionRow.appendChild(labelCell);
+
+        var valueCell = document.createElement('td');
+        var targetElm;
+        if (!optSpec.create) {
+            targetElm = document.createElement('input');
+            targetElm.setAttribute('type', optSpec.type);
+        } else {
+            targetElm = optSpec.create();
+        }
+        targetElm.setAttribute('id', 'opts-' + name);
+        targetElm.setAttribute('disabled', true);
+        targetElm.addEventListener('change', onChange);
+        if (optSpec.modify) optSpec.modify(targetElm, optionsForm);
         defaultCheckboxElm.addEventListener('click',
-            (function(inputElm) {
-                return function() { inputElm.disabled = this.checked; }
-            })(inputElm));
+            (function(targetElm) {
+                return function() { targetElm.disabled = this.checked; }
+            })(targetElm));
         defaultCheckboxElm.addEventListener('change', onChange);
-        optionsForm.appendChild(defaultCheckboxElm);
-        optionsForm.appendChild(document.createElement('br'));
+        defaultCheckboxes.push(defaultCheckboxElm);
+        valueCell.appendChild(targetElm);
+        optionRow.appendChild(valueCell);
+
+        optionsTable.appendChild(optionRow);
     }
+
+    optionsForm.appendChild(optionsTable);
 }
 
 function parseTime(v) {
