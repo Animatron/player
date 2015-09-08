@@ -30,7 +30,7 @@ var Analytics = function () {
             beacon = engine.createStatImg();
         }
         beacon.src = trackUrl;
-        beacon.onerror = beacon.onload = function (e) {
+        beacon.onerror = beacon.onload = function () {
             beacon.onerror = beacon.onload = null;
             setTimeout(event, timeout);
         }
@@ -53,12 +53,13 @@ Analytics.prototype.track = function track(name, opts) {
     opts.screenWidth = screen.width;
     opts.windowHeight = window.innerHeight;
     opts.windowWidth = window.innerWidth;
+    opts.timestamp = new Date().getTime();
     this.queue.push(opts);
 };
 
 Analytics.prototype.trackPlayer = function trackPlayer(name) {
     return function (player) {
-        var opts = {viewId: player.viewId, time: player.state.time};
+        var opts = {viewId: player.viewId, projectId: player.anim.meta._anm_id, time: player.state.time};
         this.track(name, opts);
     }.bind(this);
 };
