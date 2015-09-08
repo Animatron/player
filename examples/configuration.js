@@ -8,6 +8,15 @@ var currentMode; // embed, config, publish, html
 
 var shortVersion = true;
 
+var loadingModes = [
+    { value: 'rightaway', name: 'right away', description: 'loads animation just immediately when finds it\'s source (i.e. from HTML attribute)' },
+    { value: 'onrequest', name: 'on request', description: 'waits for user to manually call .load() method' },
+    { value: 'onplay', name: 'on play', description: 'when play button was pressed, starts loading a scene and plays it just after' },
+    { value: 'onidle', name: 'on idle', description: ' waits for pause in user actions (mouse move, clicks, keyboard) to load the animation' },
+    { value: 'onhover', name: 'on hover', description: 'starts loading animation when user hovered with mouse over the player canvas' },
+    { value: 'wheninview', name: 'when in view', description: 'starts loading animation when Player appeares in browser viewport' }
+];
+
 function getElm(id) { return document.getElementById(id); }
 
 function collectOptions() {
@@ -133,12 +142,15 @@ function init() {
         'loading': { label: 'Loading', type: 'select',
                      create: function() {
                          var select = document.createElement('select');
-                         var onPlay = document.createElement('option');
-                         onPlay.innerText = onPlay.textContent = 'on play';
-                         var onRequest = document.createElement('option');
-                         onRequest.innerText = onRequest.textContent = 'on request';
-                         select.appendChild(onPlay);
-                         select.appendChild(onRequest);
+                         for (var i = 0, il = loadingModes.length, mode; i < il; i++) {
+                             var option = document.createElement('option');
+                             option.innerText = option.textContent = loadingModes[i].name;
+                             select.appendChild(option);
+                         }
+                         select.setAttribute('title', loadingModes[0].description);
+                         select.addEventListener('change', function() {
+                             select.setAttribute('title', loadingModes[select.selectedIndex].description);
+                         });
                          return select;
                      },
                      modify: function(elm, form) { elm.selectedIndex = 0; } },
@@ -193,7 +205,7 @@ var optionsMapper = function(mode, options) {
             function numberOption(v) { return v; };
             function colorOption(v) { return (v.indexOf('#') >= 0) ? v.slice(1) : v; };
             function booleanOption(v) { return v ? '1' : '0'; };
-            function loadingModeOption(v) { return (v === 1) ? 'onrequest' : 'onplay' };
+            function loadingModeOption(v) { return loadingModes[v].value };
 
             return {
                 width: extractOption('width', 'w', 'width', numberOption),
@@ -225,7 +237,7 @@ var optionsMapper = function(mode, options) {
             function textOption(v) { return '\'' + v + '\''; };
             function colorOption(v) { return '\'' + v + '\''; };
             function booleanOption(v) { return v ? 'true' : 'false'; };
-            function loadingModeOption(v) { return (v === 1) ? '\'onrequest\'' : '\'onplay\'' };
+            function loadingModeOption(v) { return '\'' + loadingModes[v].value + '\''; };
             function thumbnailOption(v) { return v; };
 
             return {
@@ -259,7 +271,7 @@ var optionsMapper = function(mode, options) {
             function textOption(v) { return v; };
             function numberOption(v) { return v; };
             function booleanOption(v) { return v ? 'true' : 'false'; };
-            function loadingModeOption(v) { return (v === 1) ? 'onrequest' : 'onplay' };
+            function loadingModeOption(v) { return loadingModes[v].value };
 
             return {
                 width: extractOption('width', 'anm-width', numberOption),

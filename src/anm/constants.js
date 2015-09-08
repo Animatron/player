@@ -65,12 +65,23 @@ C.LT_URL = 4;
 // ### Loading modes
 /* ---------------- */
 
-C.LM_ONREQUEST = 'onrequest';
-C.LM_ONPLAY = 'onplay';
-// C.LM_ONSCROLL
-// C.LM_ONSCROLLIN
+// some loading modes below are closely tied to `autoPlay` option: if it's set to `true`, playing starts
+// immediately after loading (default is `false`) for `rightaway`, `onidle`, `onhover` and `wheninview`
 
-C.LM_DEFAULT = C.LM_ONREQUEST;
+C.LM_RIGHTAWAY = 'rightaway'; // searches for an animation source where possible (i.e. HTML tag attribute)
+                              // and, if finds it, tries to load it on player creation; if source wasn't found,
+                              // waits for user to call .load manually as for 'onrequest'
+C.LM_ONREQUEST = 'onrequest'; // waits for user to manually call .load() method; if animation source was
+                              // passed i.e. through HTML tag attribute, waits for user to call .load()
+                              // method without parameters and uses this URL as a source
+C.LM_ONPLAY = 'onplay'; // when play button was pressed, starts loading a scene and plays it just after (overrides `autoPlay`)
+C.LM_ONIDLE = 'onidle'; // waits for pause in user actions (mouse move, clicks, keyboard) to load the animation; planned to use
+                        // requestIdleCallback in future
+C.LM_ONHOVER = 'onhover'; // starts loading animation when user hovered with mouse over the player canvas
+C.LM_WHENINVIEW = 'wheninview'; // starts loading animation when at least some part of canvas appears in
+                                // user's browser viewport
+
+C.LM_DEFAULT = C.LM_RIGHTAWAY;
 
 
 // Element
