@@ -1,11 +1,12 @@
-var engine = require('engine');
+var engine = require('engine'),
+    utils = require('./utils.js');
 
 var Analytics = function () {
     var self = this,
         supportSendBeacon = !!navigator.sendBeacon,
         timeout = supportSendBeacon ? 2000 : 1000,
         beacon = null,
-        animatronUrl = 'http://localhost:8080/analytics';
+        animatronUrl = utils.makeApiUrl('/analytics');
 
     self.queue = [];
 

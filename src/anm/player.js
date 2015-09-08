@@ -1632,37 +1632,18 @@ Player.prototype._callPostpones = function() {
     this._queue = [];
 };
 
-var prodHost = 'animatron.com',
-    testHost = 'animatron-test.com',
-    prodStatUrl = '//api.' + prodHost + '/stats/report/',
-    testStatUrl = '//api.' + testHost + '/stats/report/';
-
-Player.prototype.reportStats = function() {
+Player.prototype.reportStats = function () {
     // currently, notifies only about playing start
     if (!this.anim || !this.anim.meta || !this.anim.meta._anm_id) return;
     if (!this.statImg) {
-      this.statImg = engine.createStatImg();
+        this.statImg = engine.createStatImg();
     }
     var loadSrc = this._loadSrc,
-        id = this.anim.meta._anm_id,
-        locatedAtTest = false,
-        locatedAtProd = false;
+        id = this.anim.meta._anm_id;
 
-    if (loadSrc) {
-        //if the player was loaded from a snapshot URL, we check the said url
-        //to see if it is from our servers
-        locatedAtTest = loadSrc.indexOf(testHost) !== -1;
-        locatedAtProd = loadSrc.indexOf(prodHost) !== -1;
-    } else if(window && window.location) {
-        //otherwise, we check if we are on an Animatron's webpage
-        var hostname = window.location.hostname;
-        locatedAtTest = hostname.indexOf(testHost) !== -1;
-        locatedAtProd = hostname.indexOf(prodHost) !== -1;
-    }
-    if (locatedAtTest) {
-        this.statImg.src = testStatUrl + id + '?' + Math.random();
-    } else if (locatedAtProd) {
-        this.statImg.src = prodStatUrl + id + '?' + Math.random();
+    var apiUrl = utils.makeApiUrl( '/stats/report/', loadSrc);
+    if (apiUrl) {
+        this.statImg.src = apiUrl + id + '?' + Math.random();
     }
 };
 
