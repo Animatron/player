@@ -246,7 +246,8 @@ URL | `IFRAME`/`div` | JS Object | Default | Description
 `z`/`zoom` | `anm-zoom` | `zoom` | `1` | animation zoom
 `t`/`from` | `anm-start-from` | - | `0` | a time to start playing from (multiplier is 10ms, so `310` means _3s 100ms_)
 `p`/`at` | `anm-stop-at` | - | - | a time of animation where to stop at, when Player was initialized (multiplier is 10ms, so `310` means _3s 100ms_)
-- | _`div`-only:_ `anm-src` | - | - | JSON for the animation  to load from
+- | _`div`-only:_ `anm-src` | - | - | JSON for the animation to load from
+- | _`div`-only:_ `anm-importer` | - | `animatron` | Importer to use with this JSON
 `m`/`mode` | `anm-mode` | `mode` | - | (_deprecated_) a mode of a Player, one of: ...
 `lm`/`lmode` | `anm-loading-mode` | `loadingMode` | `onplay` | `onplay` means to start loading an animation when user clicks _Play_ button (and show _thumbnail_ before), `onrequest` means to start loading animation only when the script asked for it and expect it to be completely loaded when user clicks _Play_ button
 - | `anm-events` | `handleEvents` | `false` | allows animation to catch and process user mouse/keyboard events by itself (has a meaning for games or infographics)

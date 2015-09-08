@@ -46,6 +46,17 @@ PlayerManager.prototype.getPlayer = function(cvs_id) {
 };
 
 /**
+ * @method detachAll
+ *
+ * Detach all players created before
+ */
+PlayerManager.prototype.detachAll = function() {
+    for (var i = 0, il = this.instances.length; i < il; i++) {
+        this.instances[i].detach();
+    }
+}
+
+/**
  * @method handleDocumentHiddenChange
  * @private
  *
