@@ -6,7 +6,7 @@ var Analytics = function () {
         supportSendBeacon = !!navigator.sendBeacon,
         timeout = supportSendBeacon ? 2000 : 1000,
         beacon = null,
-        animatronUrl = utils.makeApiUrl('/analytics');
+        animatronUrl = utils.makeApiUrl('/analytics/player');
 
     self.queue = [];
 
@@ -19,7 +19,7 @@ var Analytics = function () {
                 navigator.sendBeacon(animatronUrl, data);
                 setTimeout(event, timeout);
             } else {
-                var trackUrl = animatronUrl + '?player=' + encodeURIComponent(data);
+                var trackUrl = animatronUrl + '?data=' + encodeURIComponent(data);
                 sendViaGif(trackUrl);
             }
         } else {
