@@ -1219,8 +1219,8 @@ Element.prototype.jump = function(loc_t) {
  * @method freeze
  * @chainable
  *
- * Pause at current time (so element will be visible, but won't be tweened).
- * Will pause _only_ for the time where element is "alive", i.e. if current time is
+ * Pause at current time (so element will be visible, but won't be tweened). Children are
+ * also affected. Will pause _only_ for the time where element is "alive", i.e. if current time is
  * outside of its band, element won't render instead. Also, no band `START`/`STOP` events
  * will be fired in any case.
  *
@@ -1256,6 +1256,27 @@ Element.prototype.unfreeze = function() {
     this.pausedAt = undefined;
     if (this.__m_freeze) this.unmodify(this.__m_freeze);
     return this;
+}
+
+/**
+ * @method at
+ * @chainable
+ *
+ * Shortcut to `element.modify(new anm.Modifier(function(t) { console.log(t); }).time(<time>))`. Calls given
+ * function at the requested local time or a bit later (as soon as possible, due to uneven frame logic of canvas).
+ * Passes the actual time of a call to a function. `this` in this function is bound the caller `Element` instance.
+ *
+ * See also: {@link anm.Element#modify modify}.
+ *
+ * @param {Number} time time to call a function
+ * @param {Function} func a function to call
+ * @param {Number} func.time time of an actual call
+ * @param {anm.Element} func.this the calling element
+ *
+ * @return {anm.Element} itself
+ */
+Element.prototype.at = function(t, f) {
+    return this.modify(new Modifier(f).time(t));
 }
 
 /**
