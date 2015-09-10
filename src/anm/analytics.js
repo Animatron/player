@@ -8,6 +8,7 @@ var Analytics = function () {
         beacon = null,
         animatronUrl = utils.makeApiUrl('/analytics/player');
 
+    self.enabled = animatronUrl == null || animatronUrl.indexOf('animatron-test') >= 0;
     self.queue = [];
 
     var event = function () {
@@ -37,8 +38,10 @@ var Analytics = function () {
             setTimeout(event, timeout);
         }
     };
-    event();
-    window.addEventListener('unload', event, false);
+    if (self.enabled) {
+        event();
+        window.addEventListener('unload', event, false);
+    }
 
     this.trackPlayingStart = this.trackPlayer('playing_start');
     this.trackPlayingPause = this.trackPlayer('playing_pause');
@@ -56,7 +59,9 @@ Analytics.prototype.track = function track(name, opts) {
     opts.windowHeight = window.innerHeight;
     opts.windowWidth = window.innerWidth;
     opts.timestamp = new Date().getTime();
-    this.queue.push(opts);
+    if (this.enabled) {
+        this.queue.push(opts);
+    }
 };
 
 Analytics.prototype.trackPlayer = function trackPlayer(name) {
