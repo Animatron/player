@@ -8,7 +8,7 @@ var Analytics = function () {
         beacon = null,
         animatronUrl = utils.makeApiUrl('/analytics/player');
 
-    self.enabled = animatronUrl == null || animatronUrl.indexOf('animatron-test') >= 0;
+    self.enabled = animatronUrl != null || animatronUrl.indexOf('animatron-test') >= 0;
     self.queue = [];
 
     var event = function () {
