@@ -35,7 +35,7 @@ var Analytics = function () {
     };
     if (self.enabled) {
         if (!supportSendBeacon) {
-            event();
+            engine.onDocReady(event);
         }
         window.addEventListener('unload', event, false);
     }
