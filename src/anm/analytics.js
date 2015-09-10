@@ -4,7 +4,7 @@ var engine = require('engine'),
 var Analytics = function () {
     var self = this,
         supportSendBeacon = !!navigator.sendBeacon,
-        timeout = 1000,
+        interval = 1000,
         beacon = null,
         animatronUrl = utils.makeApiUrl('/analytics/player');
 
@@ -22,9 +22,6 @@ var Analytics = function () {
                 sendViaGif(data);
             }
         }
-        if (!supportSendBeacon) {
-            setTimeout(event, timeout);
-        }
     };
 
     var sendViaGif = function (data) {
@@ -35,7 +32,7 @@ var Analytics = function () {
     };
     if (self.enabled) {
         if (!supportSendBeacon) {
-            engine.onDocReady(event);
+            setInterval(event, interval);
         }
         window.addEventListener('unload', event, false);
     }
