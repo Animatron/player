@@ -4,7 +4,7 @@ var engine = require('engine'),
 var Analytics = function () {
     var self = this,
         supportSendBeacon = !!navigator.sendBeacon,
-        timeout = supportSendBeacon ? 2000 : 1000,
+        timeout = 1000,
         beacon = null,
         animatronUrl = utils.makeApiUrl('/analytics/player');
 
@@ -18,28 +18,25 @@ var Analytics = function () {
 
             if (supportSendBeacon) {
                 navigator.sendBeacon(animatronUrl, data);
-                setTimeout(event, timeout);
             } else {
-                var trackUrl = animatronUrl + '?data=' + encodeURIComponent(data);
-                sendViaGif(trackUrl);
+                sendViaGif(data);
             }
-        } else {
+        }
+        if (!supportSendBeacon) {
             setTimeout(event, timeout);
         }
     };
 
-    var sendViaGif = function (trackUrl) {
+    var sendViaGif = function (data) {
         if (!beacon) {
             beacon = engine.createStatImg();
         }
-        beacon.src = trackUrl;
-        beacon.onerror = beacon.onload = function () {
-            beacon.onerror = beacon.onload = null;
-            setTimeout(event, timeout);
-        }
+        beacon.src = animatronUrl + '?data=' + encodeURIComponent(data);
     };
     if (self.enabled) {
-        event();
+        if (!supportSendBeacon) {
+            event();
+        }
         window.addEventListener('unload', event, false);
     }
 
