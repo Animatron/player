@@ -3,9 +3,6 @@ var engine = require('engine'),
 
 var Analytics = function () {
     var self = this,
-        supportSendBeacon = !!navigator.sendBeacon,
-        timeout = 1000,
-        beacon = null,
         animatronUrl = utils.makeApiUrl('/analytics/player');
 
     self.enabled = animatronUrl != null && animatronUrl.indexOf('animatron-test') >= 0;
@@ -16,27 +13,15 @@ var Analytics = function () {
             var data = JSON.stringify(self.queue);
             self.queue = [];
 
-            if (supportSendBeacon) {
+            if (navigator.sendBeacon) {
                 navigator.sendBeacon(animatronUrl, data);
             } else {
-                sendViaGif(data);
+                engine.ajax(animatronUrl, null, null, 'POST', null, data, false);
             }
-        }
-        if (!supportSendBeacon) {
-            setTimeout(event, timeout);
         }
     };
 
-    var sendViaGif = function (data) {
-        if (!beacon) {
-            beacon = engine.createStatImg();
-        }
-        beacon.src = animatronUrl + '?data=' + encodeURIComponent(data);
-    };
     if (self.enabled) {
-        if (!supportSendBeacon) {
-            engine.onDocReady(event);
-        }
         window.addEventListener('unload', event, false);
     }
 
