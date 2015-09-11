@@ -1182,7 +1182,7 @@ Element.prototype.bounce = function(nrep) {
  * when jump performed and the time to where jump is performed. Time is specified as `0` if
  * element should jump to the start of its band.
  *
- * See also: {@link anm.Element#band band}, {@link anm.Element#freeze freeze}, {@link anm.Element#unfreeze unfreeze}
+ * See also: {@link anm.Element#band band}, {@link anm.Element#play play}, {@link anm.Element#stop stop}
  *
  * @param {Number} t target time for a jump
  *
@@ -1201,22 +1201,40 @@ Element.prototype.jump = function(loc_t) {
  * {@link anm.Animation#jumpTo animation.jumpTo} inside). It will skip a jump, if it's already in process
  * of jumping.
  *
- * See also: {@link anm.Element#band band}, {@link anm.Element#freeze freeze}, {@link anm.Element#unfreeze unfreeze}
+ * See also: {@link anm.Element#band band}, {@link anm.Element#play play}, {@link anm.Element#stop stop}
  *
  * @param {String|anm.Element} selector
  *
  * @return {anm.Element} itself
  */
- Element.prototype.jumpTo = function(element) {
-     var elm = is.str(selector) ? this.find(selector) : selector;
-     if (!elm) return;
-     if (this.anim) this.anim.jump(elm.gband[0]);
-     else this.jump(elm.lband[0]);
-     return this;
- };
+Element.prototype.jumpTo = function(element) {
+    var elm = is.str(selector) ? this.find(selector) : selector;
+    if (!elm) return;
+    if (this.anim) this.anim.jump(elm.gband[0]);
+    else this.jump(elm.lband[0]);
+    return this;
+};
 
 /**
- * @method freeze
+  * @method play
+  * @chainable
+  *
+  * Unpause after a call to {@link anm.Element#stop stop}.
+  *
+  * See also: {@link anm.Element#band band}, {@link anm.Element#jump jump}, {@link anm.Element#stop stop}.
+  *
+  * @return {anm.Element} itself
+  */
+Element.prototype.play = function() {
+    this.paused = false;
+    this.t = null;
+    this.pausedAt = undefined;
+    if (this.__m_stop) this.unmodify(this.__m_stop);
+    return this;
+}
+
+/**
+ * @method stop
  * @chainable
  *
  * Pause at current time (so element will be visible, but won't be tweened). Children are
@@ -1224,37 +1242,19 @@ Element.prototype.jump = function(loc_t) {
  * outside of its band, element won't render instead. Also, no band `START`/`STOP` events
  * will be fired in any case.
  *
- * See also: {@link anm.Element#band band}, {@link anm.Element#jump jump}, {@link anm.Element#unfreeze unfreeze}.
+ * See also: {@link anm.Element#band band}, {@link anm.Element#jump jump}, {@link anm.Element#play play}.
  *
  * @return {anm.Element} itself
  */
-Element.prototype.freeze = function() {
-    if (this.frozen) return this;
-    this.frozen = true;
-    this.__m_freeze = function(t) {
-        if (!this.frozen) return;
+Element.prototype.stop = function() {
+    if (this.paused) return this;
+    this.paused = true;
+    this.__m_stop = function(t) {
+        if (!this.paused) return;
         if (is.defined(this.pausedAt)) this.t = this.pausedAt;
         else (this.pausedAt = t);
     };
-    this.modify(this.__m_freeze);
-    return this;
-}
-
-/**
- * @method unfreeze
- * @chainable
- *
- * Unpause after a call to {@link anm.Element#freeze freeze}.
- *
- * See also: {@link anm.Element#band band}, {@link anm.Element#jump jump}, {@link anm.Element#freeze freeze}.
- *
- * @return {anm.Element} itself
- */
-Element.prototype.unfreeze = function() {
-    this.frozen = false;
-    this.t = null;
-    this.pausedAt = undefined;
-    if (this.__m_freeze) this.unmodify(this.__m_freeze);
+    this.modify(this.__m_stop);
     return this;
 }
 
