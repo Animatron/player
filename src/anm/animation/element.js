@@ -110,6 +110,7 @@ function Element(name, draw, onframe) {
     this.anim = null;       /** @property {anm.Animation} anim the animation this element belongs to / registered in, if it really belongs to one @readonly */
     this.disabled = false;  /** @property {Boolean} visible Is this element visible or not (called, but not drawn) */
     this.visible = true;    /** @property {Boolean} disabled Is this element disabled or not */
+    this.affectsChildren = true; /** @property {Boolean} affectsChildren Is this element local time affects children local time */
     this.$data = null;      /** @property {Any} $data user data */
 
     this.shown = false; // system flag, set by engine
@@ -817,7 +818,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
         // update global time with new local time (it may've been
         // changed if there were jumps or something), so children will
         // get the proper value
-        gtime = this.gtime(ltime);
+        gtime = this.affectsChidren ? this.gtime(ltime) : gtime;
 
         var mask = this.$mask,
             renderMasked = false,
