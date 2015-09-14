@@ -495,7 +495,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
     player._ensureHasAnim();
 
     var anim = player.anim;
-    anim.reset();
+    if (state.happens === C.STOPPED) anim.reset();
 
     // used to resume playing in some special cases
     state.__lastPlayConf = [ from, speed, stopAfter ];
@@ -617,6 +617,7 @@ Player.prototype.pause = function() {
 
     var state = player.state;
     if (state.happens === C.STOPPED) {
+        player.anim.reset();
         return player;
     }
 
@@ -895,8 +896,6 @@ Player.prototype.drawAt = function(time) {
             anim.__informEnabled = true;
             u_after(gtime, ctx);
         }*/;
-
-    anim.reset();
 
     var ctx_props = engine.getAnmProps(this.ctx);
     ctx_props.factor = this.factor();
@@ -1534,7 +1533,6 @@ Player.prototype.__beforeFrame = function(anim) {
                 player.fire(C.S_COMPLETE);
                 analytics.trackPlayingComplete(player);
                 state.time = 0;
-                anim.reset();
                 player.stop();
                 if (player.repeat || anim.repeat) {
                    player.repeating = true;

@@ -55,7 +55,7 @@ PlayerManager.prototype.getPlayer = function(cvs_id) {
  */
 PlayerManager.prototype.handleDocumentHiddenChange = function(hidden) {
     var i, player;
-    for(i=0; i<this.instances.length; i++) {
+    for (i = 0; i < this.instances.length; i++) {
         player = this.instances[i];
         if (hidden && player.state.happens === C.PLAYING) {
             player._pausedViaHidden = true;
