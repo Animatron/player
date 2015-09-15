@@ -66,7 +66,7 @@ PlayerManager.prototype.detachAll = function() {
  */
 PlayerManager.prototype.handleDocumentHiddenChange = function(hidden) {
     var i, player;
-    for(i=0; i<this.instances.length; i++) {
+    for (i = 0; i < this.instances.length; i++) {
         player = this.instances[i];
         if (hidden && player.state.happens === C.PLAYING) {
             player._pausedViaHidden = true;

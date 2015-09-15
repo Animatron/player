@@ -43,7 +43,8 @@ var Loader = require('./loader.js'),
 var Animation = require('./animation/animation.js'),
     Element = require('./animation/element.js'),
     Render = require('./render.js'),
-    Sheet = require('./graphics/sheet.js');
+    Sheet = require('./graphics/sheet.js'),
+    analytics = require('./analytics.js');
 
 
 // Player
@@ -215,6 +216,7 @@ Player.EMPTY_BG = 'rgba(0,0,0,.05)';
  */
 
 Player.prototype.init = function(elm, opts) {
+    this.viewId = analytics.getObjectId();
     if (!engine.isDocReady()) { log.warn(ErrLoc.P.DOM_NOT_READY); };
     this._initHandlers(); /* TODO: make automatic */
     this.on(C.S_ERROR, this.__onerror());
@@ -493,7 +495,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
     player._ensureHasAnim();
 
     var anim = player.anim;
-    anim.reset();
+    if (state.happens === C.STOPPED) anim.reset();
 
     // used to resume playing in some special cases
     state.__lastPlayConf = [ from, speed, stopAfter ];
@@ -531,6 +533,8 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     player.fire(C.S_CHANGE_STATE, C.PLAYING);
     player.fire(C.S_PLAY, state.from);
+
+    analytics.trackPlayingStart(player);
 
     return player;
 };
@@ -613,6 +617,7 @@ Player.prototype.pause = function() {
 
     var state = player.state;
     if (state.happens === C.STOPPED) {
+        player.anim.reset();
         return player;
     }
 
@@ -631,6 +636,8 @@ Player.prototype.pause = function() {
 
     player.fire(C.S_CHANGE_STATE, C.PAUSED);
     player.fire(C.S_PAUSE, state.time);
+
+    analytics.trackPlayingPause(player);
 
     return player;
 };
@@ -889,8 +896,6 @@ Player.prototype.drawAt = function(time) {
             anim.__informEnabled = true;
             u_after(gtime, ctx);
         }*/;
-
-    anim.reset();
 
     var ctx_props = engine.getAnmProps(this.ctx);
     ctx_props.factor = this.factor();
@@ -1526,8 +1531,8 @@ Player.prototype.__beforeFrame = function(anim) {
                 (is.finite(state.duration) &&
                  (time > (state.duration + Player.PEFF)))) {
                 player.fire(C.S_COMPLETE);
+                analytics.trackPlayingComplete(player);
                 state.time = 0;
-                anim.reset();
                 player.stop();
                 if (player.repeat || anim.repeat) {
                    player.repeating = true;
@@ -1615,37 +1620,18 @@ Player.prototype._callPostpones = function() {
     this._queue = [];
 };
 
-var prodHost = 'animatron.com',
-    testHost = 'animatron-test.com',
-    prodStatUrl = '//api.' + prodHost + '/stats/report/',
-    testStatUrl = '//api.' + testHost + '/stats/report/';
-
-Player.prototype.reportStats = function() {
+Player.prototype.reportStats = function () {
     // currently, notifies only about playing start
     if (!this.anim || !this.anim.meta || !this.anim.meta._anm_id) return;
     if (!this.statImg) {
-      this.statImg = engine.createStatImg();
+        this.statImg = engine.createStatImg();
     }
     var loadSrc = this._loadSrc,
-        id = this.anim.meta._anm_id,
-        locatedAtTest = false,
-        locatedAtProd = false;
+        id = this.anim.meta._anm_id;
 
-    if (loadSrc) {
-        //if the player was loaded from a snapshot URL, we check the said url
-        //to see if it is from our servers
-        locatedAtTest = loadSrc.indexOf(testHost) !== -1;
-        locatedAtProd = loadSrc.indexOf(prodHost) !== -1;
-    } else if(window && window.location) {
-        //otherwise, we check if we are on an Animatron's webpage
-        var hostname = window.location.hostname;
-        locatedAtTest = hostname.indexOf(testHost) !== -1;
-        locatedAtProd = hostname.indexOf(prodHost) !== -1;
-    }
-    if (locatedAtTest) {
-        this.statImg.src = testStatUrl + id + '?' + Math.random();
-    } else if (locatedAtProd) {
-        this.statImg.src = prodStatUrl + id + '?' + Math.random();
+    var apiUrl = utils.makeApiUrl('/stats/report/', loadSrc);
+    if (apiUrl) {
+        this.statImg.src = apiUrl + id + '?' + Math.random();
     }
 };
 

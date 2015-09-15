@@ -252,6 +252,31 @@ function postpone(fn) {
     setTimeout(fn, 0);
 }
 
+function makeApiUrl(path, loadSrc) {
+    var prodHost = 'animatron.com',
+        testHost = 'animatron-test.com',
+        prodStatUrl = '//api.' + prodHost + path,
+        testStatUrl = '//api.' + testHost + path,
+        locatedAtTest = false,
+        locatedAtProd = false;
+    if (typeof loadSrc === 'string') {
+        //if the player was loaded from a snapshot URL, we check the said url
+        //to see if it is from our servers
+        locatedAtTest = loadSrc.indexOf(testHost) !== -1;
+        locatedAtProd = loadSrc.indexOf(prodHost) !== -1;
+    } else if (window && window.location) {
+        //otherwise, we check if we are on an Animatron's webpage
+        var hostname = window.location.hostname;
+        locatedAtTest = hostname.indexOf(testHost) !== -1;
+        locatedAtProd = hostname.indexOf(prodHost) !== -1;
+    }
+    if (locatedAtTest) {
+        return testStatUrl;
+    } else if (locatedAtProd) {
+        return prodStatUrl;
+    }
+}
+
 // TODO: add array cloning
 
 module.exports = {
@@ -270,5 +295,6 @@ module.exports = {
     iter: iter,
     keys: keys,
     removeElement: removeElement,
-    postpone: postpone
+    postpone: postpone,
+    makeApiUrl: makeApiUrl
 };
