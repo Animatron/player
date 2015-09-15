@@ -43,6 +43,8 @@ var anm = {
     conf: require('./anm/conf.js'),
     log: require('./anm/log.js'),
 
+    analytics: require('./anm/analytics.js'),
+
     modules: require('./anm/modules.js'),
     importers: require('./anm/importers.js'),
     engine: engine,
