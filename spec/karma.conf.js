@@ -3,6 +3,12 @@
 
 module.exports = function(config) {
 
+  function isDebug() {
+      return process.argv.some(function(argument) {
+          argument === '--debug';
+      });
+  }
+
   var options = {
 
     // base path that will be used to resolve all patterns (eg. files, exclude)
@@ -16,7 +22,7 @@ module.exports = function(config) {
 
     // list of files / patterns to load in the browser
     files: [
-      './dist/bundle/animatron.min.js',
+      isDebug ? './dist/bundle/animatron.js' : './dist/bundle/animatron.min.js',
 
       './spec/search.spec.js',
       './spec/orient-to-path.spec.js',

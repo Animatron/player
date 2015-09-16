@@ -233,6 +233,11 @@ Player.prototype.init = function(elm, opts) {
     } catch(e) {}
     this._addOpts(opts || {});
     this._postInit();
+    if (opts && opts.handle) {
+        for (var event in opts.handle) {
+            this.on(event, opts.handle[event]);
+        }
+    }
     this._checkOpts();
     /* TODO: if (this.canvas.hasAttribute('data-url')) */
 

@@ -71,6 +71,7 @@ Loader.loadFromUrl = function(player, url, importer, callback) {
 Loader.loadFromObj = function(player, object, importer, callback) {
     if (!importer) throw errors.player(ErrLoc.P.NO_IMPORTER_TO_LOAD_WITH, player);
     var anim = importer.load(object);
+    if (!anim) throw errors.player(ErrLoc.P.IMPORTER_RETURNED_EMPTY_ANIMATION, player);
     player.fire(C.S_IMPORT, importer, anim, object);
     Loader.loadAnimation(player, anim, callback);
 };

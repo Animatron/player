@@ -2,7 +2,7 @@ describe('loading modes', function() {
 
     var ELEMENT_ID = 'player-target';
 
-    var JSON_SRC = '/base/spec/empty.json';
+    var JSON_NODE_SRC = '/base/spec/empty.json';
 
     function FakeImporter() {};
     FakeImporter.prototype.load = function() { return new anm.Animation(); };
@@ -15,9 +15,8 @@ describe('loading modes', function() {
         return element;
     }
 
-    function whenDocumentReady(f, done) {
-        if (!done) throw new Error('`done` handler was not passed!');
-        anm.engine.onDocReady(function() { f(); done(); });
+    function whenDocumentReady(f) {
+        anm.engine.onDocReady(f);
     }
 
     beforeEach(function() {
@@ -33,7 +32,8 @@ describe('loading modes', function() {
         whenDocumentReady(function() {
             prepareDivElement(ELEMENT_ID);
             expect(anm.createPlayer(ELEMENT_ID).loadingMode).toBe(anm.C.LM_RIGHTAWAY);
-        }, done);
+            done();
+        });
     });
 
     describe('right away', function() {
@@ -43,13 +43,14 @@ describe('loading modes', function() {
                 var element = prepareDivElement(ELEMENT_ID);
 
                 element.setAttribute('anm-player-target', true);
-                element.setAttribute('anm-src', JSON_SRC);
+                element.setAttribute('anm-src', JSON_NODE_SRC);
                 element.setAttribute('anm-importer', 'fake');
 
-                var loadSpy = jasmine.createSpy('load');
-                anm.findAndInitPotentialPlayers({ 'handle': { 'load': loadSpy } });
-                expect(loadSpy).toHaveBeenCalled();
-            }, done);
+                anm.findAndInitPotentialPlayers({ 'handle': { 'load': function(animation) {
+                    expect(animation).toBeDefined();
+                    done();
+                } } });
+            });
         });
 
         it('should automatically load a scene when source passed with forSnapshot', function(done) {
@@ -57,11 +58,13 @@ describe('loading modes', function() {
                 prepareDivElement(ELEMENT_ID);
 
                 var fakeImporter = anm.importers.create('fake');
-                var importLoadSpy = spyOn(fakeImporter, 'load');
-                anm.Player.forSnapshot(ELEMENT_ID, JSON_SRC, fakeImporter);
-
-                expect(importLoadSpy).toHaveBeenCalled();
-            }, done);
+                var importLoadSpy = spyOn(fakeImporter, 'load').and.callThrough();
+                anm.Player.forSnapshot(ELEMENT_ID, JSON_NODE_SRC, fakeImporter, function(animation) {
+                    expect(animation).toBeDefined();
+                    expect(importLoadSpy).toHaveBeenCalled();
+                    done();
+                });
+            });
         });
 
         it('should not load anything when player created and source wasn\'t specified', function(done) {
@@ -70,7 +73,9 @@ describe('loading modes', function() {
                 var loadSpy = jasmine.createSpy('load');
                 anm.createPlayer(ELEMENT_ID, { handle: { 'load': loadSpy } });
                 expect(loadSpy).not.toHaveBeenCalled();
-            }, done);
+
+                done();
+            });
         });
 
     });
