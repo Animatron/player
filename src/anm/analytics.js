@@ -53,6 +53,20 @@ Analytics.prototype.trackPlayer = function trackPlayer(name) {
     }.bind(this);
 };
 
+Analytics.prototype.trackUI = function trackUI(player, path, type, time) {
+    var opts = {
+        viewId: player.viewId,
+        projectId: player.anim.meta._anm_id,
+        time: player.state.time,
+        interactivity: {
+            path: path,
+            type: type
+        }
+    };
+    if (utils.is.num(time)) opts.interactivity.time = time;
+    this.track('interactivity', opts);
+};
+
 
 Analytics.prototype.getObjectId = function () {
     var timestamp = (new Date().getTime() / 1000 | 0).toString(16);
