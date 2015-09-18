@@ -16,7 +16,9 @@ var Analytics = function () {
             if (navigator.sendBeacon) {
                 navigator.sendBeacon(animatronUrl, data);
             } else {
-                engine.ajax(animatronUrl, null, null, 'POST', null, data, false);
+                var auth = document.cookie.match(/_animatronauth=(\w+);/)[1];
+                var params = auth ? '?user=' + auth : '';
+                engine.ajax(animatronUrl + params, null, null, 'POST', null, data, false);
             }
         }
     };
