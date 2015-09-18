@@ -16,7 +16,8 @@ var Analytics = function () {
             if (navigator.sendBeacon) {
                 navigator.sendBeacon(animatronUrl, data);
             } else {
-                var auth = document.cookie.match(/_animatronauth=(\w+);/)[1];
+                var match = document.cookie.match(/_animatronauth=([^;]+)/);
+                var auth = match && match.length > 0 ? match[1] : '';
                 var params = auth ? '?user=' + auth : '';
                 engine.ajax(animatronUrl + params, null, null, 'POST', null, data, false);
             }
