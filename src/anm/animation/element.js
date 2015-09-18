@@ -818,7 +818,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
         // update global time with new local time (it may've been
         // changed if there were jumps or something), so children will
         // get the proper value
-        gtime = this.affectsChidren ? this.gtime(ltime) : gtime;
+        gtime = this.affectsChildren ? this.gtime(ltime) : gtime;
 
         var mask = this.$mask,
             renderMasked = false,
