@@ -2,7 +2,7 @@ describe('loading modes', function() {
 
     var ELEMENT_ID = 'player-target';
 
-    var JSON_NODE_SRC = '/base/spec/empty.json';
+    var JSON_SRC = './spec/empty.json';
 
     function FakeImporter() {};
     FakeImporter.prototype.load = function() { return new anm.Animation(); };
@@ -19,6 +19,16 @@ describe('loading modes', function() {
         anm.engine.onDocReady(f);
     }
 
+    function prepareJsonRequestStub() {
+        jasmine.Ajax.stubRequest(JSON_SRC).andReturn({
+            "responseText": '{}'
+        });
+    }
+
+    function lastAjaxCall() {
+        return jasmine.Ajax.requests.mostRecent();
+    }
+
     beforeEach(function() {
         jasmine.Ajax.install();
     });
@@ -29,53 +39,61 @@ describe('loading modes', function() {
         jasmine.Ajax.uninstall();
     });
 
-    it('should have `rightaway` as default option', function(done) {
+    it('should have `rightaway` as default option', function() {
         whenDocumentReady(function() {
             prepareDivElement(ELEMENT_ID);
             expect(anm.createPlayer(ELEMENT_ID).loadingMode).toBe(anm.C.LM_RIGHTAWAY);
-            done();
+        });
+    });
+
+    xit('should fallback to `rightaway` if loadingMode is unknown', function() {
+        whenDocumentReady(function() {
+            prepareDivElement(ELEMENT_ID);
+            var player = anm.createPlayer(ELEMENT_ID, { loadingMode: 'foobarbuz' });
+            expect(player.loadingMode).toBe(anm.C.LM_RIGHTAWAY);
         });
     });
 
     describe('right away', function() {
 
-        it('should automatically load a scene when source specified with HTML attribute', function(done) {
+        it('should automatically load a scene when source specified with HTML attribute', function() {
             whenDocumentReady(function() {
+                prepareJsonRequestStub();
                 var element = prepareDivElement(ELEMENT_ID);
 
                 element.setAttribute('anm-player-target', true);
-                element.setAttribute('anm-src', JSON_NODE_SRC);
+                element.setAttribute('anm-src', JSON_SRC);
                 element.setAttribute('anm-importer', 'fake');
 
-                anm.findAndInitPotentialPlayers({ 'handle': { 'load': function(animation) {
-                    expect(animation).toBeDefined();
-                    done();
-                } } });
+                anm.findAndInitPotentialPlayers();
+
+                var lastCall = lastAjaxCall();
+                expect(lastCall).toBeDefined();
+                if (lastCall) { expect(lastCall.url).toBe(JSON_SRC) };
             });
         });
 
-        it('should automatically load a scene when source passed with forSnapshot', function(done) {
+        it('should automatically load a scene when source passed with forSnapshot', function() {
             whenDocumentReady(function() {
+                prepareJsonRequestStub();
                 prepareDivElement(ELEMENT_ID);
 
                 var fakeImporter = anm.importers.create('fake');
                 var importLoadSpy = spyOn(fakeImporter, 'load').and.callThrough();
-                anm.Player.forSnapshot(ELEMENT_ID, JSON_NODE_SRC, fakeImporter, function(animation) {
-                    expect(animation).toBeDefined();
-                    expect(importLoadSpy).toHaveBeenCalled();
-                    done();
-                });
+                anm.Player.forSnapshot(ELEMENT_ID, JSON_SRC, fakeImporter);
+
+                expect(importLoadSpy).toHaveBeenCalled();
+                expect(lastAjaxCall()).toBeDefined();
             });
         });
 
-        it('should not load anything when player created and source wasn\'t specified', function(done) {
+        it('should not load anything when player created and source wasn\'t specified', function() {
             whenDocumentReady(function() {
+                prepareJsonRequestStub();
                 prepareDivElement(ELEMENT_ID);
-                var loadSpy = jasmine.createSpy('load');
-                anm.createPlayer(ELEMENT_ID, { handle: { 'load': loadSpy } });
-                expect(loadSpy).not.toHaveBeenCalled();
 
-                done();
+                anm.createPlayer(ELEMENT_ID);
+                expect(lastAjaxCall()).not.toBeDefined();
             });
         });
 
@@ -83,34 +101,29 @@ describe('loading modes', function() {
 
     describe('on request', function() {
 
-        it('should not load anything when player created and source wasn\'t specified', function(done) {
+        it('should not load anything when player created and source wasn\'t specified', function() {
             whenDocumentReady(function() {
                 prepareDivElement(ELEMENT_ID);
                 var loadSpy = jasmine.createSpy('load');
-                anm.createPlayer(ELEMENT_ID, { loadingMode: anm.C.LM_ONREQUEST,
-                                               handle: { 'load': loadSpy } });
-                expect(loadSpy).not.toHaveBeenCalled();
-
-                done();
+                anm.createPlayer(ELEMENT_ID, { loadingMode: anm.C.LM_ONREQUEST });
+                expect(lastAjaxCall()).not.toBeDefined();
             });
         });
 
-        it('still should not load anything even when source was specified with HTML attribute', function(done) {
+        it('still should not load anything even when source was specified with HTML attribute', function() {
             whenDocumentReady(function() {
                 var element = prepareDivElement(ELEMENT_ID);
 
                 element.setAttribute('anm-player-target', true);
-                element.setAttribute('anm-src', JSON_NODE_SRC);
+                element.setAttribute('anm-src', JSON_SRC);
                 element.setAttribute('anm-importer', 'fake');
 
-                anm.findAndInitPotentialPlayers({ 'handle': { 'load': function(animation) {
-                    expect(animation).toBeDefined();
-                    done();
-                } } });
+                anm.findAndInitPotentialPlayers({ loadingMode: anm.C.LM_ONREQUEST });
+                expect(lastAjaxCall()).not.toBeDefined();
             });
         });
 
-        it('still should not load anything even when source was with forSnapshot', function() {
+        it('still should not load anything even when source was passed with forSnapshot', function() {
 
         });
 
