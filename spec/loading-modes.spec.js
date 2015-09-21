@@ -40,6 +40,13 @@ describe('loading modes', function() {
         jasmine.Ajax.uninstall();
     });
 
+    it('`autoPlay` is off by default', function() {
+        whenDocumentReady(function() {
+            prepareDivElement(ELEMENT_ID);
+            expect(anm.createPlayer(ELEMENT_ID).autoPlay).toBeFalsy();
+        });
+    });
+
     it('should have `rightaway` as default option', function() {
         whenDocumentReady(function() {
             prepareDivElement(ELEMENT_ID);
@@ -56,6 +63,17 @@ describe('loading modes', function() {
     });
 
     describe('right away', function() {
+
+        it('should indeed load animation passed to `load` call', function() {
+            whenDocumentReady(function() {
+                prepareJsonRequestStub();
+                prepareDivElement(ELEMENT_ID);
+                var player = anm.createPlayer(ELEMENT_ID);
+                var fakeImporter = anm.importers.create('fake');
+                player.load(JSON_SRC, fakeImporter);
+                expect(lastAjaxCall()).toBeDefined();
+            });
+        });
 
         it('should automatically load a scene when source specified with HTML attribute', function() {
             whenDocumentReady(function() {
@@ -98,7 +116,65 @@ describe('loading modes', function() {
             });
         });
 
-        xit('autoPlay', function() {});
+        it('when autoPlay is on, yet should not play if no source was specified', function() {
+            whenDocumentReady(function() {
+                prepareDivElement(ELEMENT_ID);
+
+                var player = anm.createPlayer(ELEMENT_ID, { autoPlay: true });
+                playSpy = spyOn(player, 'play');
+                expect(playSpy).not.toHaveBeenCalled();
+            });
+        });
+
+        it('when autoPlay is on, should automatically play animation passed to a `load` call', function() {
+            whenDocumentReady(function() {
+                prepareJsonRequestStub();
+                prepareDivElement(ELEMENT_ID);
+                var player = anm.createPlayer(ELEMENT_ID, { autoPlay: true });
+                playSpy = spyOn(player, 'play');
+                var fakeImporter = anm.importers.create('fake');
+                player.load(JSON_SRC, fakeImporter);
+                expect(playSpy).toHaveBeenCalled();
+            });
+        });
+
+        it('when autoPlay is on, should automatically load and play animation specified with HTML attribute', function() {
+            whenDocumentReady(function() {
+                prepareJsonRequestStub();
+                var element = prepareDivElement(ELEMENT_ID);
+
+                element.setAttribute('anm-player-target', true);
+                element.setAttribute('anm-src', JSON_SRC);
+                element.setAttribute('anm-importer', 'fake');
+
+                var playSpy = jasmine.createSpy('play');
+                anm.findAndInitPotentialPlayers({
+                    autoPlay: true,
+                    handle: { 'play': playSpy }
+                });
+
+                expect(lastAjaxCall()).toBeDefined();
+                expect(playSpy).toHaveBeenCalled();
+            });
+        });
+
+        it('when autoPlay is on, should automatically load and play animation passed with forSnapshot method', function() {
+            whenDocumentReady(function() {
+                prepareJsonRequestStub();
+                prepareDivElement(ELEMENT_ID);
+
+                var fakeImporter = anm.importers.create('fake');
+                var importLoadSpy = spyOn(fakeImporter, 'load').and.callThrough();
+                var playSpy = jasmine.createSpy('play');
+                anm.Player.forSnapshot(ELEMENT_ID, JSON_SRC, fakeImporter, {
+                    autoPlay: true,
+                    handle: { 'play': playSpy }
+                });
+
+                expect(importLoadSpy).toHaveBeenCalled();
+                expect(playSpy).toHaveBeenCalled();
+            });
+        });
 
     });
 
@@ -206,11 +282,11 @@ describe('loading modes', function() {
 
     describe('on play', function() {
 
-        it('should not load anything when player was created', function() {
+        it('should not load anything when player was created and source wasn\'t specified', function() {
 
         });
 
-        it('should load animation when `load` was called manually', function() {
+        it('if `load` was called before `play`, should postpone it to `play` call', function() {
 
         });
 
@@ -222,15 +298,21 @@ describe('loading modes', function() {
 
         });
 
-        it('if `load` was called before `play`, should postpone it to `play` call', function() {
-
-        });
-
         it('should fail if `load` wasn\'t called before `play` and no source was specified', function() {
 
         });
 
-        // autoPlay option should not affect a call
+        it('if autoPlay is on, should automatically load and play animation just after a call to `load`', function() {
+
+        });
+
+        it('if autoPlay is on and source was specified with HTML attributes, should automatically play animation right away', function() {
+
+        });
+
+        it('if autoPlay is on and source was passed with forSnapshot call, should automatically play animation right away', function() {
+
+        });
 
     });
 
