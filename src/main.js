@@ -24,6 +24,7 @@ function findAndInitPotentialPlayers(options) {
 }
 
 var detachAllPlayers = manager.detachAll.bind(manager);
+var forgetAllPlayers = manager.forgetAll.bind(manager);
 
 engine.onDocReady(findAndInitPotentialPlayers);
 
@@ -83,6 +84,7 @@ var anm = {
 
     findAndInitPotentialPlayers: findAndInitPotentialPlayers,
     detachAllPlayers: detachAllPlayers,
+    forgetAllPlayers: forgetAllPlayers,
 
     interop: {
         playerjs: require('./anm/interop/playerjs-io.js')

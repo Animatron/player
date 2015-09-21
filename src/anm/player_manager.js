@@ -57,6 +57,16 @@ PlayerManager.prototype.detachAll = function() {
 }
 
 /**
+ * @method forgetAll
+ *
+ * Clear the data collected about all players instances created before
+ */
+PlayerManager.prototype.forgetAll = function() {
+    this.hash = {};
+    this.instances = [];
+}
+
+/**
  * @method handleDocumentHiddenChange
  * @private
  *
