@@ -20,12 +20,13 @@ describe('loading modes', function() {
     }
 
     beforeEach(function() {
-        //loadSpy = jasmine.createSpy('load');
+        jasmine.Ajax.install();
     });
 
     afterEach(function() {
         anm.detachAllPlayers(); // this will also detach element if players were created
         //if (element && element.parentNode) document.body.removeChild(element);
+        jasmine.Ajax.uninstall();
     });
 
     it('should have `rightaway` as default option', function(done) {
