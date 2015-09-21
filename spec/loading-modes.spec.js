@@ -38,7 +38,7 @@ describe('loading modes', function() {
 
     describe('right away', function() {
 
-        it('should automatically load a scene when source specified with attribute', function(done) {
+        it('should automatically load a scene when source specified with HTML attribute', function(done) {
             whenDocumentReady(function() {
                 var element = prepareDivElement(ELEMENT_ID);
 
@@ -82,12 +82,31 @@ describe('loading modes', function() {
 
     describe('on request', function() {
 
-        it('should not load anything when player created and source wasn\'t specified', function() {
+        it('should not load anything when player created and source wasn\'t specified', function(done) {
+            whenDocumentReady(function() {
+                prepareDivElement(ELEMENT_ID);
+                var loadSpy = jasmine.createSpy('load');
+                anm.createPlayer(ELEMENT_ID, { loadingMode: anm.C.LM_ONREQUEST,
+                                               handle: { 'load': loadSpy } });
+                expect(loadSpy).not.toHaveBeenCalled();
 
+                done();
+            });
         });
 
-        it('still should not load anything even when source was specified with HTML attribute', function() {
+        it('still should not load anything even when source was specified with HTML attribute', function(done) {
+            whenDocumentReady(function() {
+                var element = prepareDivElement(ELEMENT_ID);
 
+                element.setAttribute('anm-player-target', true);
+                element.setAttribute('anm-src', JSON_NODE_SRC);
+                element.setAttribute('anm-importer', 'fake');
+
+                anm.findAndInitPotentialPlayers({ 'handle': { 'load': function(animation) {
+                    expect(animation).toBeDefined();
+                    done();
+                } } });
+            });
         });
 
         it('still should not load anything even when source was with forSnapshot', function() {

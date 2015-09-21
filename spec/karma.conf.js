@@ -26,10 +26,7 @@ module.exports = function(config) {
 
       './spec/search.spec.js',
       './spec/orient-to-path.spec.js',
-      './spec/loading-modes.spec.js',
-
-      // fixtures
-      { pattern: 'spec/empty.json', watched: true, served: true, included: false }
+      './spec/loading-modes.spec.js'
 
     ],
 
