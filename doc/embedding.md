@@ -266,32 +266,55 @@ URL | `IFRAME`/`div` | JS Object | Default | Description
 
 ## Loading Modes and Playing Modes
 
+Most times, you'll only need `autoPlay` option. But in some cases you may wish to configure loading and playing precisely.
+
+First, some quick tips:
+
+* if you want scene to load and play immediately when you specified source, just set `autoPlay` to `true`, no loading / playing mode needed;
+* if you want to postpone loading even when you specified animation source with HTML attribute, set `loadingMode` to `onrequest`;
+* if you want loading to always automatically happen before playing (i.e. to load scene just when user pressed Play button or you called `play` method, and play it then), set `loadingMode` to `onplay`;
+* if you want loading to happen in background i.e. when you specified source with HTML attribute, but player to start only when user hovers over it, set `playingMode` to `onhover`, leave `loadingMode` being default; ...only when user scrolled down to it — set `playingMode` to `wheninview`;
+
+Loading modes are:
+
+* `rightaway` _(default)_ — searches for an animation source where possible (i.e. HTML tag attribute) and, if finds it, tries to load it on player creation; if source wasn't found, waits for user to call `.load` manually as for 'onrequest';
+* `onrequest` — waits for user to manually call `.load` method; if animation source was passed i.e. through HTML tag attribute, waits for user to call `.load` method without parameters and uses this URL as a source; this allows user to completely control a moment of loading; if `.load` method was called with some values, this call cancels postponed load and overrides it;
+* `onplay` — when play button was pressed or `.play` method was called, automatically starts loading a scene and plays it just after; even if scene was passed with HTML attributes, waits for `.play` call;
+* `onidle` — not yet implemented;
+
+Playing modes are:
+
+* `onrequest` _(default)_ — waits for user to manually call `.play` method or press play button;
+* `onhover` — starts playing animation (if loaded before) when user hovered with mouse over the player canvas;
+* `wheninview` — starts playing animation (if loaded before) when at least some part of canvas appears in user's browser viewport;
+
+
 Loading Mode | Playing Mode | `autoPlay` | HTML attr. | `forSnaphot`/manual load | Result
 -------------|--------------|------------|------------|-----------|---
-`rightaway` | `onrequest` | `false` | none | yes |
-`rightaway` | `onrequest` | `true` | none | yes |
-`rightaway` | `onrequest` | `false` | has | - |
-`rightaway` | `onrequest` | `true` | has | - |
-`onrequest` | `onrequest` | `false` | none | yes |
-`onrequest` | `onrequest` | `true` | none | yes |
-`onrequest` | `onrequest` | `false` | has | - |
-`onrequest` | `onrequest` | `true` | has | - |
-`onplay` | `onrequest` | `false` | none | yes |
-`onplay` | `onrequest` | `true` | none | yes |
-`onplay` | `onrequest` | `false` | has | - |
-`onplay` | `onrequest` | `true` | has | - |
-`rightaway` | `onhover` | any | has | - |
-`rightaway` | `onhover` | any | none | yes |
-`rightaway` | `wheninview` | any | has | - |
-`rightaway` | `wheninview` | any | none | yes |
-`onrequest` | `onhover` | any | has | - |
-`onrequest` | `onhover` | any | none | yes |
-`onrequest` | `wheninview` | any | has | - |
-`onrequest` | `wheninview` | any | none | yes |
-`onplay` | `onhover` | any | has | - |
-`onplay` | `onhover` | any | none | yes |
-`onplay` | `wheninview` | any | has | - |
-`onplay` | `wheninview` | any | none | yes |
+`rightaway` | `onrequest` | `false` | none | yes | loads a scene from `.load` call and waits for a call to `.play` method (or play button to be pressed)
+`rightaway` | `onrequest` | `true` | none | yes | loads a scene from `.load` call and immediately starts playing it
+`rightaway` | `onrequest` | `false` | has | - | immediately loads a scene specified in HTML attributes and waits for a call to `.play` method (or play button to be pressed)
+`rightaway` | `onrequest` | `true` | has | - | immediately loads a scene specified in HTML attribute and then starts playing it
+`onrequest` | `onrequest` | `false` | none | yes | loads a scene from `.load` call and waits for a call to `.play` method (or play button to be pressed)
+`onrequest` | `onrequest` | `true` | none | yes | loads a scene from `.load` call and immediately starts playing it
+`onrequest` | `onrequest` | `false` | has | - | waits for user to call `.load` method w/o attributes, then loads scene (specified in HTML attributes) and waits for a call to `.play` method (or play button to be pressed)
+`onrequest` | `onrequest` | `true` | has | - | waits for user to call `.load` method w/o attributes, then loads scene (specified in HTML attributes) and immediately plays it
+`onplay` | `onrequest` | `false` | none | yes | do not loads the scene passed with a `.load` call, but postpones loading to a next call to `.play` method (or play button to be pressed), then loads and plays it just after that
+`onplay` | `onrequest` | `true` | none | yes | do not loads the scene passed with a `.load` call, but postpones it to a call to `.play` method, but since it is called immediately, loads and plays the scene as soon as Player ready to do so
+`onplay` | `onrequest` | `false` | has | - | do not loads the scene specified with HTML attributes, but postpones loading to a next call to `.play` method (or play button to be pressed), then loads and plays it just after that
+`onplay` | `onrequest` | `true` | has | - | do not loads the scene specified with HTML attributes, but postpones it to a call to `.play` method, but since it is called immediately, loads and plays the scene as soon as Player ready to do so
+`rightaway` | `onhover` | any | has | - | immediately loads a scene specified in HTML attributes and waits for user to move mouse over a Player to start playing
+`rightaway` | `onhover` | any | none | yes | loads a scene from a `.load` call  and waits for user to move mouse over a Player to start playing
+`rightaway` | `wheninview` | any | has | - | immediately loads a scene specified in HTML attributes and waits for user to scroll down to a Player to start playing
+`rightaway` | `wheninview` | any | none | yes | loads a scene from a `.load` call and waits for user to scroll down to a Player to start playing
+`onplay` | `onhover` | any | has | - | do not loads the scene specified with HTML attributes, but postpones loading to a moment when user will move mouse over the Player, then loads and plays it just after that
+`onplay` | `onhover` | any | none | yes | do not loads the scene passed with a `.load` call, but postpones loading to a moment when user will move mouse over the Player, then loads and plays it just after that
+`onplay` | `wheninview` | any | has | - | do not loads the scene specified with HTML attributes, but postpones loading to a moment when user will scroll down to the Player position, then loads and plays it just after that
+`onplay` | `wheninview` | any | none | yes | do not loads the scene passed with a `.load` call, but postpones loading to a moment when user will scroll down to the Player position, then loads and plays it just after that
+`onrequest` | `onhover` | any | has | - | same as `onplay`/`onhover`, since `.play` method is called on mouse hover
+`onrequest` | `onhover` | any | none | yes | same as `onplay`/`onhover`, since `.play` method is called on mouse hover
+`onrequest` | `wheninview` | any | has | - | same as `onplay`/`wheninview`, since `.play` method is called on scroll down
+`onrequest` | `wheninview` | any | none | yes | same as `onplay`/`wheninview`, since `.play` method is called on scroll down
 
 [permanent]: https://github.com/Animatron/player/blob/docs/doc/embedding.md
 
