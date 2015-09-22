@@ -249,7 +249,8 @@ URL | `IFRAME`/`div` | JS Object | Default | Description
 - | _`div`-only:_ `anm-src` | - | - | JSON for the animation to load from
 - | _`div`-only:_ `anm-importer` | - | `animatron` | Importer to use with this JSON
 `m`/`mode` | `anm-mode` | `mode` | - | (_deprecated_) a mode of a Player, one of: ...
-`lm`/`lmode` | `anm-loading-mode` | `loadingMode` | `onplay` | `onplay` means to start loading an animation when user clicks _Play_ button (and show _thumbnail_ before), `onrequest` means to start loading animation only when the script asked for it and expect it to be completely loaded when user clicks _Play_ button
+`lm`/`lmode` | `anm-loading-mode` | `loadingMode` | `rightaway` | see [section below][lmodes-pmodes]
+`pm`/`pmode` | `anm-playing-mode` | `playingMode` | `onrequest` | see [section below][lmodes-pmodes]
 - | `anm-events` | `handleEvents` | `false` | allows animation to catch and process user mouse/keyboard events by itself (has a meaning for games or infographics)
 - | `anm-debug` | `debug` | `false` | show debug information like FPS and paths/bounds of objects
 `bg`/`bgcolor` | `anm-bg-color` | `bgColor` | `transparent` | set background color of an animation (if it is set, it can't be overriden), format is `#00ff00`
@@ -263,6 +264,35 @@ URL | `IFRAME`/`div` | JS Object | Default | Description
 - | `anm-scene-size` | `forceSceneSize` | `false` | always override user-specified Player size with a size of a scene, so when scene loaded, Player will resize itself, if sizes don't match
 `me`/`errors` | `anm-mute-errors` | `muteErrors` | `false` | do not stop playing if some errors happened during the playing process, just log them
 
+## Loading Modes and Playing Modes
+
+Loading Mode | Playing Mode | `autoPlay` | HTML attr. | `forSnaphot`/manual load | Result
+-------------|--------------|------------|------------|-----------|---
+`rightaway` | `onrequest` | `false` | none | yes |
+`rightaway` | `onrequest` | `true` | none | yes |
+`rightaway` | `onrequest` | `false` | has | - |
+`rightaway` | `onrequest` | `true` | has | - |
+`onrequest` | `onrequest` | `false` | none | yes |
+`onrequest` | `onrequest` | `true` | none | yes |
+`onrequest` | `onrequest` | `false` | has | - |
+`onrequest` | `onrequest` | `true` | has | - |
+`onplay` | `onrequest` | `false` | none | yes |
+`onplay` | `onrequest` | `true` | none | yes |
+`onplay` | `onrequest` | `false` | has | - |
+`onplay` | `onrequest` | `true` | has | - |
+`rightaway` | `onhover` | any | has | - |
+`rightaway` | `onhover` | any | none | yes |
+`rightaway` | `wheninview` | any | has | - |
+`rightaway` | `wheninview` | any | none | yes |
+`onrequest` | `onhover` | any | has | - |
+`onrequest` | `onhover` | any | none | yes |
+`onrequest` | `wheninview` | any | has | - |
+`onrequest` | `wheninview` | any | none | yes |
+`onplay` | `onhover` | any | has | - |
+`onplay` | `onhover` | any | none | yes |
+`onplay` | `wheninview` | any | has | - |
+`onplay` | `wheninview` | any | none | yes |
+
 [permanent]: https://github.com/Animatron/player/blob/docs/doc/embedding.md
 
 [iframe]: #iframe
@@ -274,3 +304,4 @@ URL | `IFRAME`/`div` | JS Object | Default | Description
 [adding-events]: #adding-events
 [create-player]: #custom-scene-with-createplayer
 [for-snapshot]: #snapshot-with-forsnapshot
+[lmodes-pmodes]: #loading-modes-and-playing-modes

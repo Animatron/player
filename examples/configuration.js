@@ -11,10 +11,15 @@ var shortVersion = true;
 var loadingModes = [
     { value: 'rightaway', name: 'right away', description: 'loads animation just immediately when finds it\'s source (i.e. from HTML attribute)' },
     { value: 'onrequest', name: 'on request', description: 'waits for user to manually call .load() method' },
-    { value: 'onplay', name: 'on play', description: 'when play button was pressed, starts loading a scene and plays it just after' },
-    { value: 'onidle', name: 'on idle', description: ' waits for pause in user actions (mouse move, clicks, keyboard) to load the animation' },
-    { value: 'onhover', name: 'on hover', description: 'starts loading animation when user hovered with mouse over the player canvas' },
-    { value: 'wheninview', name: 'when in view', description: 'starts loading animation when Player appeares in browser viewport' }
+    { value: 'onplay', name: 'on play', description: 'when play button was pressed, starts loading a scene and plays it just after' }/*,
+    { value: 'onidle', name: 'on idle', description: ' waits for pause in user actions (mouse move, clicks, keyboard) to load the animation' },*/
+];
+
+var playingModes = [
+    { value: 'onrequest', name: 'on request', description: 'same to autoPlay: false, waits for user to manually call .play() method' },
+    { value: 'rightaway', name: 'right away', description: 'same to autoPlay: true' },
+    { value: 'onhover', name: 'on hover', description: 'starts playing animation when user hovered with mouse over the player canvas' },
+    { value: 'wheninview', name: 'when in view', description: 'starts playing animation when Player appeares in browser viewport' }
 ];
 
 function getElm(id) { return document.getElementById(id); }

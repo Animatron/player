@@ -439,8 +439,6 @@ describe('loading modes', function() {
 
     xdescribe('onidle', function() {});
 
-    xdescribe('onhover', function() {});
-
     xdescribe('wheninview', function() {});
 
 });
