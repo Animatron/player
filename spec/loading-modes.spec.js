@@ -221,10 +221,11 @@ describe('loading modes', function() {
 
         it('should not load anything when player created and source wasn\'t specified', function() {
             whenDocumentReady(function() {
-                prepareJsonRequestStub();
                 prepareDivElement(ELEMENT_ID);
-                anm.createPlayer(ELEMENT_ID, { loadingMode: anm.C.LM_ONREQUEST });
-                expect(lastAjaxCall()).not.toBeDefined();
+                var loadSpy = jasmine.createSpy('load');
+                anm.createPlayer(ELEMENT_ID, { loadingMode: anm.C.LM_ONREQUEST,
+                                               handle: { load: loadSpy } }});
+                expect(loadSpy).not.toHaveBeenCalled();
             });
         });
 
@@ -404,22 +405,66 @@ describe('loading modes', function() {
     describe('on play', function() {
 
         it('should not load anything when player was created and source wasn\'t specified', function() {
-
+            whenDocumentReady(function() {
+                prepareDivElement(ELEMENT_ID);
+                var loadSpy = jasmine.createSpy('load');
+                anm.createPlayer(ELEMENT_ID, { loadingMode: anm.C.LM_ONPLAY,
+                                               handle: { load: loadSpy } });
+                expect(loadSpy).not.toHaveBeenCalled();
+            });
         });
 
         it('if `load` was called before `play`, should postpone it to `play` call', function() {
-
+            whenDocumentReady(function() {
+                prepareJsonRequestStub();
+                prepareDivElement(ELEMENT_ID);
+                var player = anm.createPlayer(ELEMENT_ID, {
+                    loadingMode: anm.C.LM_ONPLAY
+                });
+                playSpy = spyOn(player, 'play');
+                var fakeImporter = anm.importers.create('fake');
+                player.load(JSON_SRC, fakeImporter);
+                expect(lastAjaxCall()).not.toBeDefined();
+                expect(playSpy).not.toHaveBeenCalled();
+                player.play();
+                expect(lastAjaxCall()).toBeDefined();
+            });
         });
 
         it('should automatically load and play animation on `play` call when source was specified with HTML attribute', function() {
+            whenDocumentReady(function() {
+                prepareJsonRequestStub();
+                var element = prepareDivElement(ELEMENT_ID);
 
+                element.setAttribute('anm-player-target', true);
+                element.setAttribute('anm-src', JSON_SRC);
+                element.setAttribute('anm-importer', 'fake');
+
+                anm.findAndInitPotentialPlayers({
+                    loadingMode: anm.C.LM_ONPLAY,
+                });
+                expect(lastAjaxCall()).not.toBeDefined();
+                anm.player_manager.instances[0].play();
+                expect(lastAjaxCall()).toBeDefined();
+            });
         });
 
         it('should automatically load and play animation on `play` call when source was passed with forSnapshot', function() {
+            whenDocumentReady(function() {
+                prepareJsonRequestStub();
+                prepareDivElement(ELEMENT_ID);
 
+                var fakeImporter = anm.importers.create('fake');
+                var player = anm.Player.forSnapshot(ELEMENT_ID, JSON_SRC, fakeImporter, {
+                    loadingMode: anm.C.LM_ONPLAY
+                });
+                expect(lastAjaxCall()).not.toBeDefined();
+                player.play();
+                expect(lastAjaxCall()).toBeDefined();
+            });
         });
 
-        it('should fail if `load` wasn\'t called before `play` and no source was specified', function() {
+        xit('should fail if `load` wasn\'t called before `play` and no source was specified', function() {
 
         });
 
@@ -428,11 +473,39 @@ describe('loading modes', function() {
         });
 
         it('if autoPlay is on and source was specified with HTML attributes, should automatically play animation right away', function() {
+            whenDocumentReady(function() {
+                prepareJsonRequestStub();
+                var element = prepareDivElement(ELEMENT_ID);
 
+                element.setAttribute('anm-player-target', true);
+                element.setAttribute('anm-src', JSON_SRC);
+                element.setAttribute('anm-importer', 'fake');
+
+                anm.findAndInitPotentialPlayers({
+                    loadingMode: anm.C.LM_ONPLAY,
+                    autoPlay: true
+                });
+                expect(lastAjaxCall()).not.toBeDefined();
+                anm.player_manager.instances[0].play();
+                expect(lastAjaxCall()).toBeDefined();
+            });
         });
 
         it('if autoPlay is on and source was passed with forSnapshot call, should automatically play animation right away', function() {
+            whenDocumentReady(function() {
+                prepareJsonRequestStub();
+                prepareDivElement(ELEMENT_ID);
 
+                var fakeImporter = anm.importers.create('fake');
+                var playSpy = jasmine.createSpy('play');
+                var player = anm.Player.forSnapshot(ELEMENT_ID, JSON_SRC, fakeImporter, {
+                    loadingMode: anm.C.LM_ONPLAY,
+                    autoPlay: true,
+                    handle: { play: playSpy }
+                });
+                expect(lastAjaxCall()).toBeDefined();
+                expect(playSpy).toHaveBeenCalled();
+            });
         });
 
     });

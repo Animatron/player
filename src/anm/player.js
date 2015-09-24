@@ -127,7 +127,8 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'controlsEnabled': undefined, // undefined means 'auto'
                                  'controlsInvisible': undefined,
                                  'infoEnabled': undefined, // undefined means 'auto'
-                                 'loadingMode': C.LM_DEFAULT, // undefined means 'auto'
+                                 'loadingMode': C.LM_DEFAULT,
+                                 'playingMode': C.PM_DEFAULT,
                                  'thumbnail': undefined,
                                  'bgColor': undefined,
                                  'ribbonsColor': undefined,
@@ -173,7 +174,8 @@ Player.EMPTY_BG = 'rgba(0,0,0,.05)';
  *       controlsEnabled: undefined, // undefined means 'auto'
  *       infoEnabled: undefined, // undefined means 'auto'
  *       handleEvents: undefined, // undefined means 'auto'
- *       loadingMode: undefined, // undefined means 'auto'
+ *       loadingMode: C.LM_DEFAULT, // see loading modes description in constants.js
+ *       playingMode: C.PM_DEFAULT, // see playing modes description in constants.js
  *       thumbnail: undefined,
  *       forceAnimationSize: false,
  *       muteErrors: false
