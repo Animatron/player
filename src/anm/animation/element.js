@@ -1190,6 +1190,7 @@ Element.prototype.bounce = function(nrep) {
  * @return {anm.Element} itself
  */
 Element.prototype.jump = function(loc_t) {
+    if (is.defined(this.pausedAt)) this.pausedAt = loc_t;
     this.t = loc_t;
     return this;
 };
