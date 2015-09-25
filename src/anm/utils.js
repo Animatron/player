@@ -237,9 +237,9 @@ function fit_rects(pw, ph, aw, ah) {
 
 function removeElement(obj, element) {
     if (is.arr(obj)) {
-        var index = array.indexOf(element);
+        var index = obj.indexOf(element);
         if (index > -1) {
-            array.splice(index, 1);
+            obj.splice(index, 1);
         }
     } else {
         obj[element] = null;
