@@ -322,21 +322,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         callback = arg3;
     }
 
-    if ((player.loadingMode == C.LM_ONPLAY) &&
-        !player._playLock) { // if play lock is set, we should just load an animation normally, since
-                             // it was requested after the call to 'play', or else it was called by user
-                             // FIXME: may be playLock was set by player and user calls this method
-                             //        while some animation is already loading
-        if (player._postponedLoad) throw errors.player(ErrLoc.P.LOAD_WAS_ALREADY_POSTPONED, player);
-        player._lastReceivedAnimationId = null;
-        // this kind of postponed call is different from the ones below (_clearPostpones and _postpone),
-        // since this one is related to loading mode, rather than calling later some methods which
-        // were called during the process of loading (and were required to be called when it was finished).
-        player._postponedLoad = [ object, duration, importer, callback ];
-        player.stop();
-        return;
-    }
-
     // if player was loading resources already when .load() was called, inside the ._reset() method
     // postpones will be cleared and loaders cancelled
 
@@ -467,34 +452,6 @@ Player.prototype.play = function(from, speed, stopAfter) {
         if (player.infiniteDuration) return; // it's ok to skip this call if it's some dynamic animation (FIXME?)
     }
 
-    if ((player.loadingMode === C.LM_ONPLAY) && !player._lastReceivedAnimationId) {
-        if (player._playLock) return; // we already loading something
-        // use _postponedLoad with _playLock flag set
-        // call play when loading was finished
-        player._playLock = true;
-        var loadArgs = player._postponedLoad,
-            playArgs = arguments;
-        if (!loadArgs) throw errors.player(ErrLoc.P.NO_LOAD_CALL_BEFORE_PLAY, player);
-        var loadCallback = loadArgs[3];
-        var afterLoad = function() {
-            if (loadCallback) loadCallback.apply(player, arguments);
-            player._postponedLoad = null;
-            player._playLock = false;
-            player._lastReceivedAnimationId = player.anim.id;
-            Player.prototype.play.apply(player, playArgs);
-        };
-        loadArgs[3] = afterLoad; // substitute callback with our variant which calls the previous one
-        Player.prototype.load.apply(player, loadArgs);
-        return;
-    }
-
-    if ((player.loadingMode === C.LM_ONREQUEST) &&
-        (state.happens === C.RES_LOADING)) { player._postpone('play', arguments);
-                                             return; } // if player loads remote resources just now,
-                                                       // postpone this task and exit. postponed tasks
-                                                       // will be called when all remote resources were
-                                                       // finished loading
-
     // reassigns var to ensure proper function is used
     //__nextFrame = engine.getRequestFrameFunc();
     //__stopAnim = engine.getCancelFrameFunc();
@@ -565,8 +522,7 @@ Player.prototype.stop = function() {
     // postpone this task and exit. postponed tasks
     // will be called when all remote resources were
     // finished loading
-    if ((state.happens === C.RES_LOADING) &&
-        (player.loadingMode === C.LM_ONREQUEST)) {
+    if (state.happens === C.RES_LOADING) {
         player._postpone('stop', arguments);
         return;
     }
@@ -582,8 +538,7 @@ Player.prototype.stop = function() {
 
     var anim = player.anim;
 
-    if (anim || ((player.loadingMode == C.LM_ONPLAY) &&
-                   player._postponedLoad)) {
+    if (anim) {
         state.happens = C.STOPPED;
         player._drawStill();
         player.fire(C.S_CHANGE_STATE, C.STOPPED);
@@ -613,8 +568,7 @@ Player.prototype.pause = function() {
     // postpone this task and exit. postponed tasks
     // will be called when all remote resources were
     // finished loading
-    if ((player.state.happens === C.RES_LOADING) &&
-        (player.loadingMode === C.LM_ONREQUEST)) {
+    if (player.state.happens === C.RES_LOADING) {
         player._postpone('pause', arguments);
         return player;
     }
@@ -731,6 +685,8 @@ Player.prototype._addOpts = function(opts) {
 
     this.loadingMode = is.defined(opts.loadingMode) ?
                         opts.loadingMode : this.loadingMode;
+    this.playingMode = is.defined(opts.playingMode) ?
+                        opts.playingMode : this.playingMode;
     this.audioEnabled = is.defined(opts.audioEnabled) ?
                         opts.audioEnabled : this.audioEnabled;
     this.globalVolume = is.defined(opts.volume) ?
@@ -886,12 +842,11 @@ Player.prototype.forceRedraw = function() {
  */
 Player.prototype.drawAt = function(time) {
     if (time === Player.NO_TIME) throw errors.player(ErrLoc.P.PASSED_TIME_VALUE_IS_NO_TIME, this);
-    if ((this.state.happens === C.RES_LOADING) &&
-        (this.loadingMode === C.LM_ONREQUEST)) { this._postpone('drawAt', arguments);
-                                                   return; } // if player loads remote resources just now,
-                                                             // postpone this task and exit. postponed tasks
-                                                             // will be called when all remote resources were
-                                                             // finished loading
+    if (this.state.happens === C.RES_LOADING) { this._postpone('drawAt', arguments);
+                                                return; } // if player loads remote resources just now,
+                                                          // postpone this task and exit. postponed tasks
+                                                          // will be called when all remote resources were
+                                                          // finished loading
     if ((time < 0) || (!this.infiniteDuration && (time > this.anim.duration))) {
         throw errors.player(utils.strf(ErrLoc.P.PASSED_TIME_NOT_IN_RANGE, [time]), this);
     }
@@ -1377,8 +1332,7 @@ Player.prototype._reset = function() {
     // clear postponed tasks if player started to load remote resources,
     // they are not required since new animation is loading in the player now
     // or it is being detached
-    if ((this.loadingMode === C.LM_ONREQUEST) &&
-        (state.happens === C.RES_LOADING)) {
+    if (state.happens === C.RES_LOADING) {
         this._clearPostpones();
         resourceManager.cancel(this.id);
     }

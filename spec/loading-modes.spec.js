@@ -224,7 +224,7 @@ describe('loading modes', function() {
                 prepareDivElement(ELEMENT_ID);
                 var loadSpy = jasmine.createSpy('load');
                 anm.createPlayer(ELEMENT_ID, { loadingMode: anm.C.LM_ONREQUEST,
-                                               handle: { load: loadSpy } }});
+                                               handle: { load: loadSpy } });
                 expect(loadSpy).not.toHaveBeenCalled();
             });
         });
@@ -469,7 +469,20 @@ describe('loading modes', function() {
         });
 
         it('if autoPlay is on, should automatically load and play animation just after a call to `load`', function() {
-
+            whenDocumentReady(function() {
+                prepareJsonRequestStub();
+                prepareDivElement(ELEMENT_ID);
+                var player = anm.createPlayer(ELEMENT_ID, {
+                    loadingMode: anm.C.LM_ONPLAY
+                });
+                playSpy = spyOn(player, 'play');
+                var fakeImporter = anm.importers.create('fake');
+                expect(lastAjaxCall()).not.toBeDefined();
+                expect(playSpy).not.toHaveBeenCalled();
+                player.load(JSON_SRC, fakeImporter);
+                expect(lastAjaxCall()).toBeDefined();
+                expect(playSpy).toHaveBeenCalled();
+            });
         });
 
         it('if autoPlay is on and source was specified with HTML attributes, should automatically play animation right away', function() {
