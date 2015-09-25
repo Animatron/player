@@ -6,12 +6,23 @@ var Analytics = function () {
         animatronUrl = utils.makeApiUrl('/analytics/player');
 
     self.enabled = animatronUrl != null && animatronUrl.indexOf('animatron-test') >= 0;
-    self.queue = [];
+    self.queue = {};
 
-    var event = function () {
-        if (self.queue.length > 0) {
-            var data = JSON.stringify(self.queue);
-            self.queue = [];
+    var event = function (e) {
+        if (e && e.type === 'unload') {
+            anm.player_manager.instances.forEach(function (player) {
+                if (player && player.state && player.canvas) {
+                    self.trackPlayingComplete(player);
+                }
+            })
+        }
+        if (utils.is.not_empty(self.queue)) {
+            var array = [];
+            for (var key in self.queue) {
+                array.push(self.queue[key]);
+            }
+            self.queue = {};
+            var data = JSON.stringify(array);
 
             if (navigator.sendBeacon) {
                 navigator.sendBeacon(animatronUrl, data);
@@ -23,7 +34,6 @@ var Analytics = function () {
             }
         }
     };
-
     if (self.enabled) {
         window.addEventListener('unload', event, false);
     }
@@ -33,40 +43,40 @@ var Analytics = function () {
     this.trackPlayingComplete = this.trackPlayer('playing_complete');
 };
 
-Analytics.prototype.track = function track(name, opts) {
-    opts = opts || {};
-    opts.name = name;
-    opts.referer = document.referrer;
-    opts.lang = navigator.language || navigator.userLanguage;
-    opts.url = location.href;
-    opts.screenHeight = screen.height;
-    opts.screenWidth = screen.width;
-    opts.windowHeight = window.innerHeight;
-    opts.windowWidth = window.innerWidth;
-    opts.timestamp = new Date().getTime();
+Analytics.prototype.track = function track(name, player, action) {
     if (this.enabled) {
-        this.queue.push(opts);
+        this.queue[player.viewId] = this.queue[player.viewId] || {
+                viewId: player.viewId,
+                projectId: player.anim.meta._anm_id,
+                referer: document.referrer,
+                lang: navigator.language || navigator.userLanguage,
+                url: location.href,
+                screenHeight: screen.height,
+                screenWidth: screen.width,
+                windowHeight: window.innerHeight,
+                windowWidth: window.innerWidth,
+                actions: []
+            };
+        action = action || {};
+        action.name = name;
+        action.time = utils.is.num(action.time) ? action.time : player.state.time;
+        action.timestamp = new Date().getTime();
+        this.queue[player.viewId].actions.push(action);
     }
 };
 
 Analytics.prototype.trackPlayer = function trackPlayer(name) {
-    return function (player) {
-        var opts = {viewId: player.viewId, projectId: player.anim.meta._anm_id, time: player.state.time};
-        this.track(name, opts);
-    }.bind(this);
+    return function (player) { this.track(name, player); }.bind(this);
 };
 
 Analytics.prototype.trackUI = function trackUI(player, path, type, time) {
-    var opts = {
-        viewId: player.viewId,
-        projectId: player.anim.meta._anm_id,
-        time: utils.is.num(time) ? time : player.state.time,
+    this.track('interactivity', player, {
+        time: time,
         interactivity: {
             path: path,
             type: type
         }
-    };
-    this.track('interactivity', opts);
+    });
 };
 
 
