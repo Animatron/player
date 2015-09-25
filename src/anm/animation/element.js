@@ -1227,10 +1227,11 @@ Element.prototype.jumpTo = function(element) {
   * @return {anm.Element} itself
   */
 Element.prototype.play = function() {
+    if (!this.paused) return;
     this.paused = false;
     this.t = null;
     this.pausedAt = undefined;
-    if (this.__m_stop) this.unmodify(this.__m_stop);
+    if (this.__m_stop) this.removeModifier(this.__m_stop);
     return this;
 }
 
@@ -1250,11 +1251,11 @@ Element.prototype.play = function() {
 Element.prototype.stop = function() {
     if (this.paused) return this;
     this.paused = true;
-    this.__m_stop = function(t) {
+    this.__m_stop = new Modifier(function(t) {
         if (!this.paused) return;
         if (is.defined(this.pausedAt)) this.t = this.pausedAt;
         else (this.pausedAt = t);
-    };
+    });
     this.modify(this.__m_stop);
     return this;
 }
