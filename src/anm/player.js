@@ -244,6 +244,8 @@ Player.prototype.init = function(elm, opts) {
     /* TODO: if (this.canvas.hasAttribute('data-url')) */
 
     playerManager.fire(C.S_NEW_PLAYER, this);
+    this._checkPreparedSource(); // if scene was specified with HTML attributes,
+                                 // and loading mode matches, will load it immediately
     return this;
 };
 
@@ -277,6 +279,10 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     if ((state.happens === C.PLAYING) ||
         (state.happens === C.PAUSED)) {
         throw errors.player(ErrLoc.P.COULD_NOT_LOAD_WHILE_PLAYING, player);
+    }
+
+    if (this.loadingMode === C.LM_ONPLAY) {
+        this._postponedLoad = arguments; return;
     }
 
     /* object */
@@ -679,14 +685,17 @@ Player.prototype._addOpts = function(opts) {
     this.width = opts.width || this.width;
     this.height = opts.height || this.height;
 
+    this.loadingMode = is.defined(opts.loadingMode)
+                       ? (C.LOADING_MODES.indexOf(opts.loadingMode) >= 0) ? opts.loadingMode : C.LM_DEFAULT)
+                       : this.loadingMode;
+    this.playingMode = is.defined(opts.playingMode)
+                       ? (C.PLAYING_MODES.indexOf(opts.playingMode) >= 0) ? opts.playingMode : C.PM_DEFAULT)
+                       : this.playingMode;
+
     this.ribbonsColor =
                    opts.ribbonsColor || this.ribbonsColor;
     this.thumbnailSrc = opts.thumbnail || this.thumbnailSrc;
 
-    this.loadingMode = is.defined(opts.loadingMode) ?
-                        opts.loadingMode : this.loadingMode;
-    this.playingMode = is.defined(opts.playingMode) ?
-                        opts.playingMode : this.playingMode;
     this.audioEnabled = is.defined(opts.audioEnabled) ?
                         opts.audioEnabled : this.audioEnabled;
     this.globalVolume = is.defined(opts.volume) ?
@@ -757,16 +766,9 @@ Player.prototype._checkOpts = function() {
 // initial state of the player, called from constuctor
 Player.prototype._postInit = function() {
     this.stop();
-    /* TODO: load some default information into player */
-    var to_load = engine.hasUrlToLoad(this.wrapper);
-    if (!to_load.url) to_load = engine.hasUrlToLoad(this.canvas);
-    if (to_load.url) {
-        var importer = null;
-        if (to_load.importer_id && anm.importers.isAccessible(to_load.importer_id)) {
-            importer = anm.importers.create(to_load.importer_id);
-        }
-        this.load(to_load.url, importer);
-    }
+    // this._prepared_src will be null if there is no url to load
+    this._prepared_src = engine.hasUrlToLoad(this.wrapper);
+    if (!this._prepared_src) this._prepared_src = engine.hasUrlToLoad(this.canvas);
 };
 
 /**
@@ -1640,7 +1642,7 @@ Player.createState = function(player) {
 Player.forSnapshot = function(elm_id, snapshot_url, importer, callback, alt_opts) {
     var player = new Player();
     player.init(elm_id, alt_opts);
-    player.load(snapshot_url, importer, callback);
+    if (player.loadingMode === C.LM_RIGHTAWAY) player.load(snapshot_url, importer, callback);
     return player;
 };
 
@@ -1683,6 +1685,18 @@ Player.prototype._applyTimeOptionsIfSet = function() {
         this.play(this.startFrom);
     } else if (this.stopAt) {
         this.pause(this.stopAt);
+    }
+}
+
+Player.prototype._checkPreparedSource = function() {
+    if (this._prepared_src && (this.loadingMode === C.LM_RIGHTAWAY)) {
+        var url = this._prepared_src.url,
+            importer_id = this._prepared_src.importer_id;
+        var importer = null;
+        if (importer_id && anm.importers.isAccessible(importer_id)) {
+            importer = anm.importers.create(importer_id);
+        }
+        this.load(url, importer);
     }
 }
 

@@ -82,17 +82,21 @@ C.LM_ONIDLE = 'onidle'; // waits for pause in user actions (mouse move, clicks, 
 
 C.LM_DEFAULT = C.LM_RIGHTAWAY;
 
+C.LOADING_MODES = [ C.LM_RIGHTAWAY, C.LM_ONREQUEST, C.LM_ONPLAY, C.LM_ONIDLE ];
+
 // ### Playing modes
 /* ---------------- */
 
 // playing modes are overriden if `autoPlay` == `true`
 
-C.LM_ONREQUEST = 'onrequest'; // waits for user to manually call `play` method or press play button
+C.PM_ONREQUEST = 'onrequest'; // waits for user to manually call `play` method or press play button
 C.PM_ONHOVER = 'onhover'; // starts playing animation when user hovered with mouse over the player canvas
 C.PM_WHENINVIEW = 'wheninview'; // starts loading animation when at least some part of canvas appears in
                                 // user's browser viewport
 
 C.PM_DEFAULT = C.PM_ONREQUEST;
+
+C.PLAYING_MODES = [ C.PM_ONREQUEST, C.PM_ONHOVER, C.PM_WHENINVIEW ];
 
 // Element
 // -----------------------------------------------------------------------------
