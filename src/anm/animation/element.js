@@ -805,7 +805,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
     drawMe = this.__preRender(gtime, ltime, ctx);
     // fire band start/end events
-    // FIXME: may not fire STOP on low-FPS, move an additional check
     if (this.anim && this.anim.__informEnabled) this.inform(gtime, ltime);
     if (drawMe) {
         drawMe = this.fits(ltime) &&
@@ -1601,7 +1600,6 @@ Element.prototype.ltime = function(gtime) {
  */
 Element.prototype.inform = function(gtime, ltime) {
     var duration = this.lband[1] - this.lband[0];
-    var rt = ltime / duration;
     if (!is.defined(this.__lastRender)) {
         // could be a first frame of a band to render
         this.__lastRender = ltime;
@@ -1609,16 +1607,14 @@ Element.prototype.inform = function(gtime, ltime) {
             this.fire(C.X_START, ltime, duration);
             this.__firedStart = true;
         }
-    } else if (t_cmp(ltime, duration) > 0) {
+    } else if (is.defined(this.__lastRender) && (t_cmp(ltime, duration) > 0)) {
         // previous frame was a last frame of a band
         if (!this.__firedStop) {
+            this.modifiers(duration, duration - this.__lastRender);
             this.fire(C.X_STOP, ltime, duration);
             this.traverse(function(elm) {
-                if (!elm.__firedStop) {
-                    elm.fire(C.X_STOP, ltime, duration);
-                    elm.__firedStop = true;
-                    elm.__lastRender = undefined;
-                }
+                var elm_ltime = elm.ltime(gtime);
+                elm.inform(elm_ltime, gtime);
             });
             this.__firedStop = true;
         }
