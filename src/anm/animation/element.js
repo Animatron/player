@@ -806,7 +806,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
     drawMe = this.__preRender(gtime, ltime, ctx);
     // fire band start/end events
     // FIXME: may not fire STOP on low-FPS, move an additional check
-    if (this.anim && this.anim.__informEnabled) this.inform(ltime);
+    if (this.anim && this.anim.__informEnabled) this.inform(gtime, ltime);
     if (drawMe) {
         drawMe = this.fits(ltime) &&
                  this.modifiers(ltime, dt) &&
@@ -1596,37 +1596,36 @@ Element.prototype.ltime = function(gtime) {
  * Inform element with `C.X_START` / `C.X_STOP` events, if passed time matches
  * some end of its band
  *
+ * @param {Number} gtime global time
  * @param {Number} ltime band-local time
  */
-Element.prototype.inform = function(ltime) {
-    if (t_cmp(ltime, 0) >= 0) {
-        var duration = this.lband[1] - this.lband[0],
-            cmp = t_cmp(ltime, duration);
+Element.prototype.inform = function(gtime, ltime) {
+    var duration = this.lband[1] - this.lband[0];
+    var rt = ltime / duration;
+    if (!is.defined(this.__lastRender)) {
+        // could be a first frame of a band to render
+        this.__lastRender = ltime;
         if (!this.__firedStart) {
             this.fire(C.X_START, ltime, duration);
-            // FIXME: it may fire start before the child band starts, do not do this!
-            /* this.traverse(function(elm) { // TODO: implement __fireDeep
-                if (!elm.__firedStart) {
-                    elm.fire(C.X_START, ltime, duration);
-                    elm.__firedStart = true;
+            this.__firedStart = true;
+        }
+    } else if (t_cmp(ltime, duration) > 0) {
+        // previous frame was a last frame of a band
+        if (!this.__firedStop) {
+            this.fire(C.X_STOP, ltime, duration);
+            this.traverse(function(elm) {
+                if (!elm.__firedStop) {
+                    elm.fire(C.X_STOP, ltime, duration);
+                    elm.__firedStop = true;
+                    elm.__lastRender = undefined;
                 }
-            }); */
-            this.__firedStart = true; // (store the counters for fired events?)
-            // TODO: handle START event by changing band to start at given time?
+            });
+            this.__firedStop = true;
         }
-        if (cmp >= 0) {
-            if (!this.__firedStop) {
-                this.fire(C.X_STOP, ltime, duration);
-                this.traverse(function(elm) {
-                    if (!elm.__firedStop) {
-                        elm.fire(C.X_STOP, ltime, duration);
-                        elm.__firedStop = true;
-                    }
-                });
-                this.__firedStop = true;
-                // TODO: handle STOP event by changing band to end at given time?
-            }
-        }
+        this.__lastRender = undefined;
+    } else {
+        // just a normal frame
+        this.__lastRender = ltime;
     }
 };
 
