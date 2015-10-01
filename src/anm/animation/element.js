@@ -1613,8 +1613,8 @@ Element.prototype.inform = function(gtime, ltime) {
             this.modifiers(duration, duration - this.__lastRender);
             this.fire(C.X_STOP, ltime, duration);
             this.traverse(function(elm) {
-                var elm_ltime = elm.ltime(gtime);
-                elm.inform(elm_ltime, gtime);
+                // we must inform all children parent band was stopped
+                elm.inform(elm.ltime(gtime), gtime);
             });
             this.__firedStop = true;
         }
