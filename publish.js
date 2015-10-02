@@ -133,7 +133,7 @@
 
     var snapshotUrl = amazonDomain + '/' + filename + '?' +
         utils.serializeToQueryString(params);
-    var thumbnailUrl = amazonDomain + '/' + filename + '.png';
+    var thumbnailUrl = amazonDomain + '/' + filename.slice(0, filename.indexOf('.')) + '.jpg';
 
     initOptions.thumbnail = thumbnailUrl;
 
