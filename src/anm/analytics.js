@@ -3,7 +3,7 @@ var engine = require('engine'),
 
 var Analytics = function () {
     var self = this,
-        animatronUrl = utils.makeApiUrl('/analytics/player');
+        animatronUrl = utils.makeApiUrl('analytics', '/analytics/player');
 
     self.enabled = animatronUrl != null && animatronUrl.indexOf('animatron-test') >= 0;
     self.queue = {};

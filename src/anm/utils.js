@@ -252,11 +252,11 @@ function postpone(fn) {
     setTimeout(fn, 0);
 }
 
-function makeApiUrl(path, loadSrc) {
+function makeApiUrl(prefix, path, loadSrc) {
     var prodHost = 'animatron.com',
         testHost = 'animatron-test.com',
-        prodStatUrl = '//api.' + prodHost + path,
-        testStatUrl = '//api.' + testHost + path,
+        prodStatUrl = '//' + prefix + '.' + prodHost + path,
+        testStatUrl = '//' + prefix + '.' + testHost + path,
         locatedAtTest = false,
         locatedAtProd = false;
     if (typeof loadSrc === 'string') {
