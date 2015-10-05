@@ -55,6 +55,7 @@ Analytics.prototype.track = function track(name, player, action) {
                 screenWidth: screen.width,
                 windowHeight: window.innerHeight,
                 windowWidth: window.innerWidth,
+                timestamp: new Date().getTime(),
                 actions: []
             };
         action = action || {};
