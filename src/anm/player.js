@@ -990,8 +990,7 @@ Player.prototype.factorData = function() {
 Player.prototype.thumbnail = function(url, target_width, target_height) {
     if (!url) return this.thumbnailSrc;
     var player = this;
-    if (player.__thumb &&
-        player.__thumb.src == url) return;
+    if (player.__thumbLoading || (player.__thumb && player.__thumb.src == url)) return;
     if (player.ctx) { // FIXME: make this a function
       var ratio = engine.PX_RATIO,
           ctx = player.ctx;
@@ -1011,7 +1010,7 @@ Player.prototype.thumbnail = function(url, target_width, target_height) {
             (player.state.happens !== C.PAUSED)) {
             player._drawStill();
         }
-    });
+    }, function() { return true; /* do not throw error */});
 };
 
 /**
@@ -1029,6 +1028,7 @@ Player.prototype.detach = function() {
         engine.clearAnmProps(this.ctx);
     }
     this._reset();
+    resourceManager.cancel(this.id);
     playerManager.fire(C.S_PLAYER_DETACH, this);
 };
 

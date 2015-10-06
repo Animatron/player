@@ -101,8 +101,9 @@ Sheet.prototype.load = function(elm, player_id, callback, errback) {
         function(err) { log.error(err.srcElement || err.path, err.message || err);
                         me.ready = true;
                         me.wasError = true;
-                        if (errback) errback.call(me, err);
-                        throw errors.element(err ? err.message : 'Unknown', elm); });
+                        var doThrow = true;
+                        if (errback) { doThrow = !errback.call(me, err); };
+                        if (doThrow) { throw errors.element(err ? err.message : 'Unknown', elm); } });
 };
 /**
  * @private @method updateRegion

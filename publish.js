@@ -116,6 +116,7 @@
     } else {
         targetHeight = params.h = params.h || rect.h;
     }
+
     if (autostart || hasInteractivity) {
         initOptions.autoPlay = true;
     }
@@ -127,9 +128,7 @@
         initOptions.handleEvents = true;
     }
 
-    if (params.v) {
-        PLAYER_VERSION_ID = params.v;
-    }
+    if (params.v) { PLAYER_VERSION_ID = params.v; }
 
     var snapshotUrl = amazonDomain + '/' + filename + '?' +
         utils.serializeToQueryString(params);

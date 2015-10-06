@@ -118,7 +118,7 @@ var optsFromUrlParams = function(params/* as object */) {
     opts.loadingMode = params.lm || params.lmode || params.loadingmode || undefined;
     opts.thumbnail = params.th || params.thumb || undefined;
     opts.bgColor = params.bg || params.bgcolor;
-    opts.ribbonsColor = params.ribbons || params.ribcolor;
+    opts.ribbonsColor = params.rc || params.ribbons || params.ribcolor;
     return opts;
 };
 
