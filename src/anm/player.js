@@ -1001,7 +1001,7 @@ Player.prototype.thumbnail = function(url, target_width, target_height) {
     }
     var thumb = new Sheet(url);
     player.__thumbLoading = true;
-    thumb.load(player.id, function() {
+    thumb.load(null, player.id, function() {
         player.__thumbLoading = false;
         player.__thumb = thumb;
         if (target_width || target_height) {
