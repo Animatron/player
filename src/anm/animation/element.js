@@ -336,6 +336,7 @@ Element.prototype.__resetTimeCache = function() {
     this.__jumpLock = false; // set to turn off jumping in time
     this.__firedStart = false; // fired start event
     this.__firedStop = false;  // fired stop event
+    this.__lastRender = null; // time of last render
 };
 Element.prototype.initEvents = function() {
     this.evts = {}; // events cache
