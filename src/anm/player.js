@@ -893,7 +893,7 @@ Player.prototype.drawAt = function(time) {
         u_before = this.__userBeforeRender,
         u_after = this.__userAfterRender,
         ext_after = function(gtime, ctx) {  // not used
-            u_after(gtime, ctx);
+            if (u_after) u_after(gtime, ctx);
             anim.reset();
             anim.__informEnabled = true;
         };
