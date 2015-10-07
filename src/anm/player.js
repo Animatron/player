@@ -891,18 +891,17 @@ Player.prototype.drawAt = function(time) {
     }
     var anim = this.anim,
         u_before = this.__userBeforeRender,
-        u_after = this.__userAfterRender/*,
-        after = function(gtime, ctx) {  // not used
+        u_after = this.__userAfterRender,
+        ext_after = function(gtime, ctx) {  // not used
+            u_after(gtime, ctx);
             anim.reset();
             anim.__informEnabled = true;
-            u_after(gtime, ctx);
-        }*/;
+        };
 
     var ctx_props = engine.getAnmProps(this.ctx);
     ctx_props.factor = this.factor();
 
-    anim.__informEnabled = false;
-    Render.at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor, u_before, u_after);
+    Render.at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor, u_before, ext_after);
     return this;
 };
 
