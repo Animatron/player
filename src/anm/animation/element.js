@@ -323,6 +323,7 @@ Element.prototype.initTime = function() {
     this.switch = null;
 
     this.__resetTimeCache();
+    this.__resetBandEvents();
 
     return this;
 };
@@ -334,10 +335,12 @@ Element.prototype.__resetTimeCache = function() {
 
     this.__lastJump = null; // a time of last jump in time
     this.__jumpLock = false; // set to turn off jumping in time
+};
+Element.prototype.__resetBandEvents = function() {
     this.__firedStart = false; // fired start event
     this.__firedStop = false;  // fired stop event
     this.__lastRender = null; // time of last render
-};
+}
 Element.prototype.initEvents = function() {
     this.evts = {}; // events cache
     this.__evt_st = new EventState(); // event state
@@ -1763,6 +1766,7 @@ Element.prototype.reset = function() {
     //this.resetState();
     this.resetEvents();
     this.__resetTimeCache();
+    this.__resetBandEvents();
     /*this.__clearEvtState();*/
     var elm = this;
     this.forAllModifiers(function(modifier) {
@@ -2712,7 +2716,7 @@ Element.prototype.filterEvent = function(type, evt) {
       if (this.shown) {
           this.__saveEvt(type, evt);
       } else {
-          if (type === C.X_STOP) this.__resetTimeCache();
+          if (type === C.X_STOP) this.__resetBandEvents();
           return false;
       }
     }

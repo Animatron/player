@@ -623,6 +623,7 @@ Player.prototype.pause = function() {
 
     if (state.happens === C.PLAYING) {
         __stopAnim(state.__lastReq);
+        player.anim.handlePause();
     }
 
     if (state.time > state.duration) {
