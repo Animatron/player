@@ -1600,6 +1600,7 @@ Element.prototype.ltime = function(gtime) {
  */
 Element.prototype.inform = function(gtime, ltime) {
     var duration = this.lband[1] - this.lband[0];
+    if (t_cmp(ltime, 0) < 0) return;
     if (!is.defined(this.__lastRender)) {
         // could be a first frame of a band to render
         this.__lastRender = ltime;
