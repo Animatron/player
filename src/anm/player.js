@@ -1630,7 +1630,7 @@ Player.prototype.reportStats = function () {
     var loadSrc = this._loadSrc,
         id = this.anim.meta._anm_id;
 
-    var apiUrl = utils.makeApiUrl('/stats/report/', loadSrc);
+    var apiUrl = utils.makeApiUrl('api', '/stats/report/', loadSrc);
     if (apiUrl) {
         this.statImg.src = apiUrl + id + '?' + Math.random();
     }
