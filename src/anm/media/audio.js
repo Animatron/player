@@ -185,8 +185,8 @@ Audio.prototype.load = function(elm, player) {
             };
 
             try {
-              engine.appendToBody(el);
               addSource(el, url, audioType);
+              engine.appendToBody(el);
             } catch(e) {
                 notify_error(e);
             }

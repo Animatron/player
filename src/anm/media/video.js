@@ -23,8 +23,9 @@ var Bounds = require('../graphics/bounds.js');
 /**
  * @class anm.Video
  */
-function Video(url) {
+function Video(url, formats) {
     this.url = url;
+    this.formats = formats;
     this.ready = false;
     this.playing = false;
 }
@@ -46,6 +47,7 @@ Video.prototype.load = function(elm, player) {
     ResMan.loadOrGet(player.id, me.url,
         function(notify_success, notify_error, notify_progress) { // loader
             var url = me.url;
+            var formats = me.formats;
             if (engine.isHttps) { url = url.replace('http:', 'https:'); }
             url = engine.fixLocalUrl(url);
 
@@ -105,14 +107,19 @@ Video.prototype.load = function(elm, player) {
             var addSource = function(video, url, type) {
                 var src = engine.createSource();
                 src.addEventListener("error", notify_error, false);
-                src.type = 'video/' + type;
+                src.type = type;
                 src.src = url;
                 video.appendChild(src);
             };
 
             try {
+                if (!formats) { addSource(el, url, 'video/mp4'); }
+                else if (formats.length) {
+                    formats.forEach(function(pair) {
+                        addSource(el, pair[0], pair[1]);
+                    });
+                }
                 engine.appendToBody(el);
-                addSource(el, url, 'mp4');
             } catch(e) { notify_error(e); }
 
         },

@@ -890,7 +890,7 @@ Import.audio = function(src) {
 };
 
 Import.video = function(src) {
-    var video = new Video(src[1]);
+    var video = new Video(src[1], src[3]);
     video.offset = src[2];
     return video;
 };
