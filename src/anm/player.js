@@ -590,6 +590,7 @@ Player.prototype.pause = function() {
 
     if (state.happens === C.PLAYING) {
         __stopAnim(state.__lastReq);
+        player.anim.handlePause();
     }
 
     if (state.time > state.duration) {
@@ -854,18 +855,18 @@ Player.prototype.drawAt = function(time) {
     }
     var anim = this.anim,
         u_before = this.__userBeforeRender,
-        u_after = this.__userAfterRender/*,
-        after = function(gtime, ctx) {  // not used
+        u_after = this.__userAfterRender,
+        ext_after = function(gtime, ctx) {
+            if (u_after) u_after(gtime, ctx);
             anim.reset();
             anim.__informEnabled = true;
-            u_after(gtime, ctx);
-        }*/;
+        };
 
     var ctx_props = engine.getAnmProps(this.ctx);
     ctx_props.factor = this.factor();
 
     anim.__informEnabled = false;
-    Render.at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor, u_before, u_after);
+    Render.at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor, u_before, ext_after);
     return this;
 };
 
@@ -954,8 +955,7 @@ Player.prototype.factorData = function() {
 Player.prototype.thumbnail = function(url, target_width, target_height) {
     if (!url) return this.thumbnailSrc;
     var player = this;
-    if (player.__thumb &&
-        player.__thumb.src == url) return;
+    if (player.__thumbLoading || (player.__thumb && player.__thumb.src == url)) return;
     if (player.ctx) { // FIXME: make this a function
       var ratio = engine.PX_RATIO,
           ctx = player.ctx;
@@ -965,7 +965,7 @@ Player.prototype.thumbnail = function(url, target_width, target_height) {
     }
     var thumb = new Sheet(url);
     player.__thumbLoading = true;
-    thumb.load(player.id, function() {
+    thumb.load(null, player.id, function() {
         player.__thumbLoading = false;
         player.__thumb = thumb;
         if (target_width || target_height) {
@@ -975,7 +975,7 @@ Player.prototype.thumbnail = function(url, target_width, target_height) {
             (player.state.happens !== C.PAUSED)) {
             player._drawStill();
         }
-    });
+    }, function() { return true; /* do not throw error */});
 };
 
 /**
@@ -986,6 +986,7 @@ Player.prototype.thumbnail = function(url, target_width, target_height) {
  */
 Player.prototype.detach = function() {
     if (!engine.playerAttachedTo(this.wrapper, this)) return; // throw error?
+    analytics.trackPlayingComplete(this);
     this.stop();
     if (this.controls) this.controls.detach(this.wrapper);
     engine.detachPlayer(this);
@@ -993,6 +994,7 @@ Player.prototype.detach = function() {
         engine.clearAnmProps(this.ctx);
     }
     this._reset();
+    resourceManager.cancel(this.id);
     playerManager.fire(C.S_PLAYER_DETACH, this);
 };
 
@@ -1592,7 +1594,7 @@ Player.prototype.reportStats = function () {
     var loadSrc = this._loadSrc,
         id = this.anim.meta._anm_id;
 
-    var apiUrl = utils.makeApiUrl('/stats/report/', loadSrc);
+    var apiUrl = utils.makeApiUrl('api', '/stats/report/', loadSrc);
     if (apiUrl) {
         this.statImg.src = apiUrl + id + '?' + Math.random();
     }

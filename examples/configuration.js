@@ -1,4 +1,4 @@
-var snapshotsUrl = 'https://clips.animatron-test.com/',
+var snapshotsUrl = 'clips.animatron-test.com/',
     defaultSnapshotId = '6eaba40eb372f8181627159fa94b126a',
     snapshotId = defaultSnapshotId,
     targetDivId = 'player-target',
@@ -53,18 +53,18 @@ function collectOptions() {
 function getCode(mode, options) {
     if (mode === 'embed') {
         var params = optionsMapper('embed', options);
-        return '<iframe src="' + snapshotsUrl + snapshotId +
+        return '<iframe src="https://' + snapshotsUrl + snapshotId +
                (params ? ('?' + params) : '') +
                '" width="480" height="270" frameborder="0"></iframe>';
     } else if (mode === 'publish') {
         var params = optionsMapper('embed', options);
-        return snapshotsUrl + snapshotId +
+        return 'https://' + snapshotsUrl + snapshotId +
                (params ? ('?' + params) : '');
     } else if (mode === 'config') {
         var list = optionsMapper('config', options);
         var config = list ? '{\n    ' + list + '\n}' : '{ }';
         return 'var options = ' + config + ';\n' +
-               'var snapshotUrl = \'' + snapshotsUrl + '\';\n' +
+               'var snapshotUrl = \'http://' + snapshotsUrl + '\';\n' +
                'var snapshotId = \'' + snapshotId + '.json\';\n' +
                'anm.Player.forSnapshot(\'' + targetDivId + '\',\n' +
                '                       snapshotUrl + snapshotId,\n' +
@@ -79,7 +79,7 @@ function getCode(mode, options) {
     } else if (mode === 'html') {
         var attributes = optionsMapper('html', options);
         return '<div id="anm-player" anm-player-target ' +
-               'anm-src="' + snapshotsUrl + snapshotId + '.json"' +
+               'anm-src="http://' + snapshotsUrl + snapshotId + '.json"' +
               (attributes ? ' ' + attributes : '') + '></div>';
     }
 }

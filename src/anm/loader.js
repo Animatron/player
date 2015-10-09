@@ -56,7 +56,8 @@ Loader.loadFromUrl = function(player, url, importer, callback) {
     var success = function(req) {
         try {
             Loader.loadFromObj(player, JSON.parse(req.responseText), importer, function(anim) {
-                if (callback) callback.call(player, anim);
+                if (anim.actions) { eval('(function(){' + anim.actions + ';actions.call(player,anim);})()'); };
+                if (callback) { callback.call(player, anim); };
                 player._applyUrlParamsToAnimation(params);
             });
         } catch(e) { failure(e); }
@@ -119,7 +120,7 @@ var optsFromUrlParams = function(params/* as object */) {
     opts.loadingMode = params.lm || params.lmode || params.loadingmode || undefined;
     opts.thumbnail = params.th || params.thumb || undefined;
     opts.bgColor = params.bg || params.bgcolor;
-    opts.ribbonsColor = params.ribbons || params.ribcolor;
+    opts.ribbonsColor = params.rc || params.ribbons || params.ribcolor;
     return opts;
 };
 

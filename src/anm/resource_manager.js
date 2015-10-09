@@ -153,7 +153,7 @@ ResourceManager.prototype.loadOrGet = function(subject_id, url, loader, onComple
         } : function() {});
     } else /*if (me._waiting[subject_id] && me._waiting[subject_id][url])*/ { // already waiting
         rmLog('> someone is already waiting for it, subscribing');
-        var new_id = subject_id + (new Date()).getTime() + Math.random();
+        var new_id = subject_id + '-' + Math.floor((new Date()).getTime() + (Math.random() * 1000));
         me._onprogress[new_id] = me._onprogress[subject_id];
         me.subscribe(new_id, [ url ], function(res) {
             if (res[0]) { onComplete(res[0]); if (progress_f) progress_f(url, 1); }
