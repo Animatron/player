@@ -261,6 +261,7 @@ URL | `IFRAME`/`div` | JS Object | Default | Description
 - | `anm-shadows` | `shadowsEnabled` | `true` | enable shadows in animation (they often consume CPU)
 - | `anm-scene-size` | `forceSceneSize` | `false` | always override user-specified Player size with a size of a scene, so when scene loaded, Player will resize itself, if sizes don't match
 `me`/`errors` | `anm-mute-errors` | `muteErrors` | `false` | do not stop playing if some errors happened during the playing process, just log them
+`ver`/`version` | - | - | `latest` | override player version used to play this project
 
 [permanent]: https://github.com/Animatron/player/blob/docs/doc/embedding.md
 

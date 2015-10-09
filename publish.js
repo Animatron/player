@@ -13,14 +13,12 @@
    autostart — (boolean) autostart of movie on player load
    loop — (boolean) loop animation instead of stoping at the end
    animation — JSON object of animatron movie (currently not used)
-   hasInteractivity — (boolean) if there's some interactivity in the project, it should be autostarted (overrides `autostart`) and handle events
 */
 (function($global, $window, $document) {
     var inIFrame = ($window.self !== $window.top);
 
     var autostart = $global['autostart'] || false,
-        loop = $global['loop'] || false,
-        hasInteractivity = $global['hasInteractivity'] || false;
+        loop = $global['loop'] || false;
 
     var utils = {
         isInt: function(n) {
@@ -117,18 +115,10 @@
         targetHeight = params.h = params.h || rect.h;
     }
 
-    if (autostart || hasInteractivity) {
-        initOptions.autoPlay = true;
-    }
-    if (loop) {
-        initOptions.repeat = true;
-    }
-    if (hasInteractivity) {
-        initOptions.controlsEnabled = false;
-        initOptions.handleEvents = true;
-    }
+    if (autostart) initOptions.autoPlay = true;
+    if (loop) initOptions.repeat = true;
 
-    if (params.v) { PLAYER_VERSION_ID = params.v; }
+    if (params.ver || params.version) { PLAYER_VERSION_ID = (params.ver || params.version); }
 
     var snapshotUrl = amazonDomain + '/' + filename + '?' +
         utils.serializeToQueryString(params);
