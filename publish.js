@@ -118,7 +118,7 @@
     if (autostart) initOptions.autoPlay = true;
     if (loop) initOptions.repeat = true;
 
-    if (params.v) { PLAYER_VERSION_ID = params.v; }
+    if (params.ver || params.version) { PLAYER_VERSION_ID = (params.ver || params.version); }
 
     var snapshotUrl = amazonDomain + '/' + filename + '?' +
         utils.serializeToQueryString(params);

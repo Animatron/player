@@ -82,10 +82,8 @@ Import.project = function(prj) {
     root.meta = Import.meta(prj);
     root.fonts = Import.fonts(prj);
     Import.root = root;
-    Import.anim(prj, root); // will inject all required properties directly in scene object
+    Import.anim(prj, root); // will inject all required properties directly in animation object
     if (prj.meta.duration) root.duration = prj.meta.duration;
-
-    var _a = prj.anim;
 
     Import._paths = prj.anim.paths;
     Import._path_cache = new ValueCache();
@@ -170,6 +168,7 @@ Import.anim = function(prj, trg) {
     trg.zoom = a.zoom || 1.0;
     trg.speed = a.speed || 1.0;
     if (a.loop && ((a.loop === true) || (a.loop === 'true'))) trg.repeat = true;
+    if (prj.anim.script) trg.actions = prj.anim.script;
 };
 
 var TYPE_UNKNOWN =  0,
