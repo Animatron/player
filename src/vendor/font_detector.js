@@ -25,7 +25,7 @@
  *
  * `d = new FontDetector();`
  *
- * `d.detect('font name');`
+ * `d.detect({ face: 'Times New Roman', style: 'italic', weight: 500 });`
  *
  */
 var FontDetector = function() {
@@ -63,7 +63,9 @@ var FontDetector = function() {
     function detect(font) {
         var detected = false;
         for (var index in baseFonts) {
-            s.style.fontFamily = font + ',' + baseFonts[index]; // name of the font along with the base font for fallback.
+            s.style.fontFamily = font.face + ',' + baseFonts[index]; // name of the font along with the base font for fallback.
+            s.style.fontStyle = font.style;
+            s.style.fontWeight = font.weight;
             h.appendChild(s);
             var matched = (s.offsetWidth != defaultWidth[baseFonts[index]] || s.offsetHeight != defaultHeight[baseFonts[index]]);
             h.removeChild(s);

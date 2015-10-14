@@ -713,14 +713,14 @@ Animation.prototype.loadFonts = function(player) {
     style.innerHTML += css;
 
     var getLoader = function(i) {
-            var face = fontsToLoad[i].face;
+            var font = fontsToLoad[i];
             return function(success) {
                 var interval = 100,
                 counter = 0,
                 intervalId,
                 checkLoaded = function() {
                     counter += interval;
-                    var loaded = detector.detect(face);
+                    var loaded = detector.detect(font);
                     if (loaded || counter > FONT_LOAD_TIMEOUT) {
                         // after 10 seconds, we'll just assume the font has been loaded
                         // and carry on. this should help when the font could not be
