@@ -258,7 +258,7 @@ Tween.register(C.T_BONE_ROTATE, function(values) {
     var _from = values[0],
         to = values[1];
     return function(t) {
-        this.angle = _from * (1.0 - t) + to * t;
+        this.bonerotate = _from * (1.0 - t) + to * t;
     }
 });
 
@@ -266,7 +266,7 @@ Tween.register(C.T_BONE_LENGTH, function(values) {
     var _from = values[0],
         to = values[1];
     return function(t) {
-        this.angle = _from * (1.0 - t) + to * t;
+        this.bonelength = _from * (1.0 - t) + to * t;
     }
 });
 
