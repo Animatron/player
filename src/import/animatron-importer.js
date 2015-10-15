@@ -182,6 +182,9 @@ var TYPE_UNKNOWN =  0,
     TYPE_AUDIO   = 14,
     TYPE_FONT    = 25,
     TYPE_VIDEO   = 26,
+    TYPE_SKELETON = 28,
+    TYPE_BONES = 29,
+    TYPE_BONE = 30,
     TYPE_LAYER   = 255; // is it good?
 
 function isPath(type) {
@@ -204,7 +207,9 @@ Import.node = function(src, lsrc, all, parent, anim) {
         trg = null;
     if ((type == TYPE_CLIP) ||
         (type == TYPE_SCENE) ||
-        (type == TYPE_GROUP)) {
+        (type == TYPE_GROUP) ||
+        (type == TYPE_SKELETON) ||
+        (type == TYPE_BONES)) {
         trg = Import.branch(type, src, lsrc, all, anim);
     } else if (type != TYPE_UNKNOWN) {
         trg = Import.leaf(type, src, lsrc, parent, anim);
@@ -378,6 +383,14 @@ Import.branch = function(type, src, psrc, all, anim) {
         }
     }
 
+    if (type === TYPE_SKELETON) {
+        trg.layer2Bone = new Array(_layers.length);
+        var bones = trg.children[0];
+        for (var li = bones.children.length; li--;) {
+            trg.layer2Bone[bones.children[li].$to] = bones.children[li];
+        }
+    }
+
     return trg;
 };
 
@@ -403,6 +416,10 @@ Import.leaf = function(type, src, lsrc, parent, anim) {
         trg.type = C.ET_VIDEO;
         trg.$video = Import.video(src);
         trg.$video.connect(trg, anim);
+    }
+    else if (type == TYPE_BONE) {
+        trg.$from = src[1];
+        trg.$to = src[2];
     }
     else { trg.$path  = Import.path(src);  }
     if (trg.$path || trg.$text) {
