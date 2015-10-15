@@ -2888,7 +2888,7 @@ Element.getMatrixOf = function(elm, m) {
 Element.getTranslate = function(elm) {
     if (elm.parent.layer2Bone) {
 	elm.$bonePath = elm.$bonePath || Element.bonePath(elm);
-        var result = {x: 0; y: 0};
+        var result = {x: 0, y: 0};
         var bone = null;
 	for (var li = elm.$bonePath.length; li--;) {
             bone = elm.$bonePath[li];
