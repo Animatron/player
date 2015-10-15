@@ -23,9 +23,10 @@ var Bounds = require('../graphics/bounds.js');
 /**
  * @class anm.Video
  */
-function Video(url, formats) {
+function Video(url, formats, size) {
     this.url = url;
     this.formats = formats;
+    this.size = size;
     this.ready = false;
     this.playing = false;
 }
@@ -126,6 +127,8 @@ Video.prototype.load = function(elm, player) {
         function(video) { // oncomplete
             me.video = video;
             me.ready = true;
+
+            if (!me.size) me.size = [video.width, video.height];
         },
         function(err) { log.error(err ? (err.message || err) : 'Unknown error');
                         throw errors.element(err ? err.message : 'Unknown', elm);
@@ -134,7 +137,7 @@ Video.prototype.load = function(elm, player) {
 };
 /** @private @method apply */
 Video.prototype.apply = function(ctx) {
-    ctx.drawImage(this.video, 0, 0);
+    if (this.video) ctx.drawImage(this.video, 0, 0, this.video.width, this.video.height, 0, 0, this.size[0], this.size[1]);
 };
 Video.prototype.bounds = function() {
     if (this.$bounds) return this.$bounds;
