@@ -2901,7 +2901,7 @@ Element.getTranslate = function(elm) {
         return result;
     }
     return null;
-}
+};
 
 Element.getRotate = function(elm) {
     if (elm.parent.layer2Bone) {
@@ -2913,7 +2913,7 @@ Element.getRotate = function(elm) {
         return result;
     }
     return 0;
-}
+};
 
 Element.bonePath = function(elm) {
     var l2b = elm.parent.layer2Bone;
@@ -2923,7 +2923,7 @@ Element.bonePath = function(elm) {
        elm.$bonePath.add(bone);
        bone = l2b[bone.$from];
     }
-}
+};
 
 Element.getIMatrixOf = function(elm, m) {
     var t = Element.getMatrixOf(elm, m);
