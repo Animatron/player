@@ -84,7 +84,7 @@ Analytics.prototype.trackPlayer = function trackPlayer(name) {
     return function (player) { this.track(name, player); }.bind(this);
 };
 
-Analytics.prototype.sendPlayerData = function sendForPlayer(player) {
+Analytics.prototype.sendPlayerData = function sendPlayerData(player) {
     this.trackPlayingComplete(player);
     var action = [this.queue[player.viewId]];
     this.queue[player.viewId] = undefined;
