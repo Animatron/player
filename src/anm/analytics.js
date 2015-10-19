@@ -1,6 +1,5 @@
 var engine = require('engine');
 var utils = require('./utils.js');
-var C = require('./constants.js');
 
 var Analytics = function () {
     var self = this;
