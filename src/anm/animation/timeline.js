@@ -1,5 +1,8 @@
 var C = require('../constants.js');
 
+var utils = require('../utils.js');
+var is = utils.is;
+
 /**
  * @class anm.Timeline
  *
@@ -7,15 +10,29 @@ var C = require('../constants.js');
  */
 function Timeline() {
     this.start = 0;
-    this.duration = Math.Infinity;
+    this.duration = Infinity;
     this.end = C.R_ONCE;
+    this.nrep = Infinity;
     this.actions = [];
     this.paused = false;
-    this.pos = this.start;
+    this.pos = -this.start;
+    this.actualPos = -this.start;
     this.easing = null;
     this.actionsPos = 0;
+
+    this.passedStart = false;
+    this.passedEnd = false;
 }
-provideEvents(Timeline, [ /*C.X_TICK, C.X_START, C.X_END,*/ C.X_MESSAGE ]);
+provideEvents(Timeline, [ /*C.X_TICK, */C.X_START, C.X_END, C.X_MESSAGE ]);
+
+Timeline.prototype.reset = function() {
+    this.paused = false;
+    this.pos = -this.start;
+    this.actualPos = -this.start;
+    this.actionsPos = 0;
+    this.passedStart = false;
+    this.passedEnd = false;
+}
 
 Timeline.prototype.addAction = function(t, f) {
     var actions = this.actions;
@@ -26,21 +43,55 @@ Timeline.prototype.addAction = function(t, f) {
 }
 
 Timeline.prototype.tick = function(dt) {
-    if (this.paused) return this.pos;
-    var next = this.pos + dt;
-    if (next > (this.start + this.duration)) {
-        // check mode
+    this.actualPos += dt;
+
+    if (this.paused) return this.pos - this.start; // FIXME: if less than 0, should return null
+
+    var next = (this.pos + dt) - this.start;
+
+    var toReturn;
+    if (is.finite(this.duration) && (next > this.duration)) {
+        if (this.mode === C.R_ONCE) {
+            next = this.duration;
+            this.passedEnd = true;
+            toReturn = null;
+        } else if (this.mode === C.R_STAY) {
+            this.paused = true;
+            next = this.duration;
+            toReturn = this.duration;
+        } else if (this.mode === C.R_LOOP) {
+            this.actionsPos = 0;
+            var fits = Math.floor(next / duration);
+            if ((fits < 0) || (fits > this.nrep)) { toReturn = null; }
+            else { toReturn = next - (fits * this.duration); }
+        } else if (this.mode === C.R_BOUNCE) {
+            this.actionsPos = 0;
+            var fits = Math.floor(next / this.duration);
+            if ((fits < 0) || (fits > this.nrep)) { toReturn = null; }
+            else {
+                toReturn = next - (fits * this.duration);
+                toReturn = ((fits % 2) === 0) ? toReturn : (this.duration - toReturn);
+            }
+        }
+    } else if (next < 0) {
+        // TODO: fire start event
+    } else {
+        // TODO: fire stop event
+        toReturn = next;
     }
-    this.pos = this.easing ? this.easing(next) : next;
+    next = (this.easing ? this.easing(next) : next);
+
     if (this.actions.length) {
         while ((this.actionsPos < this.actions.length) &&
-               (this.actions[this.actionsPos].time < this.pos)) {
+               (this.actions[this.actionsPos].time < next)) {
             this.actions[this.actionsPos].func();
             this.actionsPos++;
         }
-        if (this.actionsPos == this.actions.length) { this.actionsPos = 0; }
+        if (this.actionsPos === this.actions.length) { this.actionsPos = 0; }
     }
-    return this.pos;
+    this.pos = this.start + next;
+
+    return toReturn;
 }
 
 Timeline.prototype.setEndAction = function(type) {
@@ -48,7 +99,8 @@ Timeline.prototype.setEndAction = function(type) {
 }
 
 Timeline.prototype.changeBand = function(start, duration) {
-
+    this.start = start;
+    this.duration = duration;
 }
 
 Timeline.prototype.pause = function() { this.paused = true; }
