@@ -40,7 +40,7 @@ var Analytics = function () {
 /**
  * @param {Array} views - an array of views
  */
-Analytics.prototype.sendData = function sendData(views) {
+Analytics.prototype.sendData = function (views) {
     var data = JSON.stringify(views);
     if (navigator.sendBeacon) {
         navigator.sendBeacon(this.animatronUrl, data);
@@ -57,7 +57,7 @@ Analytics.prototype.sendData = function sendData(views) {
  * @param {Player} player
  * @param {Object} [action]
  */
-Analytics.prototype.track = function track(name, player, action) {
+Analytics.prototype.track = function (name, player, action) {
     if (this.enabled) {
         this.queue[player.viewId] = this.queue[player.viewId] || {
                 viewId: player.viewId,
@@ -80,18 +80,18 @@ Analytics.prototype.track = function track(name, player, action) {
     }
 };
 
-Analytics.prototype.trackPlayer = function trackPlayer(name) {
+Analytics.prototype.trackPlayer = function (name) {
     return function (player) { this.track(name, player); }.bind(this);
 };
 
-Analytics.prototype.sendPlayerData = function sendPlayerData(player) {
+Analytics.prototype.sendPlayerData = function (player) {
     this.trackPlayingComplete(player);
     var action = [this.queue[player.viewId]];
     this.queue[player.viewId] = undefined;
     this.sendData(action)
 };
 
-Analytics.prototype.trackUI = function trackUI(player, path, type, time) {
+Analytics.prototype.trackUI = function (player, path, type, time) {
     this.track('interactivity', player, {
         time: time,
         interactivity: {
