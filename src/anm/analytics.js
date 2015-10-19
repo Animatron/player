@@ -41,6 +41,7 @@ var Analytics = function () {
  * @param {Array} views - an array of views
  */
 Analytics.prototype.sendData = function (views) {
+    if (!this.enabled) return;
     var data = JSON.stringify(views);
     if (navigator.sendBeacon) {
         navigator.sendBeacon(this.animatronUrl, data);
