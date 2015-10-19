@@ -387,7 +387,7 @@ Import.branch = function(type, src, psrc, all, anim) {
         trg.layer2Bone = new Array(_layers.length);
         var bones = trg.children[_layers.length - 1];
         for (var li = bones.children.length; li--;) {
-            trg.layer2Bone[bones.children[li].$to] = bones.children[li];
+            trg.layer2Bone[trg.children.length - bones.children[li].$to - 1] = bones.children[li];
         }
     }
 
@@ -676,6 +676,8 @@ Import.tweentype = function(src) {
     if (src === 10) return C.T_STROKE;
     if (src === 11) return C.T_SHADOW;
     if (src === 12) return C.T_SWITCH;
+    if (src === 13) return C.T_BONE_ROTATE;
+    if (src === 14) return C.T_BONE_LENGTH;
 };
 /** tweendata **/
 // -> Any
@@ -683,7 +685,9 @@ Import.tweendata = function(type, src) {
     if (src === null) return null; // !!! do not optimize to !src since 0 can also happen
     if (type === C.T_TRANSLATE) return Import.pathval(src);
     if ((type === C.T_ROTATE) ||
-        (type === C.T_ALPHA)) {
+        (type === C.T_ALPHA) ||
+        (type === C.T_BONE_ROTATE) ||
+        (type === C.T_BONE_LENGTH)) {
         if (src.length == 2) return src;
         if (src.length == 1) return [ src[0], src[0] ];
     }
