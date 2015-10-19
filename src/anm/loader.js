@@ -56,7 +56,9 @@ Loader.loadFromUrl = function(player, url, importer, callback) {
     var success = function(req) {
         try {
             Loader.loadFromObj(player, JSON.parse(req.responseText), importer, function(anim) {
-                if (anim.actions) { (function(p, a) { eval('(function(){' + anim.actions + ';actions.call(p,a);})()'); })(player, anim); };
+                if (anim.actions) {
+                    eval('(function(p, a){' + anim.actions + ';actions.call(p,a);})')(player,anim);
+                };
                 if (callback) { callback.call(player, anim); };
                 player._applyUrlParamsToAnimation(params);
             });
