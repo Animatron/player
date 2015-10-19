@@ -5,7 +5,7 @@ var Analytics = function () {
     var self = this;
     self.animatronUrl = utils.makeApiUrl('analytics', '/analytics/player');
 
-    self.enabled = animatronUrl != null && animatronUrl.indexOf('animatron-test') >= 0;
+    self.enabled = self.animatronUrl != null && self.animatronUrl.indexOf('animatron-test') >= 0;
     self.queue = {};
 
     var sendAllToServer = function (e) {
