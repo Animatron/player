@@ -1,14 +1,15 @@
-var engine = require('engine'),
-    utils = require('./utils.js');
+var engine = require('engine');
+var utils = require('./utils.js');
+var C = require('./constants.js');
 
 var Analytics = function () {
-    var self = this,
-        animatronUrl = utils.makeApiUrl('analytics', '/analytics/player');
+    var self = this;
+    self.animatronUrl = utils.makeApiUrl('analytics', '/analytics/player');
 
     self.enabled = animatronUrl != null && animatronUrl.indexOf('animatron-test') >= 0;
     self.queue = {};
 
-    var event = function (e) {
+    var sendAllToServer = function (e) {
         if (e && e.type === 'unload') {
             anm.player_manager.instances.forEach(function (player) {
                 if (player && player.state && player.canvas) {
@@ -19,23 +20,17 @@ var Analytics = function () {
         if (utils.is.not_empty(self.queue)) {
             var array = [];
             for (var key in self.queue) {
-                array.push(self.queue[key]);
+                if (self.queue.hasOwnProperty(key)) {
+                    array.push(self.queue[key]);
+                }
             }
             self.queue = {};
-            var data = JSON.stringify(array);
-
-            if (navigator.sendBeacon) {
-                navigator.sendBeacon(animatronUrl, data);
-            } else {
-                var match = document.cookie.match(/_animatronauth=([^;]+)/);
-                var auth = match && match.length > 0 ? match[1] : '';
-                var params = auth ? '?user=' + auth : '';
-                engine.ajax(animatronUrl + params, null, null, 'POST', null, data, false);
-            }
+            self.sendData(array)
         }
     };
+
     if (self.enabled) {
-        window.addEventListener('unload', event, false);
+        window.addEventListener('unload', sendAllToServer, false);
     }
 
     this.trackPlayingStart = this.trackPlayer('playing_start');
@@ -43,6 +38,26 @@ var Analytics = function () {
     this.trackPlayingComplete = this.trackPlayer('playing_complete');
 };
 
+/**
+ * @param {Array} views - an array of views
+ */
+Analytics.prototype.sendData = function sendData(views) {
+    var data = JSON.stringify(views);
+    if (navigator.sendBeacon) {
+        navigator.sendBeacon(this.animatronUrl, data);
+    } else {
+        var match = document.cookie.match(/_animatronauth=([^;]+)/);
+        var auth = match && match.length > 0 ? match[1] : '';
+        var params = auth ? '?user=' + auth : '';
+        engine.ajax(this.animatronUrl + params, null, null, 'POST', null, data, false);
+    }
+};
+
+/**
+ * @param {String} name
+ * @param {Player} player
+ * @param {Object} [action]
+ */
 Analytics.prototype.track = function track(name, player, action) {
     if (this.enabled) {
         this.queue[player.viewId] = this.queue[player.viewId] || {
@@ -68,6 +83,13 @@ Analytics.prototype.track = function track(name, player, action) {
 
 Analytics.prototype.trackPlayer = function trackPlayer(name) {
     return function (player) { this.track(name, player); }.bind(this);
+};
+
+Analytics.prototype.sendPlayerData = function sendForPlayer(player) {
+    this.trackPlayingComplete(player);
+    var action = [this.queue[player.viewId]];
+    this.queue[player.viewId] = undefined;
+    this.sendData(action)
 };
 
 Analytics.prototype.trackUI = function trackUI(player, path, type, time) {
