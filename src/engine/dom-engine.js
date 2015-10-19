@@ -924,7 +924,9 @@ $DE.createAudio = function() {
 };
 
 $DE.createVideo = function() {
-    return $doc.createElement('video');
+    var el = $doc.createElement('video');
+    el.width = el.height = "1";
+    return el;
 };
 
 $DE.createSource = function() {
