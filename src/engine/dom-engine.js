@@ -923,8 +923,11 @@ $DE.createAudio = function() {
     return $doc.createElement('audio');
 };
 
-$DE.createVideo = function() {
-    return $doc.createElement('video');
+$DE.createVideo = function(width, height) {
+    var el = $doc.createElement('video');
+    el.width = width;
+    el.height = height;
+    return el;
 };
 
 $DE.createSource = function() {

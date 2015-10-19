@@ -52,7 +52,7 @@ Video.prototype.load = function(elm, player) {
             if (engine.isHttps) { url = url.replace('http:', 'https:'); }
             url = engine.fixLocalUrl(url);
 
-            var el = engine.createVideo();
+            var el = engine.createVideo(me.size[0], me.size[1]);
             el.setAttribute("preload", "auto");
             el.style.display = 'none';
 
@@ -137,7 +137,7 @@ Video.prototype.load = function(elm, player) {
 };
 /** @private @method apply */
 Video.prototype.apply = function(ctx) {
-    if (this.video) ctx.drawImage(this.video, 0, 0, this.video.width, this.video.height, 0, 0, this.size[0], this.size[1]);
+    if (this.video) ctx.drawImage(this.video, 0, 0, this.video.videoWidth, this.video.videoHeight, 0, 0, this.size[0], this.size[1]);
 };
 Video.prototype.bounds = function() {
     if (this.$bounds) return this.$bounds;
