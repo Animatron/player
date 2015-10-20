@@ -58,32 +58,33 @@ Timeline.prototype.tick = function(dt) {
         } else if (this.mode === C.R_STAY) {
             this.paused = true;
             next = this.duration;
-            toReturn = this.duration;
+            toReturn = next;
         } else if (this.mode === C.R_LOOP) {
             this.actionsPos = 0;
             var fits = Math.floor(next / duration);
             if ((fits < 0) || (fits > this.nrep)) { toReturn = null; }
-            else { toReturn = next - (fits * this.duration); }
+            else { next = next - (fits * this.duration); toReturn = next }
         } else if (this.mode === C.R_BOUNCE) {
             this.actionsPos = 0;
             var fits = Math.floor(next / this.duration);
             if ((fits < 0) || (fits > this.nrep)) { toReturn = null; }
             else {
-                toReturn = next - (fits * this.duration);
-                toReturn = ((fits % 2) === 0) ? toReturn : (this.duration - toReturn);
+                next = next - (fits * this.duration);
+                next = ((fits % 2) === 0) ? next : (this.duration - next);
+                toReturn = next;
             }
         }
+        // TODO: fire stop event
     } else if (next < 0) {
+        toReturn = null;
         // TODO: fire start event
     } else {
-        // TODO: fire stop event
-        toReturn = next;
+        toReturn = (this.easing ? this.easing(next) : next);
     }
-    next = (this.easing ? this.easing(next) : next);
 
     if (this.actions.length) {
         while ((this.actionsPos < this.actions.length) &&
-               (this.actions[this.actionsPos].time < next)) {
+               (this.actions[this.actionsPos].time < next)) { // should easing be
             this.actions[this.actionsPos].func();
             this.actionsPos++;
         }
