@@ -57,7 +57,7 @@ function Audio(url) {
 /** @private @method load */
 Audio.prototype.load = function(elm, player) {
     var me = this;
-    ResMan.loadOrGet(player.id, me.url,
+    ResMan.loadOrGet(elm.id, me.url,
       function(notify_success, notify_error, notify_progress) { // loader
           var url = me.url;
           if (engine.isHttps) {

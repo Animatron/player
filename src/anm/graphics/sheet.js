@@ -52,7 +52,7 @@ var https = engine.isHttps;
 /**
 * @private @method load
 */
-Sheet.prototype.load = function(elm, player_id, callback, errback) {
+Sheet.prototype.load = function(elm, player, callback, errback) {
     callback = callback || this._callback;
     if (this._image) throw errors.element('Image already loaded', elm); // just skip loading?
     var me = this;
@@ -62,7 +62,7 @@ Sheet.prototype.load = function(elm, player_id, callback, errback) {
         if (errback) errback.call(me, 'Empty source');
         return;
     }
-    resMan.loadOrGet(player_id, me.src,
+    resMan.loadOrGet(elm.id, me.src,
         function(notify_success, notify_error, notify_progress) { // loader
             var src = me.src;
             if (https) {
