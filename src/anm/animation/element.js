@@ -2811,13 +2811,13 @@ Element.prototype._collectRemoteResources = function(anim, player) {
 
 Element.prototype._loadRemoteResources = function(anim, player) {
     if (player.imagesEnabled && this.$image) {
-        this.$image.load(this, player);
+        this.$image.load(this.id, player);
     }
     if (this.is(C.ET_AUDIO) && player.audioEnabled) {
-        this.$audio.load(this, player);
+        this.$audio.load(this.id, player);
     }
     if (this.is(C.ET_VIDEO) && player.videoEnabled) {
-        this.$video.load(this, player);
+        this.$video.load(this.id, player);
     }
     if (this.$mask) {
         this.$mask._loadRemoteResources(this, player);

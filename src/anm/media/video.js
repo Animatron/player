@@ -42,10 +42,10 @@ Video.prototype.connect = function(element, anim) {
     anim.on(C.A_PAUSE, stop);
 };
 /** @private @method load */
-Video.prototype.load = function(elm, player) {
+Video.prototype.load = function(uid, player) {
 
     var me = this;
-    ResMan.loadOrGet(elm.id, me.url,
+    ResMan.loadOrGet(uid, me.url,
         function(notify_success, notify_error, notify_progress) { // loader
             var url = me.url;
             var formats = me.formats;
@@ -131,7 +131,7 @@ Video.prototype.load = function(elm, player) {
             if (!me.size) me.size = [video.width, video.height];
         },
         function(err) { log.error(err ? (err.message || err) : 'Unknown error');
-                        throw errors.element(err ? err.message : 'Unknown', elm);
+                        throw errors.element(err ? err.message : 'Unknown', uid);
                         /* throw err; */
         });
 };
