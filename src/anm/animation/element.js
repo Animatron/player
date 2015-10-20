@@ -21,9 +21,10 @@ var Brush = require('../graphics/brush.js'),
     Color = require('../graphics/color.js'),
     Bounds = require('../graphics/bounds.js');
 
+var Timeline = require('./timeline.js');
+
 var Modifier = require('./modifier.js'),
-    Painter = require('./painter.js'),
-    Bands = require('./band.js');
+    Painter = require('./painter.js');
 
 var errors = require('../errors.js'),
     ErrLoc = require('../loc.js').Errors;
