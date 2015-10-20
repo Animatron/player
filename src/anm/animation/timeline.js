@@ -99,9 +99,13 @@ Timeline.prototype.setEndAction = function(type) {
     this.end = type;
 }
 
-Timeline.prototype.changeBand = function(start, duration) {
+Timeline.prototype.changeBand = function(start, stop) {
     this.start = start;
-    this.duration = duration;
+    this.duration = stop - this.start;
+}
+
+Timeline.prototype.getBand = function() {
+    return [ this.start, this.start + this.duration ];
 }
 
 Timeline.prototype.pause = function() { this.paused = true; }
@@ -135,4 +139,11 @@ Timeline.prototype.onMessage = function(message, handler) {
 Timeline.prototype.fireMessageAt = function(at, message) {
     var me = this;
     this.addAction(at, function() { me.fireMessage(message); });
+}
+
+Timeline.prototype.clone = function() {
+    var trg = new Timeline();
+    trg.start = this.start; trg.duration = this.duration;
+    trg.end = this.end; trg.nrep = this.nrep;
+    trg.easing = this.easing;
 }
