@@ -951,7 +951,7 @@ $DE.fixLocalUrl = function(url) {
     // use http links instead of protocol-local
     // which will be converted to file://uploads.animatron.com/...
     // and obviously won't work
-    if (local && anm.utils.is.str(url) && url.substring(0,2) === '//') {
+    if (local && url.substring(0,2) === '//') {
         url = 'http:' + url;
     }
     return url;

@@ -47,7 +47,7 @@ Video.prototype.load = function(elm, player) {
     var me = this;
     ResMan.loadOrGet(player.id, me.url,
         function(notify_success, notify_error, notify_progress) { // loader
-            var url = me.url;
+            var url = Array.isArray(me.url) && me.url.length > 0 ? me.url[0] : me.url;
             var formats = me.formats;
             if (engine.isHttps) { url = url.replace('http:', 'https:'); }
             url = engine.fixLocalUrl(url);
