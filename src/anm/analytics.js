@@ -1,5 +1,7 @@
-var engine = require('engine');
-var utils = require('./utils.js');
+var C = anm.C;
+var engine = anm.engine;
+var utils = anm.utils;
+var playerManager = anm.player_manager;
 
 var Analytics = function () {
     var self = this;
@@ -10,9 +12,9 @@ var Analytics = function () {
 
     var sendAllToServer = function (e) {
         if (e && e.type === 'unload') {
-            anm.player_manager.instances.forEach(function (player) {
+            playerManager.instances.forEach(function (player) {
                 if (player && player.state && player.canvas) {
-                    self.trackPlayingComplete(player);
+                    self.track('playing_complete', player);
                 }
             })
         }
@@ -30,18 +32,35 @@ var Analytics = function () {
 
     if (self.enabled) {
         window.addEventListener('unload', sendAllToServer, false);
+
+        playerManager.on(C.S_NEW_PLAYER, function (player) {
+            player.on(C.S_PAUSE, function () {
+                self.track('playing_pause', player);
+            });
+            player.on(C.S_COMPLETE, function () {
+                self.track('playing_complete', player);
+            });
+            player.on(C.S_PLAY, function () {
+                self.track('playing_start', player);
+            });
+        });
+
+        playerManager.on(C.S_PLAYER_DETACH, function (player) {
+            self.sendPlayerData(player);
+        });
     }
 
-    this.trackPlayingStart = this.trackPlayer('playing_start');
-    this.trackPlayingPause = this.trackPlayer('playing_pause');
-    this.trackPlayingComplete = this.trackPlayer('playing_complete');
+    playerManager.on(C.S_NEW_PLAYER, function (player) {
+        player.on(C.S_REPORT_STATS, function () {
+            self.reportStats(player);
+        });
+    });
 };
 
 /**
  * @param {Array} views - an array of views
  */
 Analytics.prototype.sendData = function (views) {
-    if (!this.enabled) return;
     var data = JSON.stringify(views);
     if (navigator.sendBeacon) {
         navigator.sendBeacon(this.animatronUrl, data);
@@ -59,34 +78,42 @@ Analytics.prototype.sendData = function (views) {
  * @param {Object} [action]
  */
 Analytics.prototype.track = function (name, player, action) {
-    if (this.enabled) {
-        this.queue[player.viewId] = this.queue[player.viewId] || {
-                viewId: player.viewId,
-                projectId: player.anim.meta._anm_id,
-                referer: document.referrer,
-                lang: navigator.language || navigator.userLanguage,
-                url: location.href,
-                screenHeight: screen.height,
-                screenWidth: screen.width,
-                windowHeight: window.innerHeight,
-                windowWidth: window.innerWidth,
-                timestamp: new Date().getTime(),
-                actions: []
-            };
-        action = action || {};
-        action.name = name;
-        action.time = utils.is.num(action.time) ? action.time : player.state.time;
-        action.timestamp = new Date().getTime();
-        this.queue[player.viewId].actions.push(action);
+    this.queue[player.viewId] = this.queue[player.viewId] || {
+            viewId: player.viewId,
+            projectId: player.anim.meta._anm_id,
+            referer: document.referrer,
+            lang: navigator.language || navigator.userLanguage,
+            url: location.href,
+            screenHeight: screen.height,
+            screenWidth: screen.width,
+            windowHeight: window.innerHeight,
+            windowWidth: window.innerWidth,
+            timestamp: new Date().getTime(),
+            actions: []
+        };
+    action = action || {};
+    action.name = name;
+    action.time = utils.is.num(action.time) ? action.time : player.state.time;
+    action.timestamp = new Date().getTime();
+    this.queue[player.viewId].actions.push(action);
+};
+Analytics.prototype.reportStats = function (player) {
+    // currently, notifies only about playing start
+    if (!player.anim || !player.anim.meta || !player.anim.meta._anm_id) return;
+    if (!player.statImg) {
+        player.statImg = engine.createStatImg();
+    }
+    var loadSrc = player._loadSrc,
+        id = player.anim.meta._anm_id;
+
+    var apiUrl = utils.makeApiUrl('api', '/stats/report/', loadSrc);
+    if (apiUrl) {
+        player.statImg.src = apiUrl + id + '?' + Math.random();
     }
 };
 
-Analytics.prototype.trackPlayer = function (name) {
-    return function (player) { this.track(name, player); }.bind(this);
-};
-
 Analytics.prototype.sendPlayerData = function (player) {
-    this.trackPlayingComplete(player);
+    this.track('playing_complete', player);
     var action = [this.queue[player.viewId]];
     this.queue[player.viewId] = undefined;
     this.sendData(action)
@@ -102,12 +129,4 @@ Analytics.prototype.trackUI = function (player, path, type, time) {
     });
 };
 
-
-Analytics.prototype.getObjectId = function () {
-    var timestamp = (new Date().getTime() / 1000 | 0).toString(16);
-    return timestamp + 'xxxxxxxxxxxxxxxx'.replace(/[x]/g, function () {
-            return (Math.random() * 16 | 0).toString(16);
-        }).toLowerCase();
-};
-
-module.exports = new Analytics();
+new Analytics();

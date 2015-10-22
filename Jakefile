@@ -80,7 +80,8 @@ var SubDirs = {
     ENGINES: 'engine',
     MODULES: 'module',
     IMPORTERS: 'import',
-    BUNDLES: 'bundle'
+    BUNDLES: 'bundle',
+    ANM: 'anm'
 };
 
 var Files = {
@@ -97,18 +98,24 @@ var Files = {
                         ANM: 'animatron-importer.js',
                         ANM_INTACT: 'animatron-intact-importer.js' },
            MODULES: { _ALL_: [ /* 'audio-export.js' */ ]
-                      /* AUDIO_EXPORT: 'audio-export.js' */ }, },
+                      /* AUDIO_EXPORT: 'audio-export.js' */ },
+           ANALYTICS: 'analytics.js'},
     Doc: { README: 'README.md',
            EMBEDDING: 'embedding.md',
            SCRIPTING: 'scripting.md' }
 };
 
 var Bundles = [
+    { name: 'Animatron Local',
+      file: 'animatron.local',
+      includes: _in_dir(Dirs.DIST, [Files.Main.PLAYER])
+          .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [Files.Ext.IMPORTERS.ANM])) // animatron-importer.js
+          .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES, []))
+    },
     { name: 'Animatron',
       file: 'animatron',
-      includes: _in_dir(Dirs.DIST,      [Files.Main.PLAYER])
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM ])) // animatron-importer.js
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ ])) }
+      includes: _in_dir(Dirs.DIST + '/' + SubDirs.BUNDLES, ['animatron.local.js'])
+          .concat(_in_dir(Dirs.SRC + '/' + SubDirs.ANM, [Files.Ext.ANALYTICS])) }
 ];
 
 var Tests = {
