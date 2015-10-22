@@ -627,7 +627,9 @@ task('deploy', ['dist-min'], function(version, bucket) {
                 'player.js',
                 'player.min.js',
                 'bundle/animatron.js',
-                'bundle/animatron.min.js'
+                'bundle/animatron.min.js',
+                'bundle/animatron.local.js',
+                'bundle/animatron.local.min.js'
             ];
 
         var AWS = require('aws-sdk');
