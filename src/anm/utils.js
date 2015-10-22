@@ -277,6 +277,13 @@ function makeApiUrl(prefix, path, loadSrc) {
     }
 }
 
+function getObjectId () {
+    var timestamp = (new Date().getTime() / 1000 | 0).toString(16);
+    return timestamp + 'xxxxxxxxxxxxxxxx'.replace(/[x]/g, function () {
+            return (Math.random() * 16 | 0).toString(16);
+        }).toLowerCase();
+}
+
 // TODO: add array cloning
 
 module.exports = {
@@ -296,5 +303,6 @@ module.exports = {
     keys: keys,
     removeElement: removeElement,
     postpone: postpone,
-    makeApiUrl: makeApiUrl
+    makeApiUrl: makeApiUrl,
+    getObjectId: getObjectId
 };

@@ -43,8 +43,7 @@ var Loader = require('./loader.js'),
 var Animation = require('./animation/animation.js'),
     Element = require('./animation/element.js'),
     Render = require('./render.js'),
-    Sheet = require('./graphics/sheet.js'),
-    analytics = require('./analytics.js');
+    Sheet = require('./graphics/sheet.js');
 
 
 // Player
@@ -216,7 +215,7 @@ Player.EMPTY_BG = 'rgba(0,0,0,.05)';
  */
 
 Player.prototype.init = function(elm, opts) {
-    this.viewId = analytics.getObjectId();
+    this.viewId = utils.getObjectId();
     if (!engine.isDocReady()) { log.warn(ErrLoc.P.DOM_NOT_READY); };
     this._initHandlers(); /* TODO: make automatic */
     this.on(C.S_ERROR, this.__onerror());
@@ -516,7 +515,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
     state.__prevt = 0;
 
     if (state.happens === C.STOPPED && !player.repeating) {
-        player.reportStats();
+        player.fire(C.S_REPORT_STATS);
     }
 
     var ctx_props = engine.getAnmProps(player.ctx);
@@ -533,8 +532,6 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     player.fire(C.S_CHANGE_STATE, C.PLAYING);
     player.fire(C.S_PLAY, state.from);
-
-    analytics.trackPlayingStart(player);
 
     return player;
 };
@@ -638,8 +635,6 @@ Player.prototype.pause = function() {
     player.fire(C.S_CHANGE_STATE, C.PAUSED);
     player.fire(C.S_PAUSE, state.time);
 
-    analytics.trackPlayingPause(player);
-
     return player;
 };
 
@@ -679,7 +674,7 @@ Player.prototype.onerror = function(callback) {
 
 provideEvents(Player, [ C.S_IMPORT, C.S_CHANGE_STATE, C.S_LOAD, C.S_RES_LOAD,
                         C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
-                        C.S_ERROR, C.S_LOADING_PROGRESS, C.S_TIME_UPDATE ]);
+                        C.S_ERROR, C.S_LOADING_PROGRESS, C.S_TIME_UPDATE, C.S_REPORT_STATS]);
 Player.prototype._prepare = function(elm) {
     if (!elm) throw errors.player(ErrLoc.P.NO_WRAPPER_PASSED, this);
     var wrapper_id, wrapper;
@@ -1022,7 +1017,7 @@ Player.prototype.thumbnail = function(url, target_width, target_height) {
  */
 Player.prototype.detach = function() {
     if (!engine.playerAttachedTo(this.wrapper, this)) return; // throw error?
-    analytics.sendPlayerData(this);
+    playerManager.fire(C.S_PLAYER_DETACH, this);
     this.stop();
     if (this.controls) this.controls.detach(this.wrapper);
     engine.detachPlayer(this);
@@ -1031,7 +1026,6 @@ Player.prototype.detach = function() {
     }
     this._reset();
     resourceManager.cancel(this.id);
-    playerManager.fire(C.S_PLAYER_DETACH, this);
 };
 
 /**
@@ -1533,7 +1527,6 @@ Player.prototype.__beforeFrame = function(anim) {
                 (is.finite(state.duration) &&
                  (time > (state.duration + Player.PEFF)))) {
                 player.fire(C.S_COMPLETE);
-                analytics.trackPlayingComplete(player);
                 state.time = 0;
                 player.stop();
                 if (player.repeat || anim.repeat) {
@@ -1620,21 +1613,6 @@ Player.prototype._callPostpones = function() {
         }
     }
     this._queue = [];
-};
-
-Player.prototype.reportStats = function () {
-    // currently, notifies only about playing start
-    if (!this.anim || !this.anim.meta || !this.anim.meta._anm_id) return;
-    if (!this.statImg) {
-        this.statImg = engine.createStatImg();
-    }
-    var loadSrc = this._loadSrc,
-        id = this.anim.meta._anm_id;
-
-    var apiUrl = utils.makeApiUrl('api', '/stats/report/', loadSrc);
-    if (apiUrl) {
-        this.statImg.src = apiUrl + id + '?' + Math.random();
-    }
 };
 
 /* Player.prototype.__originateErrors = function() {

@@ -142,6 +142,7 @@ registerEvent('S_LOAD', 'load');
 registerEvent('S_RES_LOAD', 'loadresources');
 registerEvent('S_LOADING_PROGRESS', 'loadprogress');
 registerEvent('S_TIME_UPDATE', 'timeupdate');
+registerEvent('S_REPORT_STATS', 'reportstats');
 registerEvent('S_ERROR', 'error'); // is not intersecting with X_ERROR, so it is safe
                                    // they have same name
 
