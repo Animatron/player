@@ -55,9 +55,9 @@ function Audio(url) {
     this.audio = null;
 }
 /** @private @method load */
-Audio.prototype.load = function(elm, player) {
+Audio.prototype.load = function(uid, player) {
     var me = this;
-    ResMan.loadOrGet(player.id, me.url,
+    ResMan.loadOrGet(uid, me.url,
       function(notify_success, notify_error, notify_progress) { // loader
           var url = me.url;
           if (engine.isHttps) {
@@ -206,7 +206,7 @@ Audio.prototype.load = function(elm, player) {
       },
       function(err) {
           log.error(err ? (err.message || err) : 'Unknown error');
-          throw errors.element(err ? err.message : 'Unknown', elm);
+          throw errors.element(err ? err.message : 'Unknown', uid);
       });
 };
 /** @private @method play */

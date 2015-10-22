@@ -56,7 +56,9 @@ Loader.loadFromUrl = function(player, url, importer, callback) {
     var success = function(req) {
         try {
             Loader.loadFromObj(player, JSON.parse(req.responseText), importer, function(anim) {
-                if (anim.actions) { eval('(function(){' + anim.actions + ';actions.call(player,anim);})()'); };
+                if (anim.actions) {
+                    eval('(function(p, a){' + anim.actions + ';actions.call(p,a);})')(player,anim);
+                };
                 if (callback) { callback.call(player, anim); };
                 player._applyUrlParamsToAnimation(params);
             });
@@ -113,6 +115,7 @@ var optsFromUrlParams = function(params/* as object */) {
     opts.height = params.h || params.height;
     opts.infiniteDuration = __extractBool('i', 'inf', 'infinite');
     opts.audioEnabled = __extractBool('s', 'snd', 'sound', 'audio');
+    opts.handleEvents = __extractBool('he', 'events');
     opts.controlsEnabled = __extractBool('c', 'controls');
     opts.controlsInvisible = __extractBool('controlsInvisible');
     opts.infoEnabled = __extractBool('info');

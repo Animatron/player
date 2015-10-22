@@ -98,7 +98,8 @@
     // options to apply just _after_ the snapshot was completely loaded are stored in the url (width and height in `params`)
     // initialization options are stored in `initOptions`
     var params = utils.parseQueryString(),
-        initOptions = {};
+        initOptions = {},
+        minified = params.nomin ? false : true;
 
     var rect = utils.getRequiredRect(),
         targetWidth, targetHeight;
@@ -143,7 +144,7 @@
             target.style.top = '50%';
 
 
-            utils.forcedJS('//' + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.min.js',
+            utils.forcedJS('//' + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron' + (minified ? '.min' : '') + '.js',
                 function () {
                     var player = anm.Player.forSnapshot(TARGET_ID, snapshotUrl, anm.importers.create('animatron'), $window.actions, initOptions);
                     if (anm.interop && anm.interop.playerjs) {
