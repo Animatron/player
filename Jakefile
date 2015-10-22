@@ -105,17 +105,21 @@ var Files = {
            SCRIPTING: 'scripting.md' }
 };
 
+
+var _default_bundle_includes = _in_dir(Dirs.DIST, [Files.Main.PLAYER])
+    .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [Files.Ext.IMPORTERS.ANM])) // animatron-importer.js
+    .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES, []));
+
 var Bundles = [
     { name: 'Animatron Local',
       file: 'animatron.local',
-      includes: _in_dir(Dirs.DIST, [Files.Main.PLAYER])
-          .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [Files.Ext.IMPORTERS.ANM])) // animatron-importer.js
-          .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES, []))
+      includes: _default_bundle_includes
     },
     { name: 'Animatron',
       file: 'animatron',
-      includes: _in_dir(Dirs.DIST + '/' + SubDirs.BUNDLES, ['animatron.local.js'])
-          .concat(_in_dir(Dirs.SRC + '/' + SubDirs.ANM, [Files.Ext.ANALYTICS])) }
+      includes: _default_bundle_includes
+          .concat(_in_dir(Dirs.SRC + '/' + SubDirs.ANM, [Files.Ext.ANALYTICS]))
+    }
 ];
 
 var Tests = {
