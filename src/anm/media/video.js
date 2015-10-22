@@ -131,8 +131,7 @@ Video.prototype.load = function(uid, player) {
             if (!me.size) me.size = [video.width, video.height];
         },
         function(err) { log.error(err ? (err.message || err) : 'Unknown error');
-                        throw errors.element(err ? err.message : 'Unknown', uid);
-                        /* throw err; */
+                        //throw errors.element(err ? err.message : 'Unknown', uid);
         });
 };
 /** @private @method apply */
