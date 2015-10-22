@@ -29,6 +29,7 @@ Loader.loadAnimation = function(player, anim, callback) {
     }
     // assign
     player.anim = anim;
+    if (anim.actions) Loader.applyActions(player, anim, anim.actions);
     if (callback) callback.call(player, anim);
 };
 
@@ -56,9 +57,6 @@ Loader.loadFromUrl = function(player, url, importer, callback) {
     var success = function(req) {
         try {
             Loader.loadFromObj(player, JSON.parse(req.responseText), importer, function(anim) {
-                if (anim.actions) {
-                    eval('(function(p, a){' + anim.actions + ';actions.call(p,a);})')(player,anim);
-                };
                 if (callback) { callback.call(player, anim); };
                 player._applyUrlParamsToAnimation(params);
             });
@@ -82,6 +80,10 @@ Loader.loadElements = function(player, elms, callback) {
     var anim = new Animation();
     anim.add(elms);
     Loader.loadAnimation(player, anim, callback);
+};
+
+Loader.applyActions = function(player, anim, actions) {
+    eval('(function(p, a){' + actions + ';actions.call(p,a);})')(player, anim);
 };
 
 var optsFromUrlParams = function(params/* as object */) {
