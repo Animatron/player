@@ -203,7 +203,8 @@ function videoErrProxy(src, pass_to) {
     // e_.MEDIA_ERR_SRC_NOT_SUPPORTED=4
     // e_.MEDIA_ERR_ENCRYPTED=5
     pass_to(new Error('Failed to load video file from ' + src + ' with error code: ' +
-                      err.currentTarget.error.code));
+            (err && err.currentTarget && err.currentTarget.error) ? err.currentTarget.error.code
+                                                                  : 'Unknown'));
   };
 }
 
