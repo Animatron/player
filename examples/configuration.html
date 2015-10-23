@@ -1,0 +1,54 @@
+<!--
+ ~ Copyright (c) 2011-2014 by Animatron.
+ ~ All rights are reserved.
+ ~
+ ~ Animatron player is licensed under the MIT License, see LICENSE.
+ -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <!-- <link rel="shortcut icon" type="image/x-icon" href="../favicon.ico" /> -->
+    <!--<script type="text/javascript" language="javascript" src="http://player.animatron.com/latest/bundle/animatron.js"></script>-->
+    <script src="../dist/bundle/animatron.js"></script>
+    <link rel="stylesheet" href="./configuration.css" type="text/css" />
+    <script src="./configuration.js"></script>
+</head>
+<body onload="init()">
+    <label for="snapshot" class="title">Snapshot ID:</label>
+
+    <form id="snapshot">
+        <input type="text" id="snapshot-id"></input>
+    </form>
+
+    <label for="options" class="title">Options:</label>
+
+    <form id="options">
+        <!--
+        <label for="opts-width">Width:</label><input type="number" disabled id="opts-width" value="640" />
+        <label for="opts-width-default">Default:</label><input type="checkbox" id="opts-width-default" checked /><br/>
+        <label for="opts-height">Height:</label><input type="number" disabled id="opts-height" value="360" />
+        <label for="opts-height-default">Default:</label><input type="checkbox" id="opts-height-default" checked /><br>
+        <label for="opts-controls">Controls:</label><input type="checkbox" id="opts-controls" checked disabled />
+        <label for="opts-controls-default">Default:</label><input type="checkbox" id="opts-controls-default" checked /><br>
+        -->
+    </form>
+
+    <div id="code-block">
+        <label for="code-type" class="title">Get code:</label>
+
+        <ul id="code-type">
+            <li><a href="#embed" id="mode-embed" onclick="switchMode('embed')">Embedding</a></li>
+            <li><a href="#config" id="mode-config" onclick="switchMode('config')">Player Configuration</a></li>
+            <li><a href="#html" id="mode-html" onclick="switchMode('html')">HTML Attributes</a></li>
+            <li><a href="#publish" id="mode-publish" onclick="switchMode('publish')">Publish URL</a></li>
+        </ul>
+
+        <textarea id="code" cols="70" rows="10"></textarea><br/>
+        <input type="checkbox" id="short-version" checked /><label id="short-version-label" for="short-version">Abbreviated Parameters</label>
+    </div>
+
+    <label for="preview" class="title">Preview:</label>
+    <div id="preview"></div>
+</body>

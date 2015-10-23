@@ -29,7 +29,9 @@ Loader.loadAnimation = function(player, anim, callback) {
     }
     // assign
     player.anim = anim;
+    if (anim.actions) Loader.applyActions(player, anim, anim.actions);
     if (callback) callback.call(player, anim);
+    player._checkOpts();
 };
 
 Loader.loadFromUrl = function(player, url, importer, callback) {
@@ -56,7 +58,7 @@ Loader.loadFromUrl = function(player, url, importer, callback) {
     var success = function(req) {
         try {
             Loader.loadFromObj(player, JSON.parse(req.responseText), importer, function(anim) {
-                if (callback) callback.call(player, anim);
+                if (callback) { callback.call(player, anim); };
                 player._applyUrlParamsToAnimation(params);
             });
         } catch(e) { failure(e); }
@@ -79,6 +81,11 @@ Loader.loadElements = function(player, elms, callback) {
     var anim = new Animation();
     anim.add(elms);
     Loader.loadAnimation(player, anim, callback);
+};
+
+Loader.applyActions = function(player, anim, actions) {
+    eval('(function(p, a){' + actions + ';actions.call(p,a);})')(player, anim);
+    player.handleEvents = true;
 };
 
 var optsFromUrlParams = function(params/* as object */) {
@@ -112,13 +119,14 @@ var optsFromUrlParams = function(params/* as object */) {
     opts.height = params.h || params.height;
     opts.infiniteDuration = __extractBool('i', 'inf', 'infinite');
     opts.audioEnabled = __extractBool('s', 'snd', 'sound', 'audio');
+    opts.handleEvents = __extractBool('he', 'events');
     opts.controlsEnabled = __extractBool('c', 'controls');
     opts.controlsInvisible = __extractBool('controlsInvisible');
     opts.infoEnabled = __extractBool('info');
     opts.loadingMode = params.lm || params.lmode || params.loadingmode || undefined;
     opts.thumbnail = params.th || params.thumb || undefined;
     opts.bgColor = params.bg || params.bgcolor;
-    opts.ribbonsColor = params.ribbons || params.ribcolor;
+    opts.ribbonsColor = params.rc || params.ribbons || params.ribcolor;
     return opts;
 };
 

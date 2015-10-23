@@ -136,8 +136,9 @@ $DE.getCancelFrameFunc = function(){ return cancelAnimationFrame; };
 
 $DE.PX_RATIO = $win.devicePixelRatio || 1;
 
-$DE.ajax = function(url, callback, errback, method, headers) {
-    var req;
+$DE.ajax = function(url, callback, errback, method, headers, data, async) {
+    var req,
+        doAsync = typeof async === 'boolean' ? async : true;
     if ($DE.isIE9) {
         req = new $win.XDomainRequest();
     } else {
@@ -169,7 +170,7 @@ $DE.ajax = function(url, callback, errback, method, headers) {
             if(errback) errback(new Error('XDomainRequest Error'), req);
         };
     }
-    req.open(method || 'GET', url, true);
+    req.open(method || 'GET', url, doAsync);
 
     if (headers && !$DE.isIE9) {
         for (var header in headers) {
@@ -177,7 +178,7 @@ $DE.ajax = function(url, callback, errback, method, headers) {
         }
     }
 
-    req.send(null);
+    req.send(data);
 };
 
 $DE.getCookie = function(name) {
@@ -922,8 +923,11 @@ $DE.createAudio = function() {
     return $doc.createElement('audio');
 };
 
-$DE.createVideo = function() {
-    return $doc.createElement('video');
+$DE.createVideo = function(width, height) {
+    var el = $doc.createElement('video');
+    el.width = width;
+    el.height = height;
+    return el;
 };
 
 $DE.createSource = function() {

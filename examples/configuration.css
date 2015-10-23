@@ -1,0 +1,103 @@
+body {
+    font-size: 14px;
+    /* font-family: sans-serif; */
+}
+
+body label.title {
+    display: block;
+    font-size: 1.2em;
+    font-weight: bold;
+    margin: 20px 0;
+}
+
+input {
+    margin: 2px 5px;
+}
+
+input[disabled] {
+    background-color: #ccc;
+}
+
+input[type="text"], input[type="number"], textarea {
+    border: 1px solid #999;
+}
+
+input[type="number"] {
+    width: 40px;
+}
+
+input#snapshot-id {
+    width: 350px;
+    font-size: 1.2em;
+}
+
+ul#code-type {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+ul#code-type li a {
+    text-decoration: none;
+}
+
+ul#code-type li {
+    display: inline;
+    padding: 0 5px 0 0;
+}
+
+ul#code-type li:not(:first-child):before {
+    content: 'or';
+    position: relative;
+    left: -5px;
+}
+
+#code-type a.current {
+    color: #f00;
+}
+
+#code-type a.current:before {
+    content: '[';
+}
+
+#code-type a.current:after {
+    content: ']';
+}
+
+#code {
+    font-family: monospace;
+    font-size: 1.1em;
+}
+
+#code, #preview {
+    border: 2px solid rgba(90,90,90,0.5);
+}
+
+#code.updated, #preview.updated {
+    border-color: #f00;
+}
+
+label[for="preview"] {
+    position: fixed;
+    top: 0;
+    right: 20px;
+}
+
+#preview {
+    position: fixed;
+    top: 50px;
+    right: 20px;
+}
+
+#code-block {
+    position: absolute;
+    right: 10px;
+    bottom: 20px;
+    z-index: 10;
+    background-color: white;
+}
+
+@media (max-width: 1300px) {
+    body {
+        font-size: 12px;
+    }
+}

@@ -52,9 +52,9 @@ var https = engine.isHttps;
 /**
 * @private @method load
 */
-Sheet.prototype.load = function(elm, player_id, callback, errback) {
+Sheet.prototype.load = function(uid, player, callback, errback) {
     callback = callback || this._callback;
-    if (this._image) throw errors.element('Image already loaded', elm); // just skip loading?
+    if (this._image) throw errors.element('Image already loaded', uid); // just skip loading?
     var me = this;
     if (!me.src) {
         log.error('Empty source URL for image');
@@ -62,7 +62,7 @@ Sheet.prototype.load = function(elm, player_id, callback, errback) {
         if (errback) errback.call(me, 'Empty source');
         return;
     }
-    resMan.loadOrGet(player_id, me.src,
+    resMan.loadOrGet(uid, me.src,
         function(notify_success, notify_error, notify_progress) { // loader
             var src = me.src;
             if (https) {
@@ -101,8 +101,9 @@ Sheet.prototype.load = function(elm, player_id, callback, errback) {
         function(err) { log.error(err.srcElement || err.path, err.message || err);
                         me.ready = true;
                         me.wasError = true;
-                        if (errback) errback.call(me, err);
-                        throw errors.element(err ? err.message : 'Unknown', elm); });
+                        var doThrow = true;
+                        if (errback) { doThrow = !errback.call(me, err); };
+                        if (doThrow) { throw errors.element(err ? err.message : 'Unknown', elm); } });
 };
 /**
  * @private @method updateRegion

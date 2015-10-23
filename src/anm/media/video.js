@@ -23,8 +23,10 @@ var Bounds = require('../graphics/bounds.js');
 /**
  * @class anm.Video
  */
-function Video(url) {
+function Video(url, formats, size) {
     this.url = url;
+    this.formats = formats;
+    this.size = size;
     this.ready = false;
     this.playing = false;
 }
@@ -40,16 +42,17 @@ Video.prototype.connect = function(element, anim) {
     anim.on(C.A_PAUSE, stop);
 };
 /** @private @method load */
-Video.prototype.load = function(elm, player) {
+Video.prototype.load = function(uid, player) {
 
     var me = this;
-    ResMan.loadOrGet(player.id, me.url,
+    ResMan.loadOrGet(uid, me.url,
         function(notify_success, notify_error, notify_progress) { // loader
             var url = me.url;
+            var formats = me.formats;
             if (engine.isHttps) { url = url.replace('http:', 'https:'); }
             url = engine.fixLocalUrl(url);
 
-            var el = engine.createVideo();
+            var el = engine.createVideo(me.size[0], me.size[1]);
             el.setAttribute("preload", "auto");
             el.style.display = 'none';
 
@@ -105,29 +108,35 @@ Video.prototype.load = function(elm, player) {
             var addSource = function(video, url, type) {
                 var src = engine.createSource();
                 src.addEventListener("error", notify_error, false);
-                src.type = 'video/' + type;
+                src.type = type;
                 src.src = url;
                 video.appendChild(src);
             };
 
             try {
+                if (!formats) { addSource(el, url, 'video/mp4'); }
+                else if (formats.length) {
+                    formats.forEach(function(pair) {
+                        addSource(el, pair[0], pair[1]);
+                    });
+                }
                 engine.appendToBody(el);
-                addSource(el, url, 'mp4');
             } catch(e) { notify_error(e); }
 
         },
         function(video) { // oncomplete
             me.video = video;
             me.ready = true;
+
+            if (!me.size) me.size = [video.width, video.height];
         },
         function(err) { log.error(err ? (err.message || err) : 'Unknown error');
-                        throw errors.element(err ? err.message : 'Unknown', elm);
-                        /* throw err; */
+                        //throw errors.element(err ? err.message : 'Unknown', uid);
         });
 };
 /** @private @method apply */
 Video.prototype.apply = function(ctx) {
-    ctx.drawImage(this.video, 0, 0);
+    if (this.video) ctx.drawImage(this.video, 0, 0, this.video.videoWidth, this.video.videoHeight, 0, 0, this.size[0], this.size[1]);
 };
 Video.prototype.bounds = function() {
     if (this.$bounds) return this.$bounds;
@@ -194,7 +203,8 @@ function videoErrProxy(src, pass_to) {
     // e_.MEDIA_ERR_SRC_NOT_SUPPORTED=4
     // e_.MEDIA_ERR_ENCRYPTED=5
     pass_to(new Error('Failed to load video file from ' + src + ' with error code: ' +
-                      err.currentTarget.error.code));
+            (err && err.currentTarget && err.currentTarget.error) ? err.currentTarget.error.code
+                                                                  : 'Unknown'));
   };
 }
 

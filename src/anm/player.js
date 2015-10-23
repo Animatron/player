@@ -215,6 +215,7 @@ Player.EMPTY_BG = 'rgba(0,0,0,.05)';
  */
 
 Player.prototype.init = function(elm, opts) {
+    this.viewId = utils.getObjectId();
     if (!engine.isDocReady()) { log.warn(ErrLoc.P.DOM_NOT_READY); };
     this._initHandlers(); /* TODO: make automatic */
     this.on(C.S_ERROR, this.__onerror());
@@ -493,7 +494,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
     player._ensureHasAnim();
 
     var anim = player.anim;
-    anim.reset();
+    if (state.happens === C.STOPPED) anim.reset();
 
     // used to resume playing in some special cases
     state.__lastPlayConf = [ from, speed, stopAfter ];
@@ -514,7 +515,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
     state.__prevt = 0;
 
     if (state.happens === C.STOPPED && !player.repeating) {
-        player.reportStats();
+        player.fire(C.S_REPORT_STATS);
     }
 
     var ctx_props = engine.getAnmProps(player.ctx);
@@ -613,11 +614,13 @@ Player.prototype.pause = function() {
 
     var state = player.state;
     if (state.happens === C.STOPPED) {
+        player.anim.reset();
         return player;
     }
 
     if (state.happens === C.PLAYING) {
         __stopAnim(state.__lastReq);
+        player.anim.handlePause();
     }
 
     if (state.time > state.duration) {
@@ -671,7 +674,8 @@ Player.prototype.onerror = function(callback) {
 
 provideEvents(Player, [ C.S_IMPORT, C.S_CHANGE_STATE, C.S_LOAD, C.S_RES_LOAD,
                         C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
-                        C.S_ERROR, C.S_LOADING_PROGRESS, C.S_TIME_UPDATE ]);
+                        C.S_ERROR, C.S_LOADING_PROGRESS, C.S_TIME_UPDATE,
+                        C.S_INTERACTIVITY, C.S_REPORT_STATS]);
 Player.prototype._prepare = function(elm) {
     if (!elm) throw errors.player(ErrLoc.P.NO_WRAPPER_PASSED, this);
     var wrapper_id, wrapper;
@@ -883,20 +887,18 @@ Player.prototype.drawAt = function(time) {
     }
     var anim = this.anim,
         u_before = this.__userBeforeRender,
-        u_after = this.__userAfterRender/*,
-        after = function(gtime, ctx) {  // not used
+        u_after = this.__userAfterRender,
+        ext_after = function(gtime, ctx) {
+            if (u_after) u_after(gtime, ctx);
             anim.reset();
             anim.__informEnabled = true;
-            u_after(gtime, ctx);
-        }*/;
-
-    anim.reset();
+        };
 
     var ctx_props = engine.getAnmProps(this.ctx);
     ctx_props.factor = this.factor();
 
     anim.__informEnabled = false;
-    Render.at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor, u_before, u_after);
+    Render.at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor, u_before, ext_after);
     return this;
 };
 
@@ -985,8 +987,7 @@ Player.prototype.factorData = function() {
 Player.prototype.thumbnail = function(url, target_width, target_height) {
     if (!url) return this.thumbnailSrc;
     var player = this;
-    if (player.__thumb &&
-        player.__thumb.src == url) return;
+    if (player.__thumbLoading || (player.__thumb && player.__thumb.src == url)) return;
     if (player.ctx) { // FIXME: make this a function
       var ratio = engine.PX_RATIO,
           ctx = player.ctx;
@@ -996,7 +997,7 @@ Player.prototype.thumbnail = function(url, target_width, target_height) {
     }
     var thumb = new Sheet(url);
     player.__thumbLoading = true;
-    thumb.load(player.id, function() {
+    thumb.load(utils.guid(), player, function() {
         player.__thumbLoading = false;
         player.__thumb = thumb;
         if (target_width || target_height) {
@@ -1006,7 +1007,7 @@ Player.prototype.thumbnail = function(url, target_width, target_height) {
             (player.state.happens !== C.PAUSED)) {
             player._drawStill();
         }
-    });
+    }, function() { return true; /* do not throw error */});
 };
 
 /**
@@ -1017,6 +1018,7 @@ Player.prototype.thumbnail = function(url, target_width, target_height) {
  */
 Player.prototype.detach = function() {
     if (!engine.playerAttachedTo(this.wrapper, this)) return; // throw error?
+    playerManager.fire(C.S_PLAYER_DETACH, this);
     this.stop();
     if (this.controls) this.controls.detach(this.wrapper);
     engine.detachPlayer(this);
@@ -1024,7 +1026,7 @@ Player.prototype.detach = function() {
         engine.clearAnmProps(this.ctx);
     }
     this._reset();
-    playerManager.fire(C.S_PLAYER_DETACH, this);
+    resourceManager.cancel(this.id);
 };
 
 /**
@@ -1527,7 +1529,6 @@ Player.prototype.__beforeFrame = function(anim) {
                  (time > (state.duration + Player.PEFF)))) {
                 player.fire(C.S_COMPLETE);
                 state.time = 0;
-                anim.reset();
                 player.stop();
                 if (player.repeat || anim.repeat) {
                    player.repeating = true;
@@ -1613,40 +1614,6 @@ Player.prototype._callPostpones = function() {
         }
     }
     this._queue = [];
-};
-
-var prodHost = 'animatron.com',
-    testHost = 'animatron-test.com',
-    prodStatUrl = '//api.' + prodHost + '/stats/report/',
-    testStatUrl = '//api.' + testHost + '/stats/report/';
-
-Player.prototype.reportStats = function() {
-    // currently, notifies only about playing start
-    if (!this.anim || !this.anim.meta || !this.anim.meta._anm_id) return;
-    if (!this.statImg) {
-      this.statImg = engine.createStatImg();
-    }
-    var loadSrc = this._loadSrc,
-        id = this.anim.meta._anm_id,
-        locatedAtTest = false,
-        locatedAtProd = false;
-
-    if (loadSrc) {
-        //if the player was loaded from a snapshot URL, we check the said url
-        //to see if it is from our servers
-        locatedAtTest = loadSrc.indexOf(testHost) !== -1;
-        locatedAtProd = loadSrc.indexOf(prodHost) !== -1;
-    } else if(window && window.location) {
-        //otherwise, we check if we are on an Animatron's webpage
-        var hostname = window.location.hostname;
-        locatedAtTest = hostname.indexOf(testHost) !== -1;
-        locatedAtProd = hostname.indexOf(prodHost) !== -1;
-    }
-    if (locatedAtTest) {
-        this.statImg.src = testStatUrl + id + '?' + Math.random();
-    } else if (locatedAtProd) {
-        this.statImg.src = prodStatUrl + id + '?' + Math.random();
-    }
 };
 
 /* Player.prototype.__originateErrors = function() {

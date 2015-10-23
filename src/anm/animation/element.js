@@ -110,6 +110,7 @@ function Element(name, draw, onframe) {
     this.anim = null;       /** @property {anm.Animation} anim the animation this element belongs to / registered in, if it really belongs to one @readonly */
     this.disabled = false;  /** @property {Boolean} visible Is this element visible or not (called, but not drawn) */
     this.visible = true;    /** @property {Boolean} disabled Is this element disabled or not */
+    this.affectsChildren = true; /** @property {Boolean} affectsChildren Is this element local time affects children local time */
     this.$data = null;      /** @property {Any} $data user data */
 
     this.shown = false; // system flag, set by engine
@@ -322,6 +323,7 @@ Element.prototype.initTime = function() {
     this.switch = null;
 
     this.__resetTimeCache();
+    this.__resetBandEvents();
 
     return this;
 };
@@ -333,9 +335,12 @@ Element.prototype.__resetTimeCache = function() {
 
     this.__lastJump = null; // a time of last jump in time
     this.__jumpLock = false; // set to turn off jumping in time
+};
+Element.prototype.__resetBandEvents = function() {
     this.__firedStart = false; // fired start event
     this.__firedStop = false;  // fired stop event
-};
+    this.__lastRender = null; // time of last render
+}
 Element.prototype.initEvents = function() {
     this.evts = {}; // events cache
     this.__evt_st = new EventState(); // event state
@@ -804,8 +809,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
     drawMe = this.__preRender(gtime, ltime, ctx);
     // fire band start/end events
-    // FIXME: may not fire STOP on low-FPS, move an additional check
-    if (this.anim && this.anim.__informEnabled) this.inform(ltime);
+    if (this.anim && this.anim.__informEnabled) this.inform(gtime, ltime);
     if (drawMe) {
         drawMe = this.fits(ltime) &&
                  this.modifiers(ltime, dt) &&
@@ -817,7 +821,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
         // update global time with new local time (it may've been
         // changed if there were jumps or something), so children will
         // get the proper value
-        gtime = this.gtime(ltime);
+        gtime = this.affectsChildren ? this.gtime(ltime) : gtime;
 
         var mask = this.$mask,
             renderMasked = false,
@@ -1182,13 +1186,14 @@ Element.prototype.bounce = function(nrep) {
  * when jump performed and the time to where jump is performed. Time is specified as `0` if
  * element should jump to the start of its band.
  *
- * See also: {@link anm.Element#band band}, {@link anm.Element#freeze freeze}, {@link anm.Element#unfreeze unfreeze}
+ * See also: {@link anm.Element#band band}, {@link anm.Element#play play}, {@link anm.Element#stop stop}
  *
  * @param {Number} t target time for a jump
  *
  * @return {anm.Element} itself
  */
 Element.prototype.jump = function(loc_t) {
+    if (is.defined(this.pausedAt)) this.pausedAt = loc_t;
     this.t = loc_t;
     return this;
 };
@@ -1201,61 +1206,83 @@ Element.prototype.jump = function(loc_t) {
  * {@link anm.Animation#jumpTo animation.jumpTo} inside). It will skip a jump, if it's already in process
  * of jumping.
  *
- * See also: {@link anm.Element#band band}, {@link anm.Element#freeze freeze}, {@link anm.Element#unfreeze unfreeze}
+ * See also: {@link anm.Element#band band}, {@link anm.Element#play play}, {@link anm.Element#stop stop}
  *
  * @param {String|anm.Element} selector
  *
  * @return {anm.Element} itself
  */
- Element.prototype.jumpTo = function(element) {
-     var elm = is.str(selector) ? this.find(selector) : selector;
-     if (!elm) return;
-     if (this.anim) this.anim.jump(elm.gband[0]);
-     else this.jump(elm.lband[0]);
-     return this;
- };
+Element.prototype.jumpTo = function(element) {
+    var elm = is.str(selector) ? this.find(selector) : selector;
+    if (!elm) return;
+    if (this.anim) this.anim.jump(elm.gband[0]);
+    else this.jump(elm.lband[0]);
+    return this;
+};
 
 /**
- * @method freeze
- * @chainable
- *
- * Pause at current time (so element will be visible, but won't be tweened).
- * Will pause _only_ for the time where element is "alive", i.e. if current time is
- * outside of its band, element won't render instead. Also, no band `START`/`STOP` events
- * will be fired in any case.
- *
- * See also: {@link anm.Element#band band}, {@link anm.Element#jump jump}, {@link anm.Element#unfreeze unfreeze}.
- *
- * @return {anm.Element} itself
- */
-Element.prototype.freeze = function() {
-    if (this.frozen) return this;
-    this.frozen = true;
-    this.__m_freeze = function(t) {
-        if (!this.frozen) return;
-        if (is.defined(this.pausedAt)) this.t = this.pausedAt;
-        else (this.pausedAt = t);
-    };
-    this.modify(this.__m_freeze);
+  * @method play
+  * @chainable
+  *
+  * Unpause after a call to {@link anm.Element#stop stop}.
+  *
+  * See also: {@link anm.Element#band band}, {@link anm.Element#jump jump}, {@link anm.Element#stop stop}.
+  *
+  * @return {anm.Element} itself
+  */
+Element.prototype.play = function() {
+    if (!this.paused) return;
+    this.paused = false;
+    this.t = null;
+    this.pausedAt = undefined;
+    if (this.__m_stop) this.removeModifier(this.__m_stop);
     return this;
 }
 
 /**
- * @method unfreeze
+ * @method stop
  * @chainable
  *
- * Unpause after a call to {@link anm.Element#freeze freeze}.
+ * Pause at current time (so element will be visible, but won't be tweened). Children are
+ * also affected. Will pause _only_ for the time where element is "alive", i.e. if current time is
+ * outside of its band, element won't render instead. Also, no band `START`/`STOP` events
+ * will be fired in any case.
  *
- * See also: {@link anm.Element#band band}, {@link anm.Element#jump jump}, {@link anm.Element#freeze freeze}.
+ * See also: {@link anm.Element#band band}, {@link anm.Element#jump jump}, {@link anm.Element#play play}.
  *
  * @return {anm.Element} itself
  */
-Element.prototype.unfreeze = function() {
-    this.frozen = false;
-    this.t = null;
-    this.pausedAt = undefined;
-    if (this.__m_freeze) this.unmodify(this.__m_freeze);
+Element.prototype.stop = function() {
+    if (this.paused) return this;
+    this.paused = true;
+    this.__m_stop = new Modifier(function(t) {
+        if (!this.paused) return;
+        if (is.defined(this.pausedAt)) this.t = this.pausedAt;
+        else (this.pausedAt = t);
+    });
+    this.modify(this.__m_stop);
     return this;
+}
+
+/**
+ * @method at
+ * @chainable
+ *
+ * Shortcut to `element.modify(new anm.Modifier(function(t) { console.log(t); }).time(<time>))`. Calls given
+ * function at the requested local time or a bit later (as soon as possible, due to uneven frame logic of canvas).
+ * Passes the actual time of a call to a function. `this` in this function is bound the caller `Element` instance.
+ *
+ * See also: {@link anm.Element#modify modify}.
+ *
+ * @param {Number} time time to call a function
+ * @param {Function} func a function to call
+ * @param {Number} func.time time of an actual call
+ * @param {anm.Element} func.this the calling element
+ *
+ * @return {anm.Element} itself
+ */
+Element.prototype.at = function(t, f) {
+    return this.modify(new Modifier(f).time(t));
 }
 
 /**
@@ -1572,37 +1599,34 @@ Element.prototype.ltime = function(gtime) {
  * Inform element with `C.X_START` / `C.X_STOP` events, if passed time matches
  * some end of its band
  *
+ * @param {Number} gtime global time
  * @param {Number} ltime band-local time
  */
-Element.prototype.inform = function(ltime) {
-    if (t_cmp(ltime, 0) >= 0) {
-        var duration = this.lband[1] - this.lband[0],
-            cmp = t_cmp(ltime, duration);
+Element.prototype.inform = function(gtime, ltime) {
+    var duration = this.lband[1] - this.lband[0];
+    if (t_cmp(ltime, 0) < 0) return;
+    if (!is.defined(this.__lastRender)) {
+        // could be a first frame of a band to render
+        this.__lastRender = ltime;
         if (!this.__firedStart) {
             this.fire(C.X_START, ltime, duration);
-            // FIXME: it may fire start before the child band starts, do not do this!
-            /* this.traverse(function(elm) { // TODO: implement __fireDeep
-                if (!elm.__firedStart) {
-                    elm.fire(C.X_START, ltime, duration);
-                    elm.__firedStart = true;
-                }
-            }); */
-            this.__firedStart = true; // (store the counters for fired events?)
-            // TODO: handle START event by changing band to start at given time?
+            this.__firedStart = true;
         }
-        if (cmp >= 0) {
-            if (!this.__firedStop) {
-                this.fire(C.X_STOP, ltime, duration);
-                this.traverse(function(elm) {
-                    if (!elm.__firedStop) {
-                        elm.fire(C.X_STOP, ltime, duration);
-                        elm.__firedStop = true;
-                    }
-                });
-                this.__firedStop = true;
-                // TODO: handle STOP event by changing band to end at given time?
-            }
+    } else if (is.defined(this.__lastRender) && (t_cmp(ltime, duration) > 0)) {
+        // previous frame was a last frame of a band
+        if (!this.__firedStop) {
+            this.modifiers(duration, duration - this.__lastRender);
+            this.fire(C.X_STOP, ltime, duration);
+            this.traverse(function(elm) {
+                // we must inform all children parent band was stopped
+                elm.inform(elm.ltime(gtime), gtime);
+            });
+            this.__firedStop = true;
         }
+        this.__lastRender = undefined;
+    } else {
+        // just a normal frame
+        this.__lastRender = ltime;
     }
 };
 
@@ -1742,6 +1766,7 @@ Element.prototype.reset = function() {
     //this.resetState();
     this.resetEvents();
     this.__resetTimeCache();
+    this.__resetBandEvents();
     /*this.__clearEvtState();*/
     var elm = this;
     this.forAllModifiers(function(modifier) {
@@ -2691,7 +2716,7 @@ Element.prototype.filterEvent = function(type, evt) {
       if (this.shown) {
           this.__saveEvt(type, evt);
       } else {
-          if (type === C.X_STOP) this.__resetTimeCache();
+          if (type === C.X_STOP) this.__resetBandEvents();
           return false;
       }
     }
@@ -2786,13 +2811,13 @@ Element.prototype._collectRemoteResources = function(anim, player) {
 
 Element.prototype._loadRemoteResources = function(anim, player) {
     if (player.imagesEnabled && this.$image) {
-        this.$image.load(this, player.id);
+        this.$image.load(this.id, player);
     }
     if (this.is(C.ET_AUDIO) && player.audioEnabled) {
-        this.$audio.load(this, player);
+        this.$audio.load(this.id, player);
     }
     if (this.is(C.ET_VIDEO) && player.videoEnabled) {
-        this.$video.load(this, player);
+        this.$video.load(this.id, player);
     }
     if (this.$mask) {
         this.$mask._loadRemoteResources(this, player);

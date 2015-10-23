@@ -1,16 +1,17 @@
+<<<<<<< Updated upstream
 v1.4 / Wed Sep 02 2015 14:04:30 +0200 / 35facc26afe0d7c051873bf0e85abf8a23466256
 ================================================================================
 
 * Breaking change in importing groups with shifted bands
-* Huge amount of fixes after v1.3
 
 
-v1.3 / Tue Sep 23 19:40:49 2014 +0200 / a2dc051c8b87297336b52fb4dc43845c1a7796e6
+v1.3 / Wed Sep 02 2015 09:57:22 +0200 / b63ad617008927457d81b19e81f9fa5b0cc485ff
 ================================================================================
 
 * A completely new API, 79 commits, 2164 lines added, 2778 deleted, built almost
   from scratch, no Builder at all, everything is in the Element now! Beautiful,
   Precious, Irresistible!
+* Truly a huge amount of fixes in comparison to v1.2
 
 
 v1.2 / Tue Aug 12 2014 18:04:40 +0200 / f1773845d89a8cc783c915af8a8bd0eca7078a7c

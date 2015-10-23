@@ -237,9 +237,9 @@ function fit_rects(pw, ph, aw, ah) {
 
 function removeElement(obj, element) {
     if (is.arr(obj)) {
-        var index = array.indexOf(element);
+        var index = obj.indexOf(element);
         if (index > -1) {
-            array.splice(index, 1);
+            obj.splice(index, 1);
         }
     } else {
         obj[element] = null;
@@ -250,6 +250,38 @@ function postpone(fn) {
     //run the code after the event loop is done with whatever it is
     //occupied with at the moment
     setTimeout(fn, 0);
+}
+
+function makeApiUrl(prefix, path, loadSrc) {
+    var prodHost = 'animatron.com',
+        testHost = 'animatron-test.com',
+        prodStatUrl = '//' + prefix + '.' + prodHost + path,
+        testStatUrl = '//' + prefix + '.' + testHost + path,
+        locatedAtTest = false,
+        locatedAtProd = false;
+    if (typeof loadSrc === 'string') {
+        //if the player was loaded from a snapshot URL, we check the said url
+        //to see if it is from our servers
+        locatedAtTest = loadSrc.indexOf(testHost) !== -1;
+        locatedAtProd = loadSrc.indexOf(prodHost) !== -1;
+    } else if (window && window.location) {
+        //otherwise, we check if we are on an Animatron's webpage
+        var hostname = window.location.hostname;
+        locatedAtTest = hostname.indexOf(testHost) !== -1;
+        locatedAtProd = hostname.indexOf(prodHost) !== -1;
+    }
+    if (locatedAtTest) {
+        return testStatUrl;
+    } else if (locatedAtProd) {
+        return prodStatUrl;
+    }
+}
+
+function getObjectId () {
+    var timestamp = (new Date().getTime() / 1000 | 0).toString(16);
+    return timestamp + 'xxxxxxxxxxxxxxxx'.replace(/[x]/g, function () {
+            return (Math.random() * 16 | 0).toString(16);
+        }).toLowerCase();
 }
 
 // TODO: add array cloning
@@ -270,5 +302,7 @@ module.exports = {
     iter: iter,
     keys: keys,
     removeElement: removeElement,
-    postpone: postpone
+    postpone: postpone,
+    makeApiUrl: makeApiUrl,
+    getObjectId: getObjectId
 };

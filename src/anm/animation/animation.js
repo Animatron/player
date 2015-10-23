@@ -474,6 +474,12 @@ Animation.prototype.addToTree = function(elm) {
     this.tree.push(elm);
 };
 
+Animation.prototype.handlePause = function() {
+    this.traverse(function(elm) {
+        elm.__resetBandEvents();
+    });
+};
+
 /*Animation.prototype._addElems = function(elems) {
     for (var ei = 0; ei < elems.length; ei++) {
         var _elm = elems[ei];

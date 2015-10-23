@@ -13,14 +13,12 @@
    autostart — (boolean) autostart of movie on player load
    loop — (boolean) loop animation instead of stoping at the end
    animation — JSON object of animatron movie (currently not used)
-   hasInteractivity — (boolean) if there's some interactivity in the project, it should be autostarted (overrides `autostart`) and handle events
 */
 (function($global, $window, $document) {
     var inIFrame = ($window.self !== $window.top);
 
     var autostart = $global['autostart'] || false,
-        loop = $global['loop'] || false,
-        hasInteractivity = $global['hasInteractivity'] || false;
+        loop = $global['loop'] || false;
 
     var utils = {
         isInt: function(n) {
@@ -100,7 +98,8 @@
     // options to apply just _after_ the snapshot was completely loaded are stored in the url (width and height in `params`)
     // initialization options are stored in `initOptions`
     var params = utils.parseQueryString(),
-        initOptions = {};
+        initOptions = {},
+        minified = params.nomin ? false : true;
 
     var rect = utils.getRequiredRect(),
         targetWidth, targetHeight;
@@ -116,23 +115,18 @@
     } else {
         targetHeight = params.h = params.h || rect.h;
     }
-    if (autostart || hasInteractivity) {
-        initOptions.autoPlay = true;
-    }
-    if (loop) {
-        initOptions.repeat = true;
-    }
-    if (hasInteractivity) {
-        initOptions.controlsEnabled = false;
-        initOptions.handleEvents = true;
-    }
 
-    if (params.v) {
-        PLAYER_VERSION_ID = params.v;
-    }
+    if (autostart) initOptions.autoPlay = true;
+    if (loop) initOptions.repeat = true;
+
+    if (params.ver || params.version) { PLAYER_VERSION_ID = (params.ver || params.version); }
 
     var snapshotUrl = amazonDomain + '/' + filename + '?' +
         utils.serializeToQueryString(params);
+    var thumbnailUrl = amazonDomain + '/' + filename.slice(0, filename.indexOf('.')) + '.jpg';
+
+    initOptions.thumbnail = thumbnailUrl;
+
     var start = function () {
         try {
             if (!inIFrame) {
@@ -150,7 +144,7 @@
             target.style.top = '50%';
 
 
-            utils.forcedJS('//' + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.min.js',
+            utils.forcedJS('//' + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron' + (minified ? '.min' : '') + '.js',
                 function () {
                     var player = anm.Player.forSnapshot(TARGET_ID, snapshotUrl, anm.importers.create('animatron'), $window.actions, initOptions);
                     if (anm.interop && anm.interop.playerjs) {
