@@ -43,6 +43,9 @@ var Analytics = function () {
             player.on(C.S_PLAY, function () {
                 self.track('playing_start', player);
             });
+            player.on(C.S_INTERACTIVITY, function (path, type, time) {
+                self.trackUI(player, path, type, time);
+            });
         });
 
         playerManager.on(C.S_PLAYER_DETACH, function (player) {
