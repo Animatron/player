@@ -31,6 +31,7 @@ Loader.loadAnimation = function(player, anim, callback) {
     player.anim = anim;
     if (anim.actions) Loader.applyActions(player, anim, anim.actions);
     if (callback) callback.call(player, anim);
+    player._checkOpts();
 };
 
 Loader.loadFromUrl = function(player, url, importer, callback) {
@@ -84,6 +85,7 @@ Loader.loadElements = function(player, elms, callback) {
 
 Loader.applyActions = function(player, anim, actions) {
     eval('(function(p, a){' + actions + ';actions.call(p,a);})')(player, anim);
+    player.handleEvents = true;
 };
 
 var optsFromUrlParams = function(params/* as object */) {
