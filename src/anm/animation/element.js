@@ -1022,8 +1022,7 @@ Element.prototype.skew = function(hx, hy) {
 * @return {anm.Element} itself
 */
 Element.prototype.repeat = function(mode, nrep) {
-    this.mode = mode;
-    this.nrep = is.num(nrep) ? nrep : Infinity;
+    this.time.setEndAction(mode, nrep);
     return this;
 };
 
@@ -1041,8 +1040,7 @@ Element.prototype.repeat = function(mode, nrep) {
  * @return {anm.Element} itself
  */
 Element.prototype.once = function() {
-    this.mode = C.R_ONCE;
-    this.nrep = Infinity;
+    this.time.setEndAction(C.R_ONCE, Infinity);
     return this;
 };
 
@@ -1058,8 +1056,7 @@ Element.prototype.once = function() {
  * @return {anm.Element} itself
  */
 Element.prototype.stay = function() {
-    this.mode = C.R_STAY;
-    this.nrep = Infinity;
+    this.time.setEndAction(C.R_STAY, Infinity);
     return this;
 };
 
@@ -1077,8 +1074,7 @@ Element.prototype.stay = function() {
  * @return {anm.Element} itself
  */
 Element.prototype.loop = function(nrep) {
-    this.mode = C.R_LOOP;
-    this.nrep = is.num(nrep) ? nrep : Infinity;
+    this.time.setEndAction(C.R_LOOP, nrep);
     return this;
 };
 
@@ -1097,8 +1093,7 @@ Element.prototype.loop = function(nrep) {
  * @return {anm.Element} itself
  */
 Element.prototype.bounce = function(nrep) {
-    this.mode = C.R_BOUNCE;
-    this.nrep = is.num(nrep) ? nrep : Infinity;
+    this.time.setEndAction(C.R_BOUNCE, nrep);
     return this;
 };
 
@@ -2270,35 +2265,6 @@ Element.prototype.shallow = function() {
     return clone;
 };
 
-/**
- * @method asClip
- * @chainable
- *
- * Restrict tweens of this element in a separate band, and repeat them inside.
- * This method is useful for creating sputnik-like animations, where sputnik
- * continues to rotate without time reset, while parent keeps looping its own tweens
- * (say, both move up and down in repetition). Similar to Clips from Flash.
- *
- * A high possibility is this logic (`TODO`) will be moved in some separate
- * `Element` sub-class (named `Clip`?), where instances of this class will act as
- * described above by default, with a band and mode.
- *
- * @param {[Number]} band band, as `[start, stop]`
- * @param {anm.C.M_*} mode repeat mode
- * @param {Number} nrep number of repetition
- *
- * @return {anm.Element} itself
- *
- * @deprecated
- */
-Element.prototype.asClip = function(band, mode, nrep) {
-    if (mode == C.R_ONCE) return;
-    this.clip_band = band;
-    this.clip_mode = mode;
-    this.clip_nrep = nrep;
-    return this;
-};
-
 Element.prototype._addChild = function(elm) {
     //if (elm.parent) throw errors.element('This element already has parent, clone it before adding', this);
     elm.parent = this;
@@ -2345,12 +2311,6 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
 
     var res_time,
         res_duration;
-
-    if (elm.clip_band) {
-        ltime = Element.checkRepeatMode(ltime, elm.clip_band,
-                                        elm.clip_mode || C.R_ONCE, elm.clip_nrep);
-        if (ltime < 0) return false;
-    }
 
     // modifier takes the whole element time
     if (mod_time === null) {
@@ -2428,6 +2388,7 @@ Element.prototype.__pbefore = function(ctx, type) { };
 Element.prototype.__pafter = function(ctx, type) { };
 Element.prototype.__checkSwitcher = function(gtime) {
     if (!this.parent || !this.parent.switch) return gtime;
+    // FIXME: move switcher to Timeline class
     var parent = this.parent;
     if (parent.switch === C.SWITCH_OFF) return Element.NO_TIME;
     if ((parent.switch === this.name) && parent.switch_band) {
@@ -2609,38 +2570,6 @@ Element.getIMatrixOf = function(elm, m) {
     var t = Element.getMatrixOf(elm, m);
     t.invert();
     return t;
-};
-
-Element.checkRepeatMode = function(time, band, mode, nrep) {
-    if (time === Element.NO_TIME) return Element.NO_TIME;
-    if (!is.finite(band[1])) return time - band[0];
-    var durtn, ffits, fits, t;
-    switch (mode) {
-        case C.R_ONCE:
-            return time - band[0];
-        case C.R_STAY:
-            return (t_cmp(time, band[1]) <= 0) ?
-                time - band[0] : band[1] - band[0];
-        case C.R_LOOP: {
-                durtn = band[1] - band[0];
-                if (durtn < 0) return -1;
-                ffits = (time - band[0]) / durtn;
-                fits = Math.floor(ffits);
-                if ((fits < 0) || (ffits > nrep)) return -1;
-                t = (time - band[0]) - (fits * durtn);
-                return t;
-            }
-        case C.R_BOUNCE: {
-                durtn = band[1] - band[0];
-                if (durtn < 0) return -1;
-                ffits = (time - band[0]) / durtn;
-                fits = Math.floor(ffits);
-                if ((fits < 0) || (ffits > nrep)) return -1;
-                t = (time - band[0]) - (fits * durtn);
-                t = ((fits % 2) === 0) ? t : (durtn - t);
-                return t;
-            }
-    }
 };
 
 /* TODO: add createFromImgUrl?

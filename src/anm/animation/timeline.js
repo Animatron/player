@@ -98,8 +98,9 @@ Timeline.prototype.tick = function(dt) {
     return toReturn;
 }
 
-Timeline.prototype.setEndAction = function(type) {
+Timeline.prototype.setEndAction = function(type, nrep) {
     this.end = type;
+    this.nrep = is.num(nrep) ? nrep : Infinity;
 }
 
 Timeline.prototype.changeBand = function(start, stop) {
@@ -150,5 +151,37 @@ Timeline.prototype.clone = function() {
     trg.end = this.end; trg.nrep = this.nrep;
     trg.easing = this.easing;
 }
+
+/* Element.checkRepeatMode = function(time, band, mode, nrep) {
+    if (time === Element.NO_TIME) return Element.NO_TIME;
+    if (!is.finite(band[1])) return time - band[0];
+    var durtn, ffits, fits, t;
+    switch (mode) {
+        case C.R_ONCE:
+            return time - band[0];
+        case C.R_STAY:
+            return (t_cmp(time, band[1]) <= 0) ?
+                time - band[0] : band[1] - band[0];
+        case C.R_LOOP: {
+                durtn = band[1] - band[0];
+                if (durtn < 0) return -1;
+                ffits = (time - band[0]) / durtn;
+                fits = Math.floor(ffits);
+                if ((fits < 0) || (ffits > nrep)) return -1;
+                t = (time - band[0]) - (fits * durtn);
+                return t;
+            }
+        case C.R_BOUNCE: {
+                durtn = band[1] - band[0];
+                if (durtn < 0) return -1;
+                ffits = (time - band[0]) / durtn;
+                fits = Math.floor(ffits);
+                if ((fits < 0) || (ffits > nrep)) return -1;
+                t = (time - band[0]) - (fits * durtn);
+                t = ((fits % 2) === 0) ? t : (durtn - t);
+                return t;
+            }
+    }
+}; */
 
 module.exports = Timeline;
