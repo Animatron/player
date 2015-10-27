@@ -551,6 +551,8 @@ task('invalidate', [], { async: true }, function(version) {
     var paths = [
         '/%VERSION%/bundle/animatron.js',
         '/%VERSION%/bundle/animatron.min.js',
+        '/%VERSION%/bundle/animatron.local.js',
+        '/%VERSION%/bundle/animatron.local.min.js',
         '/%VERSION%/player.js',
         '/%VERSION%/player.min.js',
         '/%VERSION%/publish.js',
