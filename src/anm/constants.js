@@ -163,6 +163,8 @@ C.T_SHADOW      = 'shadow';
 C.T_VOLUME      = 'volume';
 C.T_DISPLAY     = 'display';
 C.T_SWITCH      = 'switch';
+C.T_BONE_ROTATE = 'bonerotate';
+C.T_BONE_LENGTH = 'bonelength';
 
 // modifiers classes
 C.MOD_SYSTEM = 'system';

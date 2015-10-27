@@ -2868,8 +2868,9 @@ Element.transferTime = function(src, trg) {
 Element.getMatrixOf = function(elm, m) {
     var t = (m ? (m.reset(), m)
                 : new Transform());
-    t.translate(elm.x, elm.y);
-    t.rotate(elm.angle);
+    var tr = Element.getTranslate(elm);
+    t.translate(tr ? tr.x : elm.x, tr ? tr.y : elm.y);
+    t.rotate(elm.angle + Element.getRotate(elm));
     t.shear(elm.hx, elm.hy);
     t.scale(elm.sx, elm.sy);
     t.translate(-elm.$reg[0], -elm.$reg[1]);
@@ -2882,6 +2883,47 @@ Element.getMatrixOf = function(elm, m) {
                 -(pivot[1] * (my_bounds.height || 0)));
 
     return t;
+};
+
+Element.getTranslate = function(elm) {
+    if (elm.parent && elm.parent.layer2Bone) {
+	elm.$bonePath = elm.$bonePath || Element.bonePath(elm);
+        var result = {x: 0, y: 0};
+        var bone = null;
+	for (var li = elm.$bonePath.length; li--;) {
+            bone = elm.$bonePath[li];
+	    result.x += bone.bonelength * Math.cos(bone.bonerotate);
+	    result.y += bone.bonelength * Math.sin(bone.bonerotate); 
+	}
+        elm = bone ? elm.parent.children[bone.$from] : elm;
+        result.x += elm.x;
+        result.y += elm.y;
+        return result;
+    }
+    return null;
+};
+
+Element.getRotate = function(elm) {
+    if (elm.parent && elm.parent.layer2Bone) {
+        elm.$bonePath = elm.$bonePath || Element.bonePath(elm);
+	var result = 0;
+	for (var li = elm.$bonePath.length; li--;) {
+	    result += elm.$bonePath[li].bonerotate;
+	}
+        return result;
+    }
+    return 0;
+};
+
+Element.bonePath = function(elm) {
+    var l2b = elm.parent.layer2Bone;
+    var result = [];
+    var bone = l2b[elm.parent.children.indexOf(elm)];
+    while (bone) {
+       result.push(bone);
+       bone = l2b[bone.$from];
+    }
+    return result;
 };
 
 Element.getIMatrixOf = function(elm, m) {
