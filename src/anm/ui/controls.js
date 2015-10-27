@@ -227,6 +227,8 @@ Controls.prototype.react = function() {
 
     var p = this.player,
         s = this.state.happens,
+        stateDuration = p.state.duration,
+        animDuration = p.anim.getDuration(),
         btnWidth = theme.progress.buttonWidth,
         bottomHeight = theme.bottomControls.height;
     if ((s === C.NOTHING) || (s === C.LOADING) || (s === C.ERROR)) return;
@@ -237,17 +239,17 @@ Controls.prototype.react = function() {
     //and mute buttons reside
     if (!this.invisible && Controls.isInProgressArea(coords, w, h)) {
         if (coords.x > btnWidth && coords.x < w-btnWidth) {
-            time = utils.roundTo(p.state.duration*(coords.x-btnWidth)/(w-2*btnWidth), 1);
-            if (time > p.anim.duration) {
+            time = utils.roundTo(stateDuration*(coords.x-btnWidth)/(w-2*btnWidth), 1);
+            if (time > animDuration) { // FIXME: why using the state.duration and anim.duration in same code?
                 //when the animation is something like 3.8 seconds long,
                 //the rounding will exceed the duration, which is not
                 //a good idea.
-                time = p.anim.duration;
+                time = animDuration;
             }
             p.seek(time);
             this.state.time = time;
             return;
-        } else if(coords.x > w-btnWidth) { //mute button?
+        } else if (coords.x > w-btnWidth) { //mute button?
             p.toggleMute();
             return;
         }

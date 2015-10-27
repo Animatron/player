@@ -59,6 +59,7 @@ var DOM_TO_EVT_MAP = {
 function Animation() {
     this.id = utils.guid();
     this.scene = new Scene('Default', 0); // current scene
+    this.firstScene = this.scene;
     this.tree = [];
     this.hash = {};
     this.name = '';
@@ -145,9 +146,23 @@ Animation.prototype.remove = function(elm) {
 
 Animation.prototype.addScene = function(name, duration) {
     var scene = new Scene(name, duration);
+    if (!this.firstScene) this.firstScene = scene;
     this.scene.setNext(scene);
     return scene;
 };
+
+Animation.prototype.getDuration = function() {
+    var cursor = this.firstScene;
+    var duration = 0;
+    while (cursor) {
+        duration += cursor.getDuration();
+        cursor = cursor.getNext();
+    }
+}
+
+/* Animation.prototype.setDuration = function(duration) {
+    this.scene.setDuration(duration);
+} */
 
 /**
  * @method traverse

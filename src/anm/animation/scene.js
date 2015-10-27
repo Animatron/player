@@ -11,6 +11,14 @@ Scene.prototype.setDuration = function(duration) {
     this.time.setDuration(duration);
 }
 
+Scene.prototype.getDuration = function() {
+    return this.time.getDuration();
+}
+
 Scene.prototype.setNext = function(scene) {
     this.next = scene;
+}
+
+Scene.prototype.getNext = function(scene) {
+    return this.next;
 }
