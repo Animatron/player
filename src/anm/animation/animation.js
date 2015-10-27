@@ -1,6 +1,5 @@
 var utils = require('../utils.js'),
     is = utils.is,
-    iter = utils.iter,
     C = require('../constants.js');
 
 var engine = require('engine'),
@@ -60,8 +59,6 @@ function Animation() {
     this.id = utils.guid();
     this.scene = new Scene('Default', 0); // current scene
     this.firstScene = this.scene;
-    this.tree = [];
-    this.hash = {};
     this.name = '';
     this.bgfill = null;
     this.width = undefined;
@@ -176,7 +173,7 @@ Animation.prototype.getDuration = function() {
  * @param {Object} [data]
  */
 Animation.prototype.traverse = function(visitor, data) {
-    utils.keys(this.hash, function(key, elm) { return visitor(elm, data); });
+    this.eachScene(function(scene) { scene.traverse(visitor, data); });
     return this;
 };
 
@@ -192,9 +189,7 @@ Animation.prototype.traverse = function(visitor, data) {
  * @param {Object} [data]
  */
 Animation.prototype.each = function(visitor, data) {
-    for (var i = 0, tlen = this.tree.length; i < tlen; i++) {
-        if (visitor(this.tree[i], data) === false) break;
-    }
+    this.eachScene(function(scene) { scene.each(visitor, data); });
     return this;
 };
 
@@ -213,10 +208,7 @@ Animation.prototype.each = function(visitor, data) {
  * @param {Object} [data]
  */
 Animation.prototype.reverseEach = function(visitor, data) {
-    var i = this.tree.length;
-    while (i--) {
-        if (visitor(this.tree[i], data) === false) break;
-    }
+    this.eachScene(function(scene) { scene.reverseEach(visitor, data); });
     return this;
 };
 
@@ -234,7 +226,7 @@ Animation.prototype.reverseEach = function(visitor, data) {
  * @param {Boolean} remover.return `false`, if this element should be removed
  */
 Animation.prototype.iter = function(func, rfunc) {
-    iter(this.tree).each(func, rfunc);
+    this.eachScene(function(scene) { scene.iter(func, rfunc); });
     return this;
 };
 
