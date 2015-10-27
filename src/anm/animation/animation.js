@@ -58,10 +58,10 @@ var DOM_TO_EVT_MAP = {
  */
 function Animation() {
     this.id = utils.guid();
+    this.scene = new Scene('Default', 0); // current scene
     this.tree = [];
     this.hash = {};
     this.name = '';
-    this.duration = undefined;
     this.bgfill = null;
     this.width = undefined;
     this.height = undefined;
@@ -141,6 +141,12 @@ Animation.prototype.remove = function(elm) {
         this._unregister(elm);
     }
     return this;
+};
+
+Animation.prototype.addScene = function(name, duration) {
+    var scene = new Scene(name, duration);
+    this.scene.setNext(scene);
+    return scene;
 };
 
 /**
@@ -278,23 +284,13 @@ Animation.prototype.jumpTo = function(selector) {
     this.jump(elm.gband[0]);
 };
 
-// TODO: test
-/**
- * @method getFittingDuration
- *
- * Get the duration where all child elements' bands fit.
- *
- * @return {Number} The calculated duration
- */
-Animation.prototype.getFittingDuration = function() {
-    var max_pos = -Infinity;
-    var me = this;
-    this.each(function(child) {
-        var elm_tpos = child._max_tpos();
-        if (elm_tpos > max_pos) max_pos = elm_tpos;
-    });
-    return max_pos;
+/* Animation.prototype.nextScene = function() {
+
 };
+
+Animation.prototype.currentScene = function() {
+
+}; */
 
 /**
  * @method reset

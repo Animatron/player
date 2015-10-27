@@ -1486,8 +1486,8 @@ Element.prototype.band = function(start, stop) {
  * @return {anm.Element|Number} itself or current duration value
  */
 Element.prototype.duration = function(value) {
-    if (!is.defined(value)) return this.time.duration;
-    this.time.duration = value;
+    if (!is.defined(value)) return this.time.getDuration();
+    this.time.setDuration(value);
     return this;
 };
 
@@ -2303,7 +2303,7 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
     // TODO: move to Modifier class?
 
     var elm = this,
-        elm_duration = elm.time.duration, // duration of the element's local band
+        elm_duration = elm.time.getDuration(), // duration of the element's local band
         mod_easing = modifier.$easing, // modifier easing
         mod_time = modifier.$band || modifier.$time, // time (or band) of the modifier, if set
         mod_relative = modifier.$relative, // is modifier time or band relative to elm duration or not

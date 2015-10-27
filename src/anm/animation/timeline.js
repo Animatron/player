@@ -108,8 +108,21 @@ Timeline.prototype.changeBand = function(start, stop) {
     this.duration = stop - this.start;
 }
 
+Timeline.prototype.setDuration = function(duration) {
+    this.duration = duration;
+}
+
+Timeline.prototype.getDuration = function(duration) {
+    return this.duration;
+}
+
 Timeline.prototype.getBand = function() {
     return [ this.start, this.start + this.duration ];
+}
+
+Timeline.prototype.getGlobalBand = function(parent) {
+    // TODO:
+    return [0, 0];
 }
 
 Timeline.prototype.pause = function() { this.paused = true; }
