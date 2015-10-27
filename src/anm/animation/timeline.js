@@ -3,6 +3,9 @@ var C = require('../constants.js');
 var utils = require('../utils.js');
 var is = utils.is;
 
+var events = require('../events.js'),
+    provideEvents = events.provideEvents;
+
 /**
  * @class anm.Timeline
  *
@@ -147,3 +150,5 @@ Timeline.prototype.clone = function() {
     trg.end = this.end; trg.nrep = this.nrep;
     trg.easing = this.easing;
 }
+
+module.exports = Timeline;

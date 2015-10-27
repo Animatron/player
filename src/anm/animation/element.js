@@ -530,8 +530,6 @@ Element.prototype.modifiers = function(ltime, dt, types) {
     // copy current state as previous one
     elm.applyPrevState(elm);
 
-    // TODO: think on sorting tweens/band-restricted-modifiers by time
-
     elm.__loadEvents();
 
     var modifiers = this.$modifiers;
@@ -2307,7 +2305,6 @@ Element.prototype._addChild = function(elm) {
     elm.level = this.level + 1;
     this.children.push(elm); /* or add elem.id? */
     if (this.anim) this.anim._register(elm); /* TODO: rollback parent and child? */
-    Bands.recalc(this);
 };
 
 Element.prototype._stateStr = function() {
