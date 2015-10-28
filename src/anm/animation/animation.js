@@ -121,7 +121,7 @@ Animation.prototype.remove = function(elm) {
 };
 
 Animation.prototype.addScene = function(name, duration) {
-    var scene = new Scene(this, name, duration);
+    var scene = (name instanceof Scene) ? name : new Scene(this, name, duration);
     if (!this.firstScene) { this.firstScene = scene; };
     if (!this.scene) { this.scene = scene; }
     else { this.scene.setNext(scene); };
@@ -240,7 +240,7 @@ Animation.prototype.render = function(ctx, time, dt) {
         ctx.fillRect(0, 0, this.width, this.height);
     }
     time = this.$prefix ? this.$prefix(time, ctx) : time;
-    this.each(function(child) {
+    this.scene.each(function(child) {
         child.render(ctx, time, dt);
     });
     ctx.restore();

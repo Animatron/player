@@ -272,4 +272,34 @@ describe('search', function() {
 
     });
 
+    it('searches properly inside scenes', function() {
+        var animation = new anm.Animation();
+        var sceneOne = animation.addScene('Scene One');
+        var sceneTwo = animation.addScene('Scene Two');
+        var sceneThree = animation.addScene(new anm.Scene('Scene Three'));
+
+        var inSceneOne = element('test');
+        sceneOne.add(inSceneOne);
+
+        expect(animation.find('test')).toBe(inSceneOne);
+        expect(animation.find('/Scene One/test')).toBe(inSceneOne);
+        expect(animation.findAll('/Scene One/test')[0]).toBe(inSceneOne);
+        expect(animation.find('/Scene One/:0')).toBe(inSceneOne);
+        expect(animation.findAll('/Scene One/:0')[0]).toBe(inSceneOne);
+
+        var inSceneTwo = element('test');
+        expect(animation.findAll('test')[1]).toBe(inSceneTwo);
+        expect(animation.find('/Scene Two/test')).toBe(inSceneTwo);
+        expect(animation.findAll('/Scene Two/test')[0]).toBe(inSceneTwo);
+        expect(animation.find('/Scene Two/:0')).toBe(inSceneTwo);
+        expect(animation.findAll('/Scene Two/:0')[0]).toBe(inSceneTwo);
+
+        var inSceneThree = element('test-foo');
+        expect(animation.find('test-foo')).toBe(inSceneThree);
+        expect(animation.find('/Scene Three/test')).toBe(inSceneThree);
+        expect(animation.findAll('/Scene Three/test')[0]).toBe(inSceneThree);
+        expect(animation.find('/Scene Three/:0')).toBe(inSceneThree);
+        expect(animation.findAll('/Scene Three/:0')[0]).toBe(inSceneThree);
+    });
+
 });
