@@ -1473,6 +1473,10 @@ Element.prototype.band = function(start, stop) {
     return this;
 };
 
+Element.prototype.getGlobalBand = function() {
+    return this.time.getGlobalBand(this.parent);
+}
+
 /**
  * @method duration
  * @chainable
@@ -2571,6 +2575,20 @@ Element.getIMatrixOf = function(elm, m) {
     t.invert();
     return t;
 };
+
+Element._fromArguments = function(arg1, arg2, arg3) {
+    if (arg2) { // element by functions mode
+        var elm = new Element(arg1, arg2);
+        if (arg3) elm.changeTransform(arg3);
+        return elm;
+    } else if (is.arr(arg1)) { // elements array mode
+        var clip = new Element();
+        clip.add(arg1);
+        return clip;
+    } else { // element object mode
+        return arg1;
+    }
+}
 
 /* TODO: add createFromImgUrl?
  Element.imgFromURL = function(url) {
