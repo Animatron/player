@@ -41,6 +41,7 @@ var Loader = require('./loader.js'),
     Controls = require('./ui/controls.js');
 
 var Animation = require('./animation/animation.js'),
+    Scene = require('./animation/scene.js'),
     Element = require('./animation/element.js'),
     Render = require('./render.js'),
     Sheet = require('./graphics/sheet.js');

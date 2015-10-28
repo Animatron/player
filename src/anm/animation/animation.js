@@ -6,7 +6,8 @@ var engine = require('engine'),
     ResMan = require('../resource_manager.js'),
     FontDetector = require('../../vendor/font_detector.js');
 
-var Element = require('./element.js'),
+var Scene = require('./scene.js'),
+    Element = require('./element.js'),
     Clip = Element,
     Brush = require('../graphics/brush.js');
 

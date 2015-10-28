@@ -1,6 +1,7 @@
 var Timeline = require('./timeline.js');
 
 var utils = require('../utils.js'),
+    is = utils.is,
     iter = utils.iter;
 
 function Scene(anim, name, duration) {
