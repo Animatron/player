@@ -109,6 +109,7 @@ function Element(name, draw, onframe) {
     this.parent = null;     /** @property {anm.Element} parent parent element, if exists @readonly */
     this.level = 0;         /** @property {Number} level how deep this element is located in animation tree @readonly */
     this.anim = null;       /** @property {anm.Animation} anim the animation this element belongs to / registered in, if it really belongs to one @readonly */
+    this.scene = null;      /** @property {anm.Scene} scene the scene this element belongs to / registered in, if it really belongs to one @readonly */
     this.disabled = false;  /** @property {Boolean} visible Is this element visible or not (called, but not drawn) */
     this.visible = true;    /** @property {Boolean} disabled Is this element disabled or not */
     this.affectsChildren = true; /** @property {Boolean} affectsChildren Is this element local time affects children local time */
@@ -1417,8 +1418,8 @@ Element.prototype._unbind = function() {
     if (this.parent.__unsafeToRemove ||
         this.__unsafeToRemove) throw errors.element(ErrLoc.A.UNSAFE_TO_REMOVE);
     this.parent = null;
-    if (this.anim) this.anim._unregister(this);
-    // this.anim should be null after unregistering
+    if (this.scene) this.scene._unregister(this);
+    // this.scene should be null after unregistering
 };
 
 /**
@@ -2193,6 +2194,7 @@ Element.prototype.toString = function() {
  * @return {anm.Element|Null} found element or `null`
  */
 Element.prototype.find = function(name) {
+    if (!this.anim) throw errors.element(ErrLoc.A.NOT_BELONGS_TO_ANIMATION, this);
     return this.anim.find(name, this);
 };
 
@@ -2208,6 +2210,7 @@ Element.prototype.find = function(name) {
  * @return {[anm.Element]} found elements
  */
 Element.prototype.findAll = function(name) {
+    if (!this.anim) throw errors.element(ErrLoc.A.NOT_BELONGS_TO_ANIMATION, this);
     return this.anim.findAll(name, this);
 };
 
@@ -2227,7 +2230,7 @@ Element.prototype.clone = function() {
     clone.level = this.level;
     //clone.visible = this.visible;
     //clone.disabled = this.disabled;
-    // .anim pointer, .parent pointer & PNT_SYSTEMistered flag
+    // .anim pointer, .scene pointer, .parent pointer & registered flag
     // are not transferred because the clone is another
     // element that should be separately added to some animation
     // in its own time to start working properly
@@ -2274,7 +2277,7 @@ Element.prototype._addChild = function(elm) {
     elm.parent = this;
     elm.level = this.level + 1;
     this.children.push(elm); /* or add elem.id? */
-    if (this.anim) this.anim._register(elm); /* TODO: rollback parent and child? */
+    if (this.scene) this.scene._register(elm); /* TODO: rollback parent and child? */
 };
 
 Element.prototype._stateStr = function() {
@@ -2588,7 +2591,7 @@ Element._fromArguments = function(arg1, arg2, arg3) {
     } else { // element object mode
         return arg1;
     }
-}
+};
 
 /* TODO: add createFromImgUrl?
  Element.imgFromURL = function(url) {

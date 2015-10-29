@@ -1,8 +1,10 @@
-var Timeline = require('./timeline.js');
-
 var utils = require('../utils.js'),
     is = utils.is,
     iter = utils.iter;
+
+var Element = require('./element.js');
+
+var Timeline = require('./timeline.js');
 
 function Scene(anim, name, duration) {
     this.anim = anim;
@@ -54,10 +56,9 @@ Scene.prototype.iter = function(func, rfunc) {
 
 Scene.prototype.add = function(arg1, arg2, arg3) {
     var element = Element._fromArguments(arg1, arg2, arg3);
-    if (!elm.children) throw errors.animation(ErrLoc.A.OBJECT_IS_NOT_ELEMENT, this);
-    this._register(elm);
-    /*if (elm.children) this._addElems(elm.children);*/
-    this.children.push(elm);
+    if (!element.children) throw errors.animation(ErrLoc.A.OBJECT_IS_NOT_ELEMENT, this);
+    this._register(element);
+    this.children.push(element);
 };
 
 Scene.prototype.remove = function(elm) {

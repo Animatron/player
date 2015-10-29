@@ -58,7 +58,7 @@ var DOM_TO_EVT_MAP = {
  */
 function Animation() {
     this.id = utils.guid();
-    this.scene = new Scene('Default', 0); // current scene
+    this.scene = new Scene(this, 'Default', 0); // current scene
     this.firstScene = this.scene;
     this.name = '';
     this.bgfill = null;
