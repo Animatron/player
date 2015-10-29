@@ -11,7 +11,7 @@ function Scene(anim, name, duration) {
     this.time.setDuration(is.num(duration) ? duration : Infinity);
     this.next = null;
 
-    this.tree = [];
+    this.children = [];
     this.hash = {};
 }
 
@@ -36,20 +36,20 @@ Scene.prototype.traverse = function(visitor, data) {
 };
 
 Scene.prototype.each = function(visitor, data) {
-    for (var i = 0, tlen = this.tree.length; i < tlen; i++) {
-        if (visitor(this.tree[i], data) === false) break;
+    for (var i = 0, clen = this.children.length; i < clen; i++) {
+        if (visitor(this.children[i], data) === false) break;
     }
 };
 
 Scene.prototype.reverseEach = function(visitor, data) {
-    var i = this.tree.length;
+    var i = this.children.length;
     while (i--) {
-        if (visitor(this.tree[i], data) === false) break;
+        if (visitor(this.children[i], data) === false) break;
     }
 };
 
 Scene.prototype.iter = function(func, rfunc) {
-    iter(this.tree).each(func, rfunc);
+    iter(this.children).each(func, rfunc);
 };
 
 Scene.prototype.add = function(arg1, arg2, arg3) {
@@ -57,7 +57,7 @@ Scene.prototype.add = function(arg1, arg2, arg3) {
     if (!elm.children) throw errors.animation(ErrLoc.A.OBJECT_IS_NOT_ELEMENT, this);
     this._register(elm);
     /*if (elm.children) this._addElems(elm.children);*/
-    this.tree.push(elm);
+    this.children.push(elm);
 };
 
 Scene.prototype.remove = function(elm) {
@@ -71,7 +71,19 @@ Scene.prototype.remove = function(elm) {
 }
 
 Scene.prototype.isEmpty = function() {
-    return this.tree.length === 0;
+    return this.children.length === 0;
+};
+
+Scene.prototype.find = function(selector, where) {
+    return Search.all(selector).over(where ? where.children : this.children);
+};
+
+Scene.prototype.findAll = function(selector, where) {
+    return Search.all(selector).over(where ? where.children : this.children);
+};
+
+Scene.prototype.findById = function(id) {
+    return this.hash[id];
 };
 
 Scene.prototype._register = function(elm) {
@@ -99,8 +111,8 @@ Scene.prototype._unregister = function(elm, save_in_tree) { // save_in_tree is o
     });
     var pos = -1;
     if (!save_in_tree) {
-      while ((pos = this.tree.indexOf(elm)) >= 0) {
-        this.tree.splice(pos, 1); // FIXME: why it does not goes deeply in the tree?
+      while ((pos = this.children.indexOf(elm)) >= 0) {
+        this.children.splice(pos, 1); // FIXME: why it does not goes deeply in the tree?
       }
     }
     delete this.hash[elm.id];

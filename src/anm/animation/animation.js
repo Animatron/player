@@ -219,6 +219,12 @@ Animation.prototype.eachScene = function(func) {
     return this;
 };
 
+Animation.prototype.getScenes = function() {
+    var scenes = [];
+    this.eachScene(function(scene) { scenes.push(scene); });
+    return scenes;
+}
+
 /**
  * @method render
  *
@@ -506,11 +512,7 @@ Animation.prototype._loadRemoteResources = function(player) {
  * @return {anm.Element} First found element
  */
 Animation.prototype.find = function(selector, where) {
-    /*var found = null;
-    this.eachScene(function(scene) {
-        found = found || scene.find(selector, where);
-    });*/
-    return Search.one(selector).over(where ? where.children : this.tree);
+    return Search.one(selector).over(where ? where.children : this.getScenes());
 };
 
 /**
@@ -532,7 +534,7 @@ Animation.prototype.find = function(selector, where) {
  * @return {Array} An array of found elements
  */
 Animation.prototype.findAll = function(selector, where) {
-    return Search.all(selector).over(where ? where.children : this.tree);
+    return Search.all(selector).over(where ? where.children : this.getScenes());
 };
 
 /**
@@ -549,7 +551,13 @@ Animation.prototype.findAll = function(selector, where) {
  * @deprecated in favor of special syntax in `find` method
  */
 Animation.prototype.findById = function(id) {
-    return this.hash[id];
+    var cursor = this.firstScene;
+    var found = null;
+    while (cursor && !found) {
+        found = cursor.findById(id);
+        cursor = cursor.getNext();
+    }
+    return found;
 };
 
 /**
