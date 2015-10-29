@@ -78,6 +78,14 @@ describe('search', function() {
             expect(subRootElement.findAll('foobar')[0]).toBe(searchFor);
         });
 
+        it('placed in a secondary scene', function() {
+            var animation = new anm.Animation();
+            var secondScene = animation.addScene('Second');
+            var searchFor = element('foobar');
+            expect(animation.find('foobar')).toBe(searchFor);
+            expect(rootElement.findAll('foobar')[0]).toBe(searchFor);
+        });;
+
     });
 
     it('properly searches for multiple elements with a same name', function() {
@@ -105,8 +113,8 @@ describe('search', function() {
             animation.add(element('stub'));
             animation.add(searchFor);
 
-            expect(animation.find('/foobar')).toBe(searchFor);
-            expect(animation.findAll('/foobar')[0]).toBe(searchFor);
+            expect(animation.find('//foobar')).toBe(searchFor);
+            expect(animation.findAll('//foobar')[0]).toBe(searchFor);
         });
 
 
@@ -165,6 +173,38 @@ describe('search', function() {
 
             expect(subRootElement.find('/foobar')).toBe(searchFor);
             expect(subRootElement.findAll('/foobar')[0]).toBe(searchFor);
+        });
+
+        it('is default scene', function() {
+            var animation = new anm.Animation();
+            var defaultScene = animation.getScenes()[0];
+
+            expect(animation.find('//')).toBe(jasmine.instanceOf(anm.Scene));
+            expect(animation.find('//')).toBe(jasmine.objectContaining({ name: '' });
+            expect(animation.find('//')).toBe(defaultScene);
+        });
+
+        it('is a named scene', function() {
+            var animation = new anm.Animation();
+            var defaultScene = animation.getScenes()[0];
+
+            defaultScene.name = 'Defaut';
+            expect(animation.find('/Default')).toBe(defaultScene);
+            expect(animation.find('/Default/')).toBe(defaultScene);
+
+            var secondScene = animation.addScene('Second');
+            expect(animation.find('/Second')).toBe(secondScene);
+
+        });
+
+        it('placed inside a scene', function() {
+            var animation = new anm.Animation();
+            var secondScene = animation.addScene('Second');
+            var searchFor = element('foobar');
+            secondScene.add(searchFor);
+
+            expect(animation.find('/Second/foobar')).toBe(searchFor);
+            expect(animation.findAll('/Second/foobar')[0]).toBe(searchFor);
         });
 
     });
