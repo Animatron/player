@@ -27,14 +27,6 @@ Scene.prototype.getDuration = function() {
     return this.time.getDuration();
 }
 
-Scene.prototype.setNext = function(scene) {
-    this.next = scene;
-}
-
-Scene.prototype.getNext = function(scene) {
-    return this.next;
-}
-
 Scene.prototype.traverse = function(visitor, data) {
     utils.keys(this.hash, function(key, elm) { return visitor(elm, data); });
 };

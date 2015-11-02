@@ -337,7 +337,7 @@ describe('search', function() {
         var animation = new anm.Animation();
         var sceneOne = animation.addScene('Scene One');
         var sceneTwo = animation.addScene('Scene Two');
-        var sceneThree = animation.addScene(new anm.Scene('Scene Three'));
+        var sceneThree = animation.addScene(new anm.Scene(animation, 'Scene Three'));
 
         var inSceneOne = element('test');
         sceneOne.add(inSceneOne);
@@ -349,6 +349,7 @@ describe('search', function() {
         expect(animation.findAll('/Scene One/:0')[0]).toBe(inSceneOne);
 
         var inSceneTwo = element('test');
+        sceneTwo.add(inSceneTwo);
         expect(animation.findAll('test')[1]).toBe(inSceneTwo);
         expect(animation.find('/Scene Two/test')).toBe(inSceneTwo);
         expect(animation.findAll('/Scene Two/test')[0]).toBe(inSceneTwo);
@@ -356,22 +357,23 @@ describe('search', function() {
         expect(animation.findAll('/Scene Two/:0')[0]).toBe(inSceneTwo);
 
         var inSceneThree = element('test-foo');
+        sceneThree.add(inSceneThree);
         expect(animation.find('test-foo')).toBe(inSceneThree);
-        expect(animation.find('/Scene Three/test')).toBe(inSceneThree);
-        expect(animation.findAll('/Scene Three/test')[0]).toBe(inSceneThree);
+        expect(animation.find('/Scene Three/test-foo')).toBe(inSceneThree);
+        expect(animation.findAll('/Scene Three/test-foo')[0]).toBe(inSceneThree);
         expect(animation.find('/Scene Three/:0')).toBe(inSceneThree);
         expect(animation.findAll('/Scene Three/:0')[0]).toBe(inSceneThree);
     });
 
-    /*it('searches properly inside replaced first scene', function() {
+    it('searches properly inside replaced first scene', function() {
         var animation = new anm.Animation();
         var sceneTwo = animation.addScene('Scene Two');
         var anotherScene = new anm.Scene('Another Scene');
 
-        animation.replaceFirstScene(anotherScene);
+        animation.replaceScene(0, anotherScene);
         anotherScene.add(element('foobar'));
         expect(animation.find('foobar')).toBeDefined();
         expect(animation.findAll('foobar')).not.toBeEmpty();
-    });*/
+    });
 
 });

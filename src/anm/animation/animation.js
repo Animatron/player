@@ -58,8 +58,6 @@ var DOM_TO_EVT_MAP = {
  */
 function Animation() {
     this.id = utils.guid();
-    this.scene = new Scene(this, '', 0); // current scene
-    this.firstScene = this.scene;
     this.name = '';
     this.bgfill = null;
     this.width = undefined;
@@ -76,6 +74,12 @@ function Animation() {
     this.__lastOverElm = null;
     this._laters = [];
     this._initHandlers(); // TODO: make automatic
+
+    var defaultScene = new Scene(this, '', 0);
+    this.scenes = [];
+    this.scenes.push(defaultScene);
+    this.currentSceneIdx = 0;
+    this.currentScene = this.scenes[this.currentSceneIdx];
 }
 
 Animation.DEFAULT_DURATION = 10;
@@ -105,7 +109,7 @@ provideEvents(Animation, [ C.A_START, C.A_PAUSE, C.A_STOP,
  */
 Animation.prototype.add = function(arg1, arg2, arg3) {
     // this method only adds an element to a top-level
-    this.scene.add(arg1, arg2, arg3);
+    this.currentScene.add(arg1, arg2, arg3);
     return this;
 };
 
@@ -123,10 +127,13 @@ Animation.prototype.remove = function(elm) {
 };
 
 Animation.prototype.addScene = function(name, duration) {
-    var scene = (name instanceof Scene) ? name : new Scene(this, name, duration);
-    if (!this.firstScene) { this.firstScene = scene; };
-    if (!this.scene) { this.scene = scene; }
-    else { this.scene.setNext(scene); };
+    var scene;
+    if (!(name instanceof Scene)) {
+        scene = new Scene(this, name, duration);
+    } else {
+        scene = name; scene.anim = this;
+    }
+    this.scenes.push(scene);
     return scene;
 };
 
@@ -136,7 +143,40 @@ Animation.prototype.getDuration = function() {
         duration += scene.getDuration();
     });
     return duration;
-}
+};
+
+Animation.prototype.getScenes = function() {
+    return this.scenes;
+};
+
+Animation.prototype.toNextScene = function() {
+    if ((this.currentSceneIdx + 1) >= this.scenes.length) return null;
+    this.currentSceneIdx++;
+    this.currentScene = this.scenes[this.currentSceneIdx];
+    return this.currentScene;
+};
+
+Animation.prototype.toPrevScene = function() {
+    if ((this.currentSceneIdx - 1) < 0) return null;
+    this.currentSceneIdx--;
+    this.currentScene = this.scenes[this.currentSceneIdx];
+    return this.currentScene;
+};
+
+Animation.prototype.setCurrentScene = function(idx) {
+    this.currentSceneIdx = idx;
+    this.currentScene = this.scenes[this.currentSceneIdx];
+    return this;
+};
+
+Animation.prototype.getCurrentScene = function() {
+    return this.scenes[this.currentSceneIdx];
+};
+
+Animation.prototype.replaceScene = function(idx, scene) {
+    this.scenes[idx] = scene;
+    return this;
+};
 
 /* Animation.prototype.setDuration = function(duration) {
     this.scene.setDuration(duration);
@@ -212,19 +252,12 @@ Animation.prototype.iter = function(func, rfunc) {
 };
 
 Animation.prototype.eachScene = function(func) {
-    var cursor = this.firstScene;
-    while (cursor) {
-        func(cursor);
-        cursor = cursor.getNext();
+    var scenes = this.scenes;
+    for (var i = 0, il = scenes.length; i < il; i++) {
+        func(scenes[i]);
     }
     return this;
 };
-
-Animation.prototype.getScenes = function() {
-    var scenes = [];
-    this.eachScene(function(scene) { scenes.push(scene); });
-    return scenes;
-}
 
 /**
  * @method render
@@ -552,11 +585,10 @@ Animation.prototype.findAll = function(selector, where) {
  * @deprecated in favor of special syntax in `find` method
  */
 Animation.prototype.findById = function(id) {
-    var cursor = this.firstScene;
+    var scenes = this.scenes;
     var found = null;
-    while (cursor && !found) {
-        found = cursor.findById(id);
-        cursor = cursor.getNext();
+    for (var i = 0, il = scenes.length; (i < il) && !found; i++) {
+        found = scenes[i].findById(id);
     }
     return found;
 };
