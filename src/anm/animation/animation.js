@@ -106,6 +106,7 @@ provideEvents(Animation, [ C.A_START, C.A_PAUSE, C.A_STOP,
 Animation.prototype.add = function(arg1, arg2, arg3) {
     // this method only adds an element to a top-level
     this.scene.add(arg1, arg2, arg3);
+    return this;
 };
 
 /**

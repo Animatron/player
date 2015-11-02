@@ -3,6 +3,10 @@ function Search(spec) {
     this.multiple = spec.multiple;
     this.anywhere = (spec.selector[0] !== '/'); // search on all levels with one token
     this.tokens = (spec.selector[0] === '/') ? spec.selector.split('/').slice(1) : [ spec.selector ];
+    if (spec.selector.length && (spec.selector[spec.selector.length - 1] === '/')) {
+        // remove last token if selector ended with trailing '/'
+        this.tokens.pop();
+    }
 };
 Search.prototype.over = function(named) {
     if (!this.multiple &&  this.anywhere) return search_one_anywhere(named, this.tokens[0]);

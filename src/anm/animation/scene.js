@@ -2,6 +2,8 @@ var utils = require('../utils.js'),
     is = utils.is,
     iter = utils.iter;
 
+var Search = require('./search.js');
+
 var Element = require('./element.js');
 
 var Timeline = require('./timeline.js');
@@ -76,7 +78,7 @@ Scene.prototype.isEmpty = function() {
 };
 
 Scene.prototype.find = function(selector, where) {
-    return Search.all(selector).over(where ? where.children : this.children);
+    return Search.one(selector).over(where ? where.children : this.children);
 };
 
 Scene.prototype.findAll = function(selector, where) {
