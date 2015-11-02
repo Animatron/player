@@ -163,6 +163,7 @@ Timeline.prototype.clone = function() {
     trg.start = this.start; trg.duration = this.duration;
     trg.end = this.end; trg.nrep = this.nrep;
     trg.easing = this.easing;
+    //trg.actions = this.actions.concat([])
 }
 
 /* Element.checkRepeatMode = function(time, band, mode, nrep) {

@@ -13,19 +13,24 @@ function Scene(anim, name, duration) {
     this.name = name;
     this.time = new Timeline();
     this.time.setDuration(is.num(duration) ? duration : Infinity);
-    this.next = null;
 
     this.children = [];
     this.hash = {};
 }
 
+Scene.prototype.duration = function(value) {
+    if (!is.defined(value)) return this.getDuration();
+    this.setDuration(value);
+    return this;
+};
+
 Scene.prototype.setDuration = function(duration) {
     this.time.setDuration(duration);
-}
+};
 
 Scene.prototype.getDuration = function() {
     return this.time.getDuration();
-}
+};
 
 Scene.prototype.traverse = function(visitor, data) {
     utils.keys(this.hash, function(key, elm) { return visitor(elm, data); });
@@ -63,7 +68,7 @@ Scene.prototype.remove = function(elm) {
     } else {
         this._unregister(elm);
     }
-}
+};
 
 Scene.prototype.isEmpty = function() {
     return this.children.length === 0;
@@ -115,6 +120,15 @@ Scene.prototype._unregister = function(elm, save_in_tree) { // save_in_tree is o
     elm.anim = null;
     elm.scene = null;
     //elm.parent = null;
+};
+
+Scene._fromElement = function(elm) {
+    var scene = new Scene(elm.anim, elm.name/*, elm.time.getDuration()*/);
+    scene.time = elm.time.clone();
+    elm.each(function(child) {
+        scene.add(child);
+    });
+    return scene;
 };
 
 module.exports = Scene;

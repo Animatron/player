@@ -729,7 +729,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
     // user to do that)
     var drawMe = false;
 
-    var ltime = this.ltime(gtime);
+    var ltime = this.time.tick(dt);
     if (ltime === Element.NO_TIME) return;
 
     drawMe = this.__preRender(gtime, ltime, ctx);
@@ -1199,7 +1199,7 @@ Element.prototype.stop = function() {
  * @return {anm.Element} itself
  */
 Element.prototype.at = function(t, f) {
-    return this.modify(new Modifier(f).time(t));
+    return this.time.addAction(t, f);
 }
 
 /**
@@ -1476,7 +1476,7 @@ Element.prototype.band = function(start, stop) {
 
 Element.prototype.getGlobalBand = function() {
     return this.time.getGlobalBand(this.parent);
-}
+};
 
 /**
  * @method duration
@@ -1491,9 +1491,17 @@ Element.prototype.getGlobalBand = function() {
  * @return {anm.Element|Number} itself or current duration value
  */
 Element.prototype.duration = function(value) {
-    if (!is.defined(value)) return this.time.getDuration();
-    this.time.setDuration(value);
+    if (!is.defined(value)) return this.getDuration();
+    this.setDuration(value);
     return this;
+};
+
+Element.prototype.setDuration = function(duration) {
+    this.time.setDuration(duration);
+};
+
+Element.prototype.getDuration = function() {
+    return this.time.getDuration();
 };
 
 /**
