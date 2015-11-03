@@ -736,7 +736,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
     // fire band start/end events
     if (this.anim && this.anim.__informEnabled) this.inform(gtime, ltime);
     if (drawMe) {
-        drawMe = this.fits(ltime) &&
+        drawMe = this.time.fits() &&
                  this.modifiers(ltime, dt) &&
                  this.visible; // modifiers should be applied even if element isn't visible
     }
@@ -746,21 +746,21 @@ Element.prototype.render = function(ctx, gtime, dt) {
         // update global time with new local time (it may've been
         // changed if there were jumps or something), so children will
         // get the proper value
-        gtime = this.affectsChildren ? this.gtime(ltime) : gtime;
+        gtime = this.affectsChildren ? this.time.getGlobalTime(this) : gtime;
 
         var mask = this.$mask,
             renderMasked = false,
             mask_ltime, mask_gtime;
 
         if (mask) {
-            mask_ltime = mask.ltime(ltime),
+            mask_ltime = mask.time.tick(dt),
             mask_gtime = mask.gtime(mask_ltime);
 
             // FIXME: move this chain completely into one method, or,
             //        which is even better, make all these checks to be modifiers
             // FIXME: call modifiers once for one moment of time. If there are several
             //        masked elements, they will be called that number of times
-            renderMasked = mask.fits(mask_ltime) &&
+            renderMasked = mask.time.fits() &&
                            mask.modifiers(mask_ltime, dt) &&
                            mask.visible;
         }

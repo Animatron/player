@@ -497,12 +497,6 @@ Animation.prototype.filterEvent = function(type, evt) {
     return true; /* keep passing this event further to other handlers */
 };
 
-Animation.prototype.handlePause = function() {
-    this.traverse(function(elm) {
-        elm.__resetBandEvents();
-    });
-};
-
 Animation.prototype._collectRemoteResources = function(player) {
     var remotes = [],
         anim = this;
