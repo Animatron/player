@@ -54,6 +54,7 @@ var anm = {
 
     Player: Player,
     Animation: require('./anm/animation/animation.js'),
+    Scene: require('./anm/animation/scene.js'),
     Element: Element,
     Clip: Element,
 

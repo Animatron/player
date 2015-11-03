@@ -85,10 +85,10 @@ C.ET_AUDIO = 'audio';
 C.ET_VIDEO = 'video';
 
 // repeat mode
-C.R_ONCE = 0;
-C.R_STAY = 1;
-C.R_LOOP = 2;
-C.R_BOUNCE = 3;
+C.R_ONCE = 'once';
+C.R_STAY = 'stay';
+C.R_LOOP = 'loop';
+C.R_BOUNCE = 'bounce';
 
 // composite operation
 C.C_SRC_OVER = 1; // first (default) is 1, to pass if test

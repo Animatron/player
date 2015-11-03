@@ -21,9 +21,10 @@ var Brush = require('../graphics/brush.js'),
     Color = require('../graphics/color.js'),
     Bounds = require('../graphics/bounds.js');
 
+var Timeline = require('./timeline.js');
+
 var Modifier = require('./modifier.js'),
-    Painter = require('./painter.js'),
-    Bands = require('./band.js');
+    Painter = require('./painter.js');
 
 var errors = require('../errors.js'),
     ErrLoc = require('../loc.js').Errors;
@@ -108,6 +109,7 @@ function Element(name, draw, onframe) {
     this.parent = null;     /** @property {anm.Element} parent parent element, if exists @readonly */
     this.level = 0;         /** @property {Number} level how deep this element is located in animation tree @readonly */
     this.anim = null;       /** @property {anm.Animation} anim the animation this element belongs to / registered in, if it really belongs to one @readonly */
+    this.scene = null;      /** @property {anm.Scene} scene the scene this element belongs to / registered in, if it really belongs to one @readonly */
     this.disabled = false;  /** @property {Boolean} visible Is this element visible or not (called, but not drawn) */
     this.visible = true;    /** @property {Boolean} disabled Is this element disabled or not */
     this.affectsChildren = true; /** @property {Boolean} affectsChildren Is this element local time affects children local time */
@@ -292,55 +294,19 @@ Element.prototype.initVisuals = function() {
 Element.prototype.resetVisuals = Element.prototype.initVisuals;
 Element.prototype.initTime = function() {
 
-    /** @property {anm.C.R_*} mode the mode of an element repitition `C.R_ONCE` (default) or `C.R_STAY`, `C.R_LOOP`, `C.R_BOUNCE`, see `.repeat()` / `.once()` / `.loop()` methods @readonly */
-    /** @property {Number} nrep number of times to repeat, makes sense if the mode is `C.R_LOOP` or `C.R_BOUNCE`, in other cases it's `Infinity` @readonly */
+    /** @property {anm.Timeline} timeline instance @readonly */
 
-    this.mode = C.R_ONCE; // playing mode
-    this.nrep = Infinity; // number of repetions for the mode
+    this.time = new Timeline();
 
-    /** @property lband element local band, relatively to parent, use `.band()` method to set it @readonly */
-    /** @property gband element global band, relatively to animation @readonly */
-
-    // FIXME: rename to "$band"?
-    this.lband = [0, Element.DEFAULT_LEN]; // local band
-    this.gband = [0, Element.DEFAULT_LEN]; // global band
-
-    /** @property {Number} t (local time) */
-    /** @property {Number} dt TODO (a delta in local time from previous render) */
-    /** @property {Number} rt (time position, relative to band duration) */
-    /** @property {String} key (time position by a key name) */
-    /** @property {Object} keys (a map of keys -> time) @readonly */
-    /** @property {Function} tf (time function) */
     /** @property {String} switch (name of the child to render in current moment) */
 
-    this.keys = {}; // aliases for time jumps
-    this.tf = null; // time jumping function
-
-    this.key = null;
-    this.t = null; // user-defined
-    this.rt = null; // user-defined
-
     this.switch = null;
-
-    this.__resetTimeCache();
-    this.__resetBandEvents();
 
     return this;
 };
 
 Element.prototype.resetTime = Element.prototype.initTime;
-Element.prototype.__resetTimeCache = function() {
-    this.cur_t = null; // system-defined
-    this.cur_rt = null; // system-defined
 
-    this.__lastJump = null; // a time of last jump in time
-    this.__jumpLock = false; // set to turn off jumping in time
-};
-Element.prototype.__resetBandEvents = function() {
-    this.__firedStart = false; // fired start event
-    this.__firedStop = false;  // fired stop event
-    this.__lastRender = null; // time of last render
-}
 Element.prototype.initEvents = function() {
     this.evts = {}; // events cache
     this.__evt_st = new EventState(); // event state
@@ -565,22 +531,6 @@ Element.prototype.modifiers = function(ltime, dt, types) {
     // copy current state as previous one
     elm.applyPrevState(elm);
 
-    elm.cur_t  = ltime;
-    elm.cur_rt = ltime / (elm.lband[1] - elm.lband[0]);
-
-    // FIXME: checkJump is performed before, may be it should store its values inside here?
-    if (is.num(elm.__appliedAt)) {
-        elm._t   = elm.__appliedAt;
-        elm._rt  = elm.__appliedAt / (elm.lband[1] - elm.lband[0]);
-    }
-    // FIXME: elm.t and elm.dt both should store real time for this moment.
-    //        modifier may have its own time, though, but not painter, so painters probably
-    //        don't need any additional time/dt and data
-
-    // `elm.key` will be copied to `elm._key` inside `applyPrevState` call
-
-    // TODO: think on sorting tweens/band-restricted-modifiers by time
-
     elm.__loadEvents();
 
     var modifiers = this.$modifiers;
@@ -779,33 +729,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
     // user to do that)
     var drawMe = false;
 
-    // checks if any time jumps (including repeat modes) were performed and justifies the global time
-    // to be locally retative to element's `lband`.
-    // NB: the local time returned is NOT in the same 'coordinate system' as the element's
-    // `xdata.lband`. `xdata.gband` is completely global and `xdata.lband` is local in
-    // relation to element's parent, so `lband == [10, 20]`, means that element starts after
-    // 10 second will pass in a parent band. So it is right to have `gband == [10, 20]`
-    // and `lband == [10, 20]` on the same element if it has no parent (located on a root level)
-    // or its parent's band starts from global zero.
-    // So, the `ltime` returned from `ltime()` method is local _relatively to_ `lband` the same way
-    // as `state.t` and `state.rt` (and it is why time-jumps are calculated this way), so it means
-    // that if the element is on the top level and has `lband` equal to `[10, 20]` like described before,
-    // and it has no jumps or end-modes, global time of `5` here will be converted to `ltime == -5` and
-    // global time of `12` will be converted to `ltime == 2` and global time of `22` to `ltime == 12`, which
-    // will fail the `fits()` test, described somewhere above. If there is a end-mode, say, `loop()`,
-    // then global time of `22` will be converted to `ltime == 2` again, so the element will treat it just
-    // exactly the same way as it treated the global time of `12`.
-    var ltime = this.ltime(gtime);
+    var ltime = this.time.tick(dt);
     if (ltime === Element.NO_TIME) return;
-
-    // these values will be set to proper values in `.modifiers` call below,
-    // only if `.fits` check was passed. if not, they both should be set to `null`,
-    // this means system tried to render this element, but element missed the gap
-    // (so while animation flows, elements outside of time will always reset their time,
-    // even if no 'bandstop' event was fired for them — this could happen with sequences
-    // of jumps in time).
-    this.cur_t  = null;
-    this.cur_rt = null;
 
     drawMe = this.__preRender(gtime, ltime, ctx);
     // fire band start/end events
@@ -1098,8 +1023,7 @@ Element.prototype.skew = function(hx, hy) {
 * @return {anm.Element} itself
 */
 Element.prototype.repeat = function(mode, nrep) {
-    this.mode = mode;
-    this.nrep = is.num(nrep) ? nrep : Infinity;
+    this.time.setEndAction(mode, nrep);
     return this;
 };
 
@@ -1117,8 +1041,7 @@ Element.prototype.repeat = function(mode, nrep) {
  * @return {anm.Element} itself
  */
 Element.prototype.once = function() {
-    this.mode = C.R_ONCE;
-    this.nrep = Infinity;
+    this.time.setEndAction(C.R_ONCE, Infinity);
     return this;
 };
 
@@ -1134,8 +1057,7 @@ Element.prototype.once = function() {
  * @return {anm.Element} itself
  */
 Element.prototype.stay = function() {
-    this.mode = C.R_STAY;
-    this.nrep = Infinity;
+    this.time.setEndAction(C.R_STAY, Infinity);
     return this;
 };
 
@@ -1153,8 +1075,7 @@ Element.prototype.stay = function() {
  * @return {anm.Element} itself
  */
 Element.prototype.loop = function(nrep) {
-    this.mode = C.R_LOOP;
-    this.nrep = is.num(nrep) ? nrep : Infinity;
+    this.time.setEndAction(C.R_LOOP, nrep);
     return this;
 };
 
@@ -1173,8 +1094,7 @@ Element.prototype.loop = function(nrep) {
  * @return {anm.Element} itself
  */
 Element.prototype.bounce = function(nrep) {
-    this.mode = C.R_BOUNCE;
-    this.nrep = is.num(nrep) ? nrep : Infinity;
+    this.time.setEndAction(C.R_BOUNCE, nrep);
     return this;
 };
 
@@ -1193,8 +1113,7 @@ Element.prototype.bounce = function(nrep) {
  * @return {anm.Element} itself
  */
 Element.prototype.jump = function(loc_t) {
-    if (is.defined(this.pausedAt)) this.pausedAt = loc_t;
-    this.t = loc_t;
+    this.time.jump(loc_t);
     return this;
 };
 
@@ -1215,8 +1134,13 @@ Element.prototype.jump = function(loc_t) {
 Element.prototype.jumpTo = function(element) {
     var elm = is.str(selector) ? this.find(selector) : selector;
     if (!elm) return;
-    if (this.anim) this.anim.jump(elm.gband[0]);
-    else this.jump(elm.lband[0]);
+    var start = elm.time.start,
+        cursor = elm.parent;
+    while (cursor && (cursor !== this)) {
+        start += cursor.time.start;
+        cursor = cursor.parent;
+    }
+    this.jump(start);
     return this;
 };
 
@@ -1253,14 +1177,7 @@ Element.prototype.play = function() {
  * @return {anm.Element} itself
  */
 Element.prototype.stop = function() {
-    if (this.paused) return this;
-    this.paused = true;
-    this.__m_stop = new Modifier(function(t) {
-        if (!this.paused) return;
-        if (is.defined(this.pausedAt)) this.t = this.pausedAt;
-        else (this.pausedAt = t);
-    });
-    this.modify(this.__m_stop);
+    this.time.pause();
     return this;
 }
 
@@ -1282,7 +1199,7 @@ Element.prototype.stop = function() {
  * @return {anm.Element} itself
  */
 Element.prototype.at = function(t, f) {
-    return this.modify(new Modifier(f).time(t));
+    return this.time.addAction(t, f);
 }
 
 /**
@@ -1501,8 +1418,8 @@ Element.prototype._unbind = function() {
     if (this.parent.__unsafeToRemove ||
         this.__unsafeToRemove) throw errors.element(ErrLoc.A.UNSAFE_TO_REMOVE);
     this.parent = null;
-    if (this.anim) this.anim._unregister(this);
-    // this.anim should be null after unregistering
+    if (this.scene) this.scene._unregister(this);
+    // this.scene should be null after unregistering
 };
 
 /**
@@ -1515,33 +1432,6 @@ Element.prototype.detach = function() {
 };
 
 /**
- * @private @method makeBandFit
- *
- * Loop through the children, find a band that fits them all, and apply it to the element
- */
-Element.prototype.makeBandFit = function() {
-    var wband = this.findWrapBand();
-    this.gband = wband;
-    this.lband[1] = wband[1] - wband[0];
-};
-
-/**
- * @private @method fits
- *
- * Test if band-local time fits element's parent-local band
- */
-Element.prototype.fits = function(ltime) {
-    // NB: the local time passed inside is not relative to parent element's
-    // band, but relative to local band of this element. So it's ok not to check
-    // starting point of lband, since it was already corrected in `ltime()`
-    // method. So if this value is less than 0 here, it means that current local
-    // time is before the actual band of the element. See a comment in `render`
-    // method or `ltime` method for more details.
-    if ((ltime < 0) || (ltime === Element.NO_TIME)) return false;
-    return t_cmp(ltime, this.lband[1] - this.lband[0]) <= 0;
-};
-
-/**
  * @method gtime
  *
  * Get global time (relative to {@link anm.Animation Animation} or {@link anm.Scene scene})
@@ -1551,83 +1441,13 @@ Element.prototype.fits = function(ltime) {
  * @return {Number} global time
  */
 Element.prototype.gtime = function(ltime) {
-    return this.gband[0] + ltime;
-};
-
-/**
- * @method ltime
- *
- * Get band-local time (relative to element's band, not parent-local) from
- * global time (relative to {@link anm.Animation Animation} or {@link anm.Scene scene}).
- * Could return negative value or a value higher than element's band duration so you could
- * know the real difference even when band not matched, use {@link anm.Element#fits fits(ltime)}
- * to get a boolean value if it fits the band.
- *
- * Also could return `Element.NO_TIME` if this element is not supposed to be seen not due to time
- * difference, but some time-related flag.
- *
- * *NB:* This method also checks time-jumps and sets some jump-related flags (`FIXME`), so use it with caution
- *       when you use `element.t` or `element.rt` for this element to set new time to jump to.
- *       In other cases it's fine.
- *
- * @param {Number} gtime global time
- * @return {Number} band-local time or Element.NO_TIME if value does not match this element
- */
-Element.prototype.ltime = function(gtime) {
-    // NB: the `ltime` this method returns is relative to local band of this element
-    // and not the band of the parent element, as `lband` does. So having the `0` returned
-    // from this method while `lband` of the element is `[10, 20]` (relatively to its
-    // parent element) means that it is at position of `10` seconds relatively to parent
-    // element. Negative value returned from this method means the passed time is that amount
-    // of seconds before the start of `lband` or `gband`, no matter. Positive value means that
-    // amount of seconds were passed after the start of `lband`. It is done to make `state.t`/`state.rt`-based
-    // jumps easy (`state.t` has the same principle and its value is in the same "coord. system" as the
-    // value returned here). See `render()` method comment regarding `ltime` for more details.
-    // The order is:
-    //     - check switcher with global time, apply it if it's there, and return global time
-    //     - check repeat mode with new global time and return local time
-    //     - check jumps with `.t` / `.rt` over local time and return the result (local time)
-    return this.__checkJump(
-        Element.checkRepeatMode(this.__checkSwitcher(gtime),
-                                this.gband, this.mode, this.nrep)
-    );
-};
-
-/**
- * @private @method inform
- *
- * Inform element with `C.X_START` / `C.X_STOP` events, if passed time matches
- * some end of its band
- *
- * @param {Number} gtime global time
- * @param {Number} ltime band-local time
- */
-Element.prototype.inform = function(gtime, ltime) {
-    var duration = this.lband[1] - this.lband[0];
-    if (t_cmp(ltime, 0) < 0) return;
-    if (!is.defined(this.__lastRender)) {
-        // could be a first frame of a band to render
-        this.__lastRender = ltime;
-        if (!this.__firedStart) {
-            this.fire(C.X_START, ltime, duration);
-            this.__firedStart = true;
-        }
-    } else if (is.defined(this.__lastRender) && (t_cmp(ltime, duration) > 0)) {
-        // previous frame was a last frame of a band
-        if (!this.__firedStop) {
-            this.modifiers(duration, duration - this.__lastRender);
-            this.fire(C.X_STOP, ltime, duration);
-            this.traverse(function(elm) {
-                // we must inform all children parent band was stopped
-                elm.inform(elm.ltime(gtime), gtime);
-            });
-            this.__firedStop = true;
-        }
-        this.__lastRender = undefined;
-    } else {
-        // just a normal frame
-        this.__lastRender = ltime;
+    var start = this.time.start,
+        cursor = this.parent;
+    while (cursor) {
+        start += cursor.time.start;
+        cursor = cursor.parent;
     }
+    return start + ltime;
 };
 
 /**
@@ -1645,25 +1465,17 @@ Element.prototype.inform = function(gtime, ltime) {
  * `6` seconds of global time, since its band outlives the parent band, so it was cut.
  *
  * @param {Number} start start time of a band
- * @param {Number} stop stop time of a band
+ * @param {Number} stop stop of a band
  * @return {anm.Element} itself
  */
 Element.prototype.band = function(start, stop) {
-    if (!is.defined(start)) return this.lband;
-    // FIXME: array bands should not pass
-    // if (is.arr(start)) throw errors.element('Band is specified with two numbers, not an array', this);
-    if (is.arr(start)) {
-        start = start[0];
-        stop = start[1];
-    }
-    if (!is.defined(stop)) { stop = Infinity; }
-    this.lband = [ start, stop ];
-    if (this.parent) {
-        var parent = this.parent;
-        this.gband = [ parent.gband[0] + start, parent.gband[0] + stop ];
-    }
-    // Bands.recalc(this)
+    if (!is.defined(start)) return this.time.getBand();
+    this.time.setBand(start, is.defined(stop) ? stop : Infinity);
     return this;
+};
+
+Element.prototype.getGlobalBand = function() {
+    return this.time.getGlobalBand(this.parent);
 };
 
 /**
@@ -1679,25 +1491,19 @@ Element.prototype.band = function(start, stop) {
  * @return {anm.Element|Number} itself or current duration value
  */
 Element.prototype.duration = function(value) {
-    if (!is.defined(value)) return this.lband[1] - this.lband[0];
-    this.gband = [ this.gband[0], this.gband[0] + value ];
-    this.lband = [ this.lband[0], this.lband[0] + value ];
+    if (!is.defined(value)) return this.getDuration();
+    this.setDuration(value);
     return this;
 };
 
-/* TODO: duration cut with global band */
-/* Element.prototype.rel_duration = function() {
-    return
-} */
-Element.prototype._max_tpos = function() {
-    return (this.gband[1] >= 0) ? this.gband[1] : 0;
+Element.prototype.setDuration = function(duration) {
+    this.time.setDuration(duration);
 };
 
-/* Element.prototype.neg_duration = function() {
-    return (this.xdata.lband[0] < 0)
-            ? ((this.xdata.lband[1] < 0) ? Math.abs(this.xdata.lband[0] + this.xdata.lband[1]) : Math.abs(this.xdata.lband[0]))
-            : 0;
-} */
+Element.prototype.getDuration = function() {
+    return this.time.getDuration();
+};
+
 /**
  * @private @method m_on
  *
@@ -1714,25 +1520,6 @@ Element.prototype.m_on = function(type, handler) {
                 }
             }
         }, C.MOD_EVENT));
-};
-
-/*Element.prototype.posAtStart = function(ctx) {
-    var s = this.state;
-    ctx.translate(s.lx, s.ly);
-    ctx.scale(s.sx, s.sy);
-    ctx.rotate(s.angle);
-}*/
-// calculates band that fits all child elements, recursively
-/* FIXME: test */
-Element.prototype.findWrapBand = function() {
-    var children = this.children;
-    if (children.length === 0) return this.gband;
-    var result = [ Infinity, 0 ];
-    this.each(function(child) {
-        result = Bands.expand(result, child.gband);
-        //result = Bands.expand(result, elm.findWrapBand());
-    });
-    return (result[0] !== Infinity) ? result : null;
 };
 
 /**
@@ -1765,8 +1552,7 @@ Element.prototype.reset = function() {
     // if positions were set before loading a scene, we don't need to reset them
     //this.resetState();
     this.resetEvents();
-    this.__resetTimeCache();
-    this.__resetBandEvents();
+    this.resetTime();
     /*this.__clearEvtState();*/
     var elm = this;
     this.forAllModifiers(function(modifier) {
@@ -2416,6 +2202,7 @@ Element.prototype.toString = function() {
  * @return {anm.Element|Null} found element or `null`
  */
 Element.prototype.find = function(name) {
+    if (!this.anim) throw errors.element(ErrLoc.A.NOT_BELONGS_TO_ANIMATION, this);
     return this.anim.find(name, this);
 };
 
@@ -2431,6 +2218,7 @@ Element.prototype.find = function(name) {
  * @return {[anm.Element]} found elements
  */
 Element.prototype.findAll = function(name) {
+    if (!this.anim) throw errors.element(ErrLoc.A.NOT_BELONGS_TO_ANIMATION, this);
     return this.anim.findAll(name, this);
 };
 
@@ -2450,7 +2238,7 @@ Element.prototype.clone = function() {
     clone.level = this.level;
     //clone.visible = this.visible;
     //clone.disabled = this.disabled;
-    // .anim pointer, .parent pointer & PNT_SYSTEMistered flag
+    // .anim pointer, .scene pointer, .parent pointer & registered flag
     // are not transferred because the clone is another
     // element that should be separately added to some animation
     // in its own time to start working properly
@@ -2492,42 +2280,12 @@ Element.prototype.shallow = function() {
     return clone;
 };
 
-/**
- * @method asClip
- * @chainable
- *
- * Restrict tweens of this element in a separate band, and repeat them inside.
- * This method is useful for creating sputnik-like animations, where sputnik
- * continues to rotate without time reset, while parent keeps looping its own tweens
- * (say, both move up and down in repetition). Similar to Clips from Flash.
- *
- * A high possibility is this logic (`TODO`) will be moved in some separate
- * `Element` sub-class (named `Clip`?), where instances of this class will act as
- * described above by default, with a band and mode.
- *
- * @param {[Number]} band band, as `[start, stop]`
- * @param {anm.C.M_*} mode repeat mode
- * @param {Number} nrep number of repetition
- *
- * @return {anm.Element} itself
- *
- * @deprecated
- */
-Element.prototype.asClip = function(band, mode, nrep) {
-    if (mode == C.R_ONCE) return;
-    this.clip_band = band;
-    this.clip_mode = mode;
-    this.clip_nrep = nrep;
-    return this;
-};
-
 Element.prototype._addChild = function(elm) {
     //if (elm.parent) throw errors.element('This element already has parent, clone it before adding', this);
     elm.parent = this;
     elm.level = this.level + 1;
     this.children.push(elm); /* or add elem.id? */
-    if (this.anim) this.anim._register(elm); /* TODO: rollback parent and child? */
-    Bands.recalc(this);
+    if (this.scene) this.scene._register(elm); /* TODO: rollback parent and child? */
 };
 
 Element.prototype._stateStr = function() {
@@ -2560,7 +2318,7 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
     // TODO: move to Modifier class?
 
     var elm = this,
-        elm_duration = elm.lband[1] - elm.lband[0], // duration of the element's local band
+        elm_duration = elm.time.getDuration(), // duration of the element's local band
         mod_easing = modifier.$easing, // modifier easing
         mod_time = modifier.$band || modifier.$time, // time (or band) of the modifier, if set
         mod_relative = modifier.$relative, // is modifier time or band relative to elm duration or not
@@ -2568,12 +2326,6 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
 
     var res_time,
         res_duration;
-
-    if (elm.clip_band) {
-        ltime = Element.checkRepeatMode(ltime, elm.clip_band,
-                                        elm.clip_mode || C.R_ONCE, elm.clip_nrep);
-        if (ltime < 0) return false;
-    }
 
     // modifier takes the whole element time
     if (mod_time === null) {
@@ -2649,60 +2401,9 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
 
 Element.prototype.__pbefore = function(ctx, type) { };
 Element.prototype.__pafter = function(ctx, type) { };
-Element.prototype.__checkJump = function(at) {
-    // FIXME: test if jumping do not fails with floating points problems
-    if (at === Element.NO_TIME) return Element.NO_TIME;
-    if (this.tf) return this.tf(at);
-    var t = null,
-        duration = this.lband[1] - this.lband[0];
-    // if jump-time was set either
-    // directly or relatively or with key,
-    // get its absolute local value
-    t = (is.defined(this.p)) ? this.p : null;
-    t = ((t === null) && (this.t !== null)) ? this.t : t;
-    t = ((t === null) && (this.rt !== null) && is.finite(duration)) ?
-        this.rt * duration : t;
-    t = ((t === null) && (is.defined(this.key))) ?
-        this.keys[this.key] : t;
-    if (t !== null) {
-        if ((t < 0) || (t > duration)) {
-            throw errors.element('Failed to calculate jump', this);
-        }
-        if (!this.__jumpLock) {
-            // jump was performed if t or rt or key
-            // were set:
-            // save jump time (so every next call to __checkJump
-            // the time value will be aligned/shifted to a value of this jump)
-            // and return it; also, all time flags are reset to null, so if t was
-            // re-assigned one more time, we'll get here again and so re-write the
-            // last jump value
-            this.__lastJump = [ at, t ];
-            this.p = null;
-            this.t = null;
-            this.key = null;
-            return t;
-        }
-    }
-    // set t to jump-time, and if no jump-time
-    // was passed or it requires to be ignored,
-    // just set it to actual local time
-    t = (t !== null) ? t : at;
-    if (is.defined(this.__lastJump)) {
-        /* return (jump_pos + (t - jumped_at)) */
-        return (is.finite(this.__lastJump[1]) ?
-            this.__lastJump[1] : 0) + (t - this.__lastJump[0]);
-       // overflow will be checked later (during render process)
-       // in fits() method, or recalculated with loop/bounce mode
-       // so if this clip longs more than allowed,
-       // it will be just ended there
-       /* return ((this.__lastJump + t) > this.gband[1])
-             ? (this.__lastJump + t)
-             : this.gband[1]; */
-    }
-    return (t !== null) ? t : Element.NO_TIME;
-}
 Element.prototype.__checkSwitcher = function(gtime) {
     if (!this.parent || !this.parent.switch) return gtime;
+    // FIXME: move switcher to Timeline class
     var parent = this.parent;
     if (parent.switch === C.SWITCH_OFF) return Element.NO_TIME;
     if ((parent.switch === this.name) && parent.switch_band) {
@@ -2857,11 +2558,7 @@ Element.transferVisuals = function(src, trg) {
 };
 
 Element.transferTime = function(src, trg) {
-    trg.mode = src.mode; trg.nrep = src.nrep;
-    trg.lband = [].concat(src.lband);
-    trg.gband = [].concat(src.gband);
-    trg.keys = [].concat(src.keys);
-    trg.tf = src.tf;
+    trg.time = src.time.clone();
 };
 
 // TODO: rename to matrixOf ?
@@ -2932,35 +2629,17 @@ Element.getIMatrixOf = function(elm, m) {
     return t;
 };
 
-Element.checkRepeatMode = function(time, band, mode, nrep) {
-    if (time === Element.NO_TIME) return Element.NO_TIME;
-    if (!is.finite(band[1])) return time - band[0];
-    var durtn, ffits, fits, t;
-    switch (mode) {
-        case C.R_ONCE:
-            return time - band[0];
-        case C.R_STAY:
-            return (t_cmp(time, band[1]) <= 0) ?
-                time - band[0] : band[1] - band[0];
-        case C.R_LOOP: {
-                durtn = band[1] - band[0];
-                if (durtn < 0) return -1;
-                ffits = (time - band[0]) / durtn;
-                fits = Math.floor(ffits);
-                if ((fits < 0) || (ffits > nrep)) return -1;
-                t = (time - band[0]) - (fits * durtn);
-                return t;
-            }
-        case C.R_BOUNCE: {
-                durtn = band[1] - band[0];
-                if (durtn < 0) return -1;
-                ffits = (time - band[0]) / durtn;
-                fits = Math.floor(ffits);
-                if ((fits < 0) || (ffits > nrep)) return -1;
-                t = (time - band[0]) - (fits * durtn);
-                t = ((fits % 2) === 0) ? t : (durtn - t);
-                return t;
-            }
+Element._fromArguments = function(arg1, arg2, arg3) {
+    if (arg2) { // element by functions mode
+        var elm = new Element(arg1, arg2);
+        if (arg3) elm.changeTransform(arg3);
+        return elm;
+    } else if (is.arr(arg1)) { // elements array mode
+        var clip = new Element();
+        clip.add(arg1);
+        return clip;
+    } else { // element object mode
+        return arg1;
     }
 };
 

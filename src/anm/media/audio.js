@@ -149,13 +149,14 @@ Audio.prototype.load = function(uid, player) {
 
             var loadingListener = function(e) {
                 var ranges = [];
+                var duration = el.time.getDuration();
                 for (var i = 0; i < el.buffered.length; i++) {
                     ranges.push([ el.buffered.start(i),
                                   el.buffered.end(i) ]);
                 }
 
                 for (i = 0, progress = 0; i < el.buffered.length; i ++) {
-                    progress += (1 / el.duration) * (ranges[i][1] - ranges[i][0]);
+                    progress += (1 / duration) * (ranges[i][1] - ranges[i][0]);
                 }
 
                 notify_progress(progress);

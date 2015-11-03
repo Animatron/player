@@ -75,8 +75,7 @@ Import.project = function(prj) {
     var scenes_ids = prj.anim.scenes;
     if (!scenes_ids.length) _reportError('No scenes found in given project');
     var root = new Animation(),
-        elems = prj.anim.elements,
-        last_scene_band = [ 0, 0 ];
+        elems = prj.anim.elements;
     root.__import_id = cur_import_id;
 
     root.meta = Import.meta(prj);
@@ -88,40 +87,14 @@ Import.project = function(prj) {
     Import._paths = prj.anim.paths;
     Import._path_cache = new ValueCache();
 
-    var node_res;
-    var traverseFunc = function(elm) {
-        var e_gband_before = elm.gband;
-        elm.gband = [
-            last_scene_band[1] + e_gband_before[0],
-            last_scene_band[1] + e_gband_before[1]
-        ];
-    };
+    var scene;
 
     for (var i = 0, il = scenes_ids.length; i < il; i++) {
         var node_src = Import._find(scenes_ids[i], elems);
         if (Import._type(node_src) != TYPE_SCENE) _reportError('Given Scene ID ' + scenes_ids[i] + ' points to something else');
-        node_res = Import.node(node_src, null, elems, null, root);
-
-        if (i > 0) { // start from second scene, if there is one
-            // FIXME: smells like a hack
-            // correct the band of the next scene to follow the previous scene
-            // gband[1] contains the duration of the scene there, while gband[0] contains 0
-            // (see SCENE type handling in Import.node)
-            // TODO: fix it with proper native scenes when they will be supported in player
-            var gband_before = node_res.gband;
-            node_res.gband = [ last_scene_band[1] + gband_before[0],
-                               last_scene_band[1] + gband_before[1] ];
-            // local band is equal to global band on top level
-            node_res.lband = node_res.gband;
-            node_res.traverse(traverseFunc);
-        }
-        last_scene_band = node_res.gband;
-        root.add(node_res);
-    }
-
-    if (scenes_ids.length > 0) {
-        node_res.gband = [last_scene_band[0], Infinity];
-        node_res.lband = node_res.gband;
+        scene = Scene._fromElement(Import.node(node_src, null, elems, null, root));
+        // there's always a default scene in Player, which is first one
+        if (i === 0) { root.replaceScene(0, scene); } else { root.addScene(scene); };
     }
 
     Import._paths = undefined; // clear
@@ -245,11 +218,9 @@ Import.branch = function(type, src, psrc, all, anim) {
     var _layers = (type == TYPE_SCENE) ? src[3] : src[2],
         _layers_targets = [];
     if (type === TYPE_SCENE) {
-        trg.gband = [ 0, src[2] ];
-        trg.lband = [ 0, src[2] ];
+        trg.setDuration(src[2]);
     } else {
-        trg.gband = [ 0, Infinity ];
-        trg.lband = [ 0, Infinity ];
+        trg.band(0, Infinity);
     }
     // in animatron layers are in reverse order
     for (var li = _layers.length; li--;) {
@@ -280,10 +251,8 @@ Import.branch = function(type, src, psrc, all, anim) {
         // apply bands, pivot and registration point
         var flags = lsrc[6];
         ltrg.disabled = !(flags & L_VISIBLE);
-        var pb = ((type === TYPE_GROUP) && psrc && psrc[2]) ? psrc[2] : [0, 0],
-            b = Import.band(lsrc[2]);
-        ltrg.lband = [b[0] - pb[0], b[1] - pb[0]];
-        ltrg.gband = b;
+        var band = Import.band(lsrc[2])
+        ltrg.band(band[0], band[1]);
         ltrg.$pivot = [ 0, 0 ];
         ltrg.$reg = lsrc[4] || [ 0, 0 ];
 
@@ -311,7 +280,7 @@ Import.branch = function(type, src, psrc, all, anim) {
                                                  .from(0).to(0));
                     }
                     if ((last_rotate > 0) && (last_rotate < Infinity)) {
-                        ltrg.tween(Tween.rotate().start(last_rotate).stop(ltrg.lband[1] - ltrg.lband[0])
+                        ltrg.tween(Tween.rotate().start(last_rotate).stop(band[1] - band[0])
                                                  .from(0).to(0));
                     }
                 } else {
@@ -336,16 +305,6 @@ Import.branch = function(type, src, psrc, all, anim) {
             }
         } else {
             ltrg.mode = Import.mode(null);
-        }
-
-        // Clips' end-actions like in Editor are not supported in Player,
-        // but they may be adapted to Player's model (same as Group in Editor)
-        if ((ltrg._anm_type === TYPE_CLIP) && (ltrg.mode !== C.R_ONCE)) {
-            ltrg.asClip([0, ltrg.lband[1] - ltrg.lband[0]], ltrg.mode, ltrg.nrep);
-            ltrg.lband = [ ltrg.lband[0], Infinity ];
-            ltrg.gband = [ ltrg.gband[0], Infinity ];
-            ltrg.mode = C.R_STAY;
-            ltrg.nrep = Infinity;
         }
 
         // if do not masks any layers, just add to target
@@ -375,8 +334,7 @@ Import.branch = function(type, src, psrc, all, anim) {
 
         // TODO temporary implementation, use custom renderer for that!
         if (ltrg.$audio && ltrg.$audio.master) {
-            ltrg.lband = [ltrg.lband[0], Infinity];
-            ltrg.gband = [ltrg.gband[0], Infinity];
+            ltrg.band(band[0], Infinity);
             trg.remove(ltrg);
             anim.add(ltrg);
         }

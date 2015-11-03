@@ -41,6 +41,7 @@ var Loader = require('./loader.js'),
     Controls = require('./ui/controls.js');
 
 var Animation = require('./animation/animation.js'),
+    Scene = require('./animation/scene.js'),
     Element = require('./animation/element.js'),
     Render = require('./render.js'),
     Sheet = require('./graphics/sheet.js');
@@ -428,7 +429,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     }
 
     if (durationPassed) { // FIXME: move to whenDone?
-        player.anim.duration = duration;
+        player.anim.setDuration(duration);
     }
 
     return player;
@@ -504,8 +505,8 @@ Player.prototype.play = function(from, speed, stopAfter) {
     state.speed = (speed || 1) * (player.speed || 1) * (anim.speed || 1);
     state.stop = (typeof stopAfter !== 'undefined') ? stopAfter : state.stop;
     state.duration = player.infiniteDuration ? Infinity
-                     : (anim.duration || (anim.isEmpty() ? 0
-                                                           : Animation.DEFAULT_DURATION));
+                     : (anim.getDuration() || (anim.isEmpty() ? 0
+                                                              : Animation.DEFAULT_DURATION));
 
     if (state.duration === undefined) throw errors.player(ErrLoc.P.DURATION_IS_NOT_KNOWN, player);
 
@@ -882,7 +883,7 @@ Player.prototype.drawAt = function(time) {
                                                              // postpone this task and exit. postponed tasks
                                                              // will be called when all remote resources were
                                                              // finished loading
-    if ((time < 0) || (!this.infiniteDuration && (time > this.anim.duration))) {
+    if ((time < 0) || (!this.infiniteDuration && (time > this.anim.getDuration()))) {
         throw errors.player(utils.strf(ErrLoc.P.PASSED_TIME_NOT_IN_RANGE, [time]), this);
     }
     var anim = this.anim,
@@ -1257,8 +1258,8 @@ Player.prototype._drawStill = function() {
         if (player.__thumb) {
             player._drawThumbnail();
         } else if (anim) {
-            if (!player.infiniteDuration && is.finite(anim.duration)) {
-                player.drawAt(anim.duration * Player.PREVIEW_POS);
+            if (!player.infiniteDuration && is.finite(anim.getDuration())) {
+                player.drawAt(anim.getDuration() * Player.PREVIEW_POS);
             } else {
                 player.drawAt(state.from);
             }

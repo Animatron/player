@@ -1,13 +1,13 @@
 var utils = require('../utils.js'),
     is = utils.is,
-    iter = utils.iter,
     C = require('../constants.js');
 
 var engine = require('engine'),
     ResMan = require('../resource_manager.js'),
     FontDetector = require('../../vendor/font_detector.js');
 
-var Element = require('./element.js'),
+var Scene = require('./scene.js'),
+    Element = require('./element.js'),
     Clip = Element,
     Brush = require('../graphics/brush.js');
 
@@ -58,10 +58,7 @@ var DOM_TO_EVT_MAP = {
  */
 function Animation() {
     this.id = utils.guid();
-    this.tree = [];
-    this.hash = {};
     this.name = '';
-    this.duration = undefined;
     this.bgfill = null;
     this.width = undefined;
     this.height = undefined;
@@ -77,6 +74,12 @@ function Animation() {
     this.__lastOverElm = null;
     this._laters = [];
     this._initHandlers(); // TODO: make automatic
+
+    var defaultScene = new Scene(this, '', 0);
+    this.scenes = [];
+    this.scenes.push(defaultScene);
+    this.currentSceneIdx = 0;
+    this.currentScene = this.scenes[this.currentSceneIdx];
 }
 
 Animation.DEFAULT_DURATION = 10;
@@ -106,21 +109,7 @@ provideEvents(Animation, [ C.A_START, C.A_PAUSE, C.A_STOP,
  */
 Animation.prototype.add = function(arg1, arg2, arg3) {
     // this method only adds an element to a top-level
-    // FIXME: allow to add elements deeper or rename this
-    //        method to avoid confusion?
-    if (arg2) { // element by functions mode
-        var elm = new Element(arg1, arg2);
-        if (arg3) elm.changeTransform(arg3);
-        this.addToTree(elm);
-        //return elm;
-    } else if (is.arr(arg1)) { // elements array mode
-        var clip = new Clip();
-        clip.add(arg1);
-        this.addToTree(_clip);
-        //return clip;
-    } else { // element object mode
-        this.addToTree(arg1);
-    }
+    this.currentScene.add(arg1, arg2, arg3);
     return this;
 };
 
@@ -133,15 +122,65 @@ Animation.prototype.add = function(arg1, arg2, arg3) {
  * @param {anm.Element} element
  */
 Animation.prototype.remove = function(elm) {
-    // error will be thrown in _unregister method if element is not registered
-    if (elm.parent) {
-        // it will unregister element inside
-        elm.parent.remove(elm);
-    } else {
-        this._unregister(elm);
-    }
+    elm.scene.remove(elm);
     return this;
 };
+
+Animation.prototype.addScene = function(name, duration) {
+    var scene;
+    if (!(name instanceof Scene)) {
+        scene = new Scene(this, name, duration);
+    } else {
+        scene = name; scene.anim = this;
+    }
+    this.scenes.push(scene);
+    return scene;
+};
+
+Animation.prototype.getDuration = function() {
+    var duration = 0;
+    this.eachScene(function(scene) {
+        duration += scene.getDuration();
+    });
+    return duration;
+};
+
+Animation.prototype.getScenes = function() {
+    return this.scenes;
+};
+
+Animation.prototype.toNextScene = function() {
+    if ((this.currentSceneIdx + 1) >= this.scenes.length) return null;
+    this.currentSceneIdx++;
+    this.currentScene = this.scenes[this.currentSceneIdx];
+    return this.currentScene;
+};
+
+Animation.prototype.toPrevScene = function() {
+    if ((this.currentSceneIdx - 1) < 0) return null;
+    this.currentSceneIdx--;
+    this.currentScene = this.scenes[this.currentSceneIdx];
+    return this.currentScene;
+};
+
+Animation.prototype.setCurrentScene = function(idx) {
+    this.currentSceneIdx = idx;
+    this.currentScene = this.scenes[this.currentSceneIdx];
+    return this;
+};
+
+Animation.prototype.getCurrentScene = function() {
+    return this.scenes[this.currentSceneIdx];
+};
+
+Animation.prototype.replaceScene = function(idx, scene) {
+    this.scenes[idx] = scene;
+    return this;
+};
+
+/* Animation.prototype.setDuration = function(duration) {
+    this.scene.setDuration(duration);
+} */
 
 /**
  * @method traverse
@@ -155,7 +194,7 @@ Animation.prototype.remove = function(elm) {
  * @param {Object} [data]
  */
 Animation.prototype.traverse = function(visitor, data) {
-    utils.keys(this.hash, function(key, elm) { return visitor(elm, data); });
+    this.eachScene(function(scene) { scene.traverse(visitor, data); });
     return this;
 };
 
@@ -171,9 +210,7 @@ Animation.prototype.traverse = function(visitor, data) {
  * @param {Object} [data]
  */
 Animation.prototype.each = function(visitor, data) {
-    for (var i = 0, tlen = this.tree.length; i < tlen; i++) {
-        if (visitor(this.tree[i], data) === false) break;
-    }
+    this.eachScene(function(scene) { scene.each(visitor, data); });
     return this;
 };
 
@@ -192,10 +229,7 @@ Animation.prototype.each = function(visitor, data) {
  * @param {Object} [data]
  */
 Animation.prototype.reverseEach = function(visitor, data) {
-    var i = this.tree.length;
-    while (i--) {
-        if (visitor(this.tree[i], data) === false) break;
-    }
+    this.eachScene(function(scene) { scene.reverseEach(visitor, data); });
     return this;
 };
 
@@ -213,7 +247,15 @@ Animation.prototype.reverseEach = function(visitor, data) {
  * @param {Boolean} remover.return `false`, if this element should be removed
  */
 Animation.prototype.iter = function(func, rfunc) {
-    iter(this.tree).each(func, rfunc);
+    this.eachScene(function(scene) { scene.iter(func, rfunc); });
+    return this;
+};
+
+Animation.prototype.eachScene = function(func) {
+    var scenes = this.scenes;
+    for (var i = 0, il = scenes.length; i < il; i++) {
+        func(scenes[i]);
+    }
     return this;
 };
 
@@ -239,7 +281,7 @@ Animation.prototype.render = function(ctx, time, dt) {
         ctx.fillRect(0, 0, this.width, this.height);
     }
     time = this.$prefix ? this.$prefix(time, ctx) : time;
-    this.each(function(child) {
+    this.scene.each(function(child) {
         child.render(ctx, time, dt);
     });
     ctx.restore();
@@ -275,26 +317,16 @@ Animation.prototype.jump = function(t) {
 Animation.prototype.jumpTo = function(selector) {
     var elm = is.str(selector) ? this.find(selector) : selector;
     if (!elm) return;
-    this.jump(elm.gband[0]);
+    this.jump(elm.getGlobalBand()[0]);
 };
 
-// TODO: test
-/**
- * @method getFittingDuration
- *
- * Get the duration where all child elements' bands fit.
- *
- * @return {Number} The calculated duration
- */
-Animation.prototype.getFittingDuration = function() {
-    var max_pos = -Infinity;
-    var me = this;
-    this.each(function(child) {
-        var elm_tpos = child._max_tpos();
-        if (elm_tpos > max_pos) max_pos = elm_tpos;
-    });
-    return max_pos;
+/* Animation.prototype.nextScene = function() {
+
 };
+
+Animation.prototype.currentScene = function() {
+
+}; */
 
 /**
  * @method reset
@@ -359,7 +391,11 @@ Animation.prototype.dispose = function(player) {
  * @return {Boolean} `true` if no Elements, `false` if there are some.
  */
 Animation.prototype.isEmpty = function() {
-    return this.tree.length === 0;
+    var isEmpty = false;
+    this.eachScene(function(scene) {
+        isEmpty = isEmpty || scene.isEmpty();
+    })
+    return isEmpty;
 };
 
 /**
@@ -461,64 +497,10 @@ Animation.prototype.filterEvent = function(type, evt) {
     return true; /* keep passing this event further to other handlers */
 };
 
-/**
- * @method addToTree
- * @private
- *
- * @param {anm.Element} element
- */
-Animation.prototype.addToTree = function(elm) {
-    if (!elm.children) throw errors.animation(ErrLoc.A.OBJECT_IS_NOT_ELEMENT, this);
-    this._register(elm);
-    /*if (elm.children) this._addElems(elm.children);*/
-    this.tree.push(elm);
-};
-
 Animation.prototype.handlePause = function() {
     this.traverse(function(elm) {
         elm.__resetBandEvents();
     });
-};
-
-/*Animation.prototype._addElems = function(elems) {
-    for (var ei = 0; ei < elems.length; ei++) {
-        var _elm = elems[ei];
-        this._register(_elm);
-    }
-}*/
-Animation.prototype._register = function(elm) {
-    if (this.hash[elm.id]) throw errors.animation(ErrLoc.A.ELEMENT_IS_REGISTERED, this);
-    elm.registered = true;
-    elm.anim = this;
-    this.hash[elm.id] = elm;
-
-    var me = this;
-
-    elm.each(function(child) {
-        me._register(child);
-    });
-};
-
-Animation.prototype._unregister_no_rm = function(elm) {
-    this._unregister(elm, true);
-};
-
-Animation.prototype._unregister = function(elm, save_in_tree) { // save_in_tree is optional and false by default
-    if (!elm.registered) throw errors.animation(ErrLoc.A.ELEMENT_IS_NOT_REGISTERED, this);
-    var me = this;
-    elm.each(function(child) {
-        me._unregister(child);
-    });
-    var pos = -1;
-    if (!save_in_tree) {
-      while ((pos = this.tree.indexOf(elm)) >= 0) {
-        this.tree.splice(pos, 1); // FIXME: why it does not goes deeply in the tree?
-      }
-    }
-    delete this.hash[elm.id];
-    elm.registered = false;
-    elm.anim = null;
-    //elm.parent = null;
 };
 
 Animation.prototype._collectRemoteResources = function(player) {
@@ -529,7 +511,7 @@ Animation.prototype._collectRemoteResources = function(player) {
            remotes = remotes.concat(elm._collectRemoteResources(anim, player)/* || []*/);
         }
     });
-    if(this.fonts && this.fonts.length) {
+    if (this.fonts && this.fonts.length) {
         remotes = remotes.concat(this.fonts.map(function(f){return f.url;}));
     }
     return remotes;
@@ -564,7 +546,7 @@ Animation.prototype._loadRemoteResources = function(player) {
  * @return {anm.Element} First found element
  */
 Animation.prototype.find = function(selector, where) {
-    return Search.one(selector).over(where ? where.children : this.tree);
+    return Search.one(selector).over(where ? where.children : this.getScenes());
 };
 
 /**
@@ -586,7 +568,7 @@ Animation.prototype.find = function(selector, where) {
  * @return {Array} An array of found elements
  */
 Animation.prototype.findAll = function(selector, where) {
-    return Search.all(selector).over(where ? where.children : this.tree);
+    return Search.all(selector).over(where ? where.children : this.getScenes());
 };
 
 /**
@@ -603,7 +585,12 @@ Animation.prototype.findAll = function(selector, where) {
  * @deprecated in favor of special syntax in `find` method
  */
 Animation.prototype.findById = function(id) {
-    return this.hash[id];
+    var scenes = this.scenes;
+    var found = null;
+    for (var i = 0, il = scenes.length; (i < il) && !found; i++) {
+        found = scenes[i].findById(id);
+    }
+    return found;
 };
 
 /**
