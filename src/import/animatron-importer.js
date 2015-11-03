@@ -93,6 +93,7 @@ Import.project = function(prj) {
     for (var i = 0, il = scenes_ids.length; i < il; i++) {
         var node_src = Import._find(scenes_ids[i], elems);
         if (Import._type(node_src) != TYPE_SCENE) _reportError('Given Scene ID ' + scenes_ids[i] + ' points to something else');
+        // FIXME: change to explicit Import.scene
         scene = Scene._fromElement(Import.node(node_src, null, elems, null, root));
         // there's always a default scene in Player, which is first one
         if (i === 0) { root.replaceScene(0, scene); } else { root.addScene(scene); };
@@ -219,7 +220,7 @@ Import.branch = function(type, src, psrc, all, anim) {
     var _layers = (type == TYPE_SCENE) ? src[3] : src[2],
         _layers_targets = [];
     if (type === TYPE_SCENE) {
-        trg.setDuration(src[2]);
+        trg.duration(src[2]);
     } else {
         trg.band(0, Infinity);
     }
@@ -252,7 +253,7 @@ Import.branch = function(type, src, psrc, all, anim) {
         // apply bands, pivot and registration point
         var flags = lsrc[6];
         ltrg.disabled = !(flags & L_VISIBLE);
-        var band = Import.band(lsrc[2])
+        var band = Import.band(lsrc[2]);
         ltrg.band(band[0], band[1]);
         ltrg.$pivot = [ 0, 0 ];
         ltrg.$reg = lsrc[4] || [ 0, 0 ];

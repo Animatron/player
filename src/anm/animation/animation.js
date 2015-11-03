@@ -174,7 +174,9 @@ Animation.prototype.getCurrentScene = function() {
 };
 
 Animation.prototype.replaceScene = function(idx, scene) {
+    scene.anim = this;
     this.scenes[idx] = scene;
+    if (this.currentSceneIdx === idx) { this.currentScene = scene; }
     return this;
 };
 
