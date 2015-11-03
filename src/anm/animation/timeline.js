@@ -144,6 +144,10 @@ Timeline.prototype.getGlobalTime = function(parent) {
     return start + this.pos;
 }
 
+Timeline.prototype.fits = function() {
+    return (this.pos >= this.start) && (this.pos <= (this.start + duration));
+}
+
 Timeline.prototype.pause = function() { this.paused = true; }
 
 Timeline.prototype.pauseAt = function(at) {
