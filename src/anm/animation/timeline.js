@@ -48,9 +48,9 @@ Timeline.prototype.addAction = function(t, f) {
 Timeline.prototype.tick = function(dt) {
     this.actualPos += dt;
 
-    if (this.paused) return this.pos - this.start; // FIXME: if less than 0, should return null
+    if (this.paused) return this.pos; // FIXME: if less than 0, should return null
 
-    var next = (this.pos + dt) - this.start;
+    var next = (this.pos + dt);
 
     var toReturn;
     if (is.finite(this.duration) && (next > this.duration)) {
@@ -93,7 +93,7 @@ Timeline.prototype.tick = function(dt) {
         }
         if (this.actionsPos === this.actions.length) { this.actionsPos = 0; }
     }
-    this.pos = this.start + next;
+    this.pos = next;
 
     return toReturn;
 }
@@ -106,6 +106,7 @@ Timeline.prototype.setEndAction = function(type, nrep) {
 Timeline.prototype.changeBand = function(start, stop) {
     this.start = start;
     this.duration = stop - this.start;
+    this.reset();
 }
 
 Timeline.prototype.getBand = function() {
@@ -114,6 +115,7 @@ Timeline.prototype.getBand = function() {
 
 Timeline.prototype.setDuration = function(duration) {
     this.duration = duration;
+    this.reset();
 }
 
 Timeline.prototype.getDuration = function(duration) {
@@ -136,7 +138,7 @@ Timeline.prototype.getLastPosition = function() {
 
 Timeline.prototype.getGlobalTime = function(parent) {
     var cursor = parent;
-    var start = 0;
+    var start = this.start;
     while (cursor) {
         start += cursor.time.start;
         cursor = cursor.parent;
@@ -145,7 +147,7 @@ Timeline.prototype.getGlobalTime = function(parent) {
 }
 
 Timeline.prototype.fits = function() {
-    return (this.pos >= this.start) && (this.pos <= (this.start + this.duration));
+    return (this.pos >= 0) && (this.pos <= this.duration);
 }
 
 Timeline.prototype.pause = function() { this.paused = true; }
