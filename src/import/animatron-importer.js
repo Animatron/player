@@ -21,6 +21,7 @@ var IMPORTER_ID = 'ANM'; // FIXME: change to 'animatron', same name as registere
 
 var C = anm.constants,
     Animation = anm.Animation,
+    Scene = anm.Scene,
     Element = anm.Element,
     Path = anm.Path,
     Text = anm.Text,
