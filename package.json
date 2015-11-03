@@ -1,6 +1,6 @@
 {
   "name": "animatron-player",
-  "version": "v1.5",
+  "version": "v1.5.0",
   "description": "JavaScript Player engine for Animatron",
   "keywords": [
     "html5",

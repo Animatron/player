@@ -436,7 +436,7 @@ task('version', { async: true }, function(param) {
                 _print('Writing ' + _v + ' to ' + VERSION_FILE + ' file.\n');
                 jake.echo(_v, _loc(VERSION_FILE));
 
-                PACKAGE.version = _v;
+                PACKAGE.version = (_v.split('.').length !== 2) ? _v : _v + '.0';
                 jake.rmRf(_loc(PACKAGE_FILE));
                 _print('Writing ' + _v + ' to ' + PACKAGE_FILE + ' file.\n');
                 jake.echo(JSON.stringify(PACKAGE, null, JSON_INDENT), _loc(PACKAGE_FILE));
