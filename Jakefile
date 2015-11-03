@@ -844,38 +844,14 @@ task('_build-file', { async: true }, function() {
                   commitInfo, _loc(BUILD_FILE));
 
         _print(DONE_MARKER);
-
-        complete();
     };
 
-    if (isTeamCityBuild) {
-        var commitInfo = process.env.BUILD_VCS_NUMBER_Animatron_AnimatronPlayerDevelopment +
-            '\n' + 'Built by TeamCity. Build #' + process.env.BUILD_NUMBER;
+    getCommitHash(function(commitHash) {
         console.log(commitInfo);
-        updateBuildFile(commitInfo);
-    } else {
-        var getCommit = jake.createExec([
-          [ Binaries.GIT,
-            'log',
-            '-n', '1',
-            '--format=format:"' + BUILD_FORMAT + '"'
-          ].join(' ')
-        ], EXEC_OPTS);
-        getCommit.on('stdout', function(commitInfo) {
-            commitInfo = commitInfo.toString();
+        updateBuildFile(commitHash);
+        complete();
+    });
 
-            console.log(commitInfo);
-            updateBuildFile(commitInfo);
-
-        });
-        getCommit.addListener('stderr', function(msg) {
-            fail(msg, 1);
-        });
-        getCommit.addListener('error', function(msg) {
-            fail(msg, 1);
-        });
-        getCommit.run();
-    }
 });
 
 task('browserify', { 'async': true }, function() {
@@ -1062,4 +1038,30 @@ function _versionize(src) {
     jake.rmRf(src);
     jake.echo(new_content + '\n', src);
     _print('v -> ' + src);
+}
+
+function _getCommitHash(callback) {
+    if (isTeamCityBuild) {
+        var commitInfo = process.env.BUILD_VCS_NUMBER_Animatron_AnimatronPlayerDevelopment +
+            '\n' + 'Built by TeamCity. Build #' + process.env.BUILD_NUMBER;
+        callback(commitInfo);
+    } else {
+        var getCommit = jake.createExec([
+          [ Binaries.GIT,
+            'log',
+            '-n', '1',
+            '--format=format:"' + BUILD_FORMAT + '"'
+          ].join(' ')
+        ], EXEC_OPTS);
+        getCommit.on('stdout', function(commitInfo) {
+            callback(commitInfo.toString());
+        });
+        getCommit.addListener('stderr', function(msg) {
+            fail(msg, 1);
+        });
+        getCommit.addListener('error', function(msg) {
+            fail(msg, 1);
+        });
+        getCommit.run();
+    }
 }
