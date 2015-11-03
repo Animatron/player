@@ -1470,7 +1470,7 @@ Element.prototype.gtime = function(ltime) {
  */
 Element.prototype.band = function(start, stop) {
     if (!is.defined(start)) return this.time.getBand();
-    this.time.setBand(start, is.defined(stop) ? stop : Infinity);
+    this.time.changeBand(start, is.defined(stop) ? stop : Infinity);
     return this;
 };
 
@@ -2413,13 +2413,8 @@ Element.prototype.__checkSwitcher = function(gtime) {
 }
 Element.prototype.filterEvent = function(type, evt) {
     if ((type != C.X_START) &&
-        (type != C.X_STOP)) {
-      if (this.shown) {
-          this.__saveEvt(type, evt);
-      } else {
-          if (type === C.X_STOP) this.__resetBandEvents();
-          return false;
-      }
+        (type != C.X_STOP) && this.shown) {
+        this.__saveEvt(type, evt);
     }
     return true;
 };
@@ -2590,7 +2585,7 @@ Element.getTranslate = function(elm) {
 	for (var li = elm.$bonePath.length; li--;) {
             bone = elm.$bonePath[li];
 	    result.x += bone.bonelength * Math.cos(bone.bonerotate);
-	    result.y += bone.bonelength * Math.sin(bone.bonerotate); 
+	    result.y += bone.bonelength * Math.sin(bone.bonerotate);
 	}
         elm = bone ? elm.parent.children[bone.$from] : elm;
         result.x += elm.x;

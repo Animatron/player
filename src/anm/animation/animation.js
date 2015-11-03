@@ -281,7 +281,7 @@ Animation.prototype.render = function(ctx, time, dt) {
         ctx.fillRect(0, 0, this.width, this.height);
     }
     time = this.$prefix ? this.$prefix(time, ctx) : time;
-    this.scene.each(function(child) {
+    this.currentScene.each(function(child) {
         child.render(ctx, time, dt);
     });
     ctx.restore();
