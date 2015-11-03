@@ -108,6 +108,10 @@ Timeline.prototype.changeBand = function(start, stop) {
     this.duration = stop - this.start;
 }
 
+Timeline.prototype.getBand = function() {
+    return [ this.start, this.start + this.duration ];
+}
+
 Timeline.prototype.setDuration = function(duration) {
     this.duration = duration;
 }
@@ -116,13 +120,28 @@ Timeline.prototype.getDuration = function(duration) {
     return this.duration;
 }
 
-Timeline.prototype.getBand = function() {
-    return [ this.start, this.start + this.duration ];
+Timeline.prototype.getGlobalBand = function(parent) {
+    var cursor = parent;
+    var start = this.start;
+    while (cursor) {
+        start += cursor.time.start;
+        cursor = cursor.parent;
+    }
+    return [start, this.duration];
 }
 
-Timeline.prototype.getGlobalBand = function(parent) {
-    // TODO:
-    return [0, 0];
+Timeline.prototype.getLastPosition = function() {
+    return this.pos;
+}
+
+Timeline.prototype.getGlobalTime = function(parent) {
+    var cursor = parent;
+    var start = 0;
+    while (cursor) {
+        start += cursor.time.start;
+        cursor = cursor.parent;
+    }
+    return start + this.pos;
 }
 
 Timeline.prototype.pause = function() { this.paused = true; }
