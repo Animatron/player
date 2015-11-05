@@ -1101,6 +1101,10 @@ Element.prototype.bounce = function(nrep) {
     return this;
 };
 
+Element.prototype.mode = function(mode, nrep) {
+    this.time.setEndAction(mode, nrep);
+};
+
 /**
  * @method jump
  * @chainable

@@ -66,7 +66,7 @@ Timeline.prototype.tick = function(dt) {
             toReturn = next;
         } else if (this.mode === C.R_LOOP) {
             this.actionsPos = 0;
-            var fits = Math.floor(next / duration);
+            var fits = Math.floor(next / this.duration);
             if ((fits < 0) || (fits > this.nrep)) { toReturn = null; }
             else { next = next - (fits * this.duration); toReturn = next }
         } else if (this.mode === C.R_BOUNCE) {
