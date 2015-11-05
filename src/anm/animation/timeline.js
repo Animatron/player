@@ -27,7 +27,7 @@ function Timeline(owner) {
 
     this.passedStart = false;
     this.passedEnd = false;
-}
+};
 provideEvents(Timeline, [ /*C.X_TICK, */C.X_START, C.X_END, C.X_MESSAGE ]);
 
 Timeline.prototype.reset = function() {
@@ -37,7 +37,7 @@ Timeline.prototype.reset = function() {
     this.actionsPos = 0;
     this.passedStart = false;
     this.passedEnd = false;
-}
+};
 
 Timeline.prototype.addAction = function(t, f) {
     var actions = this.actions;
@@ -45,7 +45,7 @@ Timeline.prototype.addAction = function(t, f) {
     for (var il = this.actions.length; (i < il) && (actions[i].time < t); i++) { };
     this.actionsPos = 0;
     this.actions.splice(i, 0, { time: t, func: f });
-}
+};
 
 Timeline.prototype.tick = function(dt) {
     this.actualPos += dt;
@@ -82,8 +82,8 @@ Timeline.prototype.tick = function(dt) {
         // TODO: fire stop event
     } else if (next < 0) {
         toReturn = null;
-        // TODO: fire start event
     } else {
+        // TODO: if (!this.passedStart && (this.pos <= 0) && (next >= 0)) { fire start };
         toReturn = (this.easing ? this.easing(next) : next);
     }
 
@@ -100,29 +100,37 @@ Timeline.prototype.tick = function(dt) {
     return toReturn;
 }
 
+Timeline.prototype.tickParent = function(parent_time, last_dt) {
+    // this could be replaced with subscribing parent to children's
+    // X_ITER and resetting their timeline
+    this.pos = parent_time.pos - this.start - last_dt;
+    this.actualPos = this.pos;
+    return this.tick(last_dt);
+}
+
 Timeline.prototype.setEndAction = function(type, nrep) {
     this.end = type;
     this.nrep = is.num(nrep) ? nrep : Infinity;
-}
+};
 
 Timeline.prototype.changeBand = function(start, stop) {
     this.start = start;
     this.duration = stop - this.start;
     this.reset();
-}
+};
 
 Timeline.prototype.getBand = function() {
     return [ this.start, this.start + this.duration ];
-}
+};
 
 Timeline.prototype.setDuration = function(duration) {
     this.duration = duration;
     this.reset();
-}
+};
 
 Timeline.prototype.getDuration = function(duration) {
     return this.duration;
-}
+};
 
 Timeline.prototype.getGlobalBand = function(parent) {
     var cursor = parent;
@@ -132,11 +140,11 @@ Timeline.prototype.getGlobalBand = function(parent) {
         cursor = cursor.parent;
     }
     return [start, this.duration];
-}
+};
 
 Timeline.prototype.getLastPosition = function() {
     return this.pos;
-}
+};
 
 Timeline.prototype.getGlobalTime = function(parent) {
     var cursor = parent;
@@ -146,44 +154,44 @@ Timeline.prototype.getGlobalTime = function(parent) {
         cursor = cursor.parent;
     }
     return start + this.pos;
-}
+};
 
 Timeline.prototype.fits = function() {
     return (this.pos >= 0) && (this.pos <= this.duration);
-}
+};
 
-Timeline.prototype.pause = function() { this.paused = true; }
+Timeline.prototype.pause = function() { this.paused = true; };
 
 Timeline.prototype.pauseAt = function(at) {
     var me = this; this.addAction(at, function() { me.pause(); });
-}
+};
 
-Timeline.prototype.continue = function() { this.paused = false; }
+Timeline.prototype.continue = function() { this.paused = false; };
 
 Timeline.prototype.countinueAt = function(at) {
     var me = this; this.addAction(at, function() { me.continue(); });
-}
+};
 
-Timeline.prototype.jump = function(t) { this.pos = t; }
+Timeline.prototype.jump = function(t) { this.pos = t; };
 
 Timeline.prototype.jumpAt = function(at, t) {
     var me = this; this.addAction(at, function() { me.jump(t); });
-}
+};
 
-Timeline.prototype.easing = function(f) { this.easing = f; }
+Timeline.prototype.easing = function(f) { this.easing = f; };
 
 Timeline.prototype.fireMessage = function(message) {
     this.fire(C.X_MESSAGE, message);
-}
+};
 
 Timeline.prototype.onMessage = function(message, handler) {
     this.on(C.X_MESSAGE, function(name) { if (name === message) handler(); });
-}
+};
 
 Timeline.prototype.fireMessageAt = function(at, message) {
     var me = this;
     this.addAction(at, function() { me.fireMessage(message); });
-}
+};
 
 Timeline.prototype.clone = function(owner) {
     var trg = new Timeline(owner || this.owner);
@@ -192,7 +200,7 @@ Timeline.prototype.clone = function(owner) {
     trg.easing = this.easing;
     //trg.actions = this.actions.concat([])
     return trg;
-}
+};
 
 /* Element.checkRepeatMode = function(time, band, mode, nrep) {
     if (time === Element.NO_TIME) return Element.NO_TIME;

@@ -57,6 +57,7 @@ Scene.prototype.add = function(arg1, arg2, arg3) {
     var element = Element._fromArguments(arg1, arg2, arg3);
     if (!element.children) throw errors.animation(ErrLoc.A.OBJECT_IS_NOT_ELEMENT, this);
     this._register(element);
+    element.parent = null;
     this.children.push(element);
 };
 
@@ -89,7 +90,7 @@ Scene.prototype.findById = function(id) {
 Scene.prototype._register = function(elm) {
     if (this.hash[elm.id]) throw errors.animation(ErrLoc.A.ELEMENT_IS_REGISTERED, this);
     elm.registered = true;
-    elm.anim = this.anim; elm.scene = this; elm.parent = null;
+    elm.anim = this.anim; elm.scene = this;
     this.hash[elm.id] = elm;
 
     var me = this;

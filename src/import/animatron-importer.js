@@ -224,6 +224,7 @@ Import.branch = function(type, src, psrc, all, anim) {
     } else {
         trg.band(0, Infinity);
     }
+    if (type === TYPE_CLIP) trg.affectsChildren = false;
     // in animatron layers are in reverse order
     for (var li = _layers.length; li--;) {
         /** layer **/

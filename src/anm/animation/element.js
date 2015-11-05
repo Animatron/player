@@ -732,7 +732,9 @@ Element.prototype.render = function(ctx, gtime, dt) {
     // user to do that)
     var drawMe = false;
 
-    var ltime = this.time.tick(dt);
+    var ltime = (this.parent && this.parent.affectsChildren)
+                ? this.time.tickParent(this.parent.time, dt)
+                : this.time.tick(dt);
     if (ltime === Element.NO_TIME) return;
 
     drawMe = this.__preRender(gtime, ltime, ctx);
@@ -746,18 +748,13 @@ Element.prototype.render = function(ctx, gtime, dt) {
     if (drawMe) {
         ctx.save();
 
-        // update global time with new local time (it may've been
-        // changed if there were jumps or something), so children will
-        // get the proper value
-        gtime = this.affectsChildren ? this.time.getGlobalTime(this) : gtime;
-
         var mask = this.$mask,
             renderMasked = false,
             mask_ltime, mask_gtime;
 
         if (mask) {
             mask_ltime = mask.time.tick(dt),
-            mask_gtime = mask.gtime(mask_ltime);
+            mask_gtime = mask.time.getGlobalTime(mask_ltime); // FIXME: gtime could be removed?
 
             // FIXME: move this chain completely into one method, or,
             //        which is even better, make all these checks to be modifiers
