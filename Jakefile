@@ -846,7 +846,7 @@ task('_build-file', { async: true }, function() {
         _print(DONE_MARKER);
     };
 
-    getCommitHash(function(commitHash) {
+    _getCommitHash(function(commitHash) {
         console.log(commitInfo);
         updateBuildFile(commitHash);
         complete();
