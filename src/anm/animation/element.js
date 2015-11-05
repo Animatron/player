@@ -296,7 +296,7 @@ Element.prototype.initTime = function() {
 
     /** @property {anm.Timeline} timeline instance @readonly */
 
-    this.time = new Timeline();
+    this.time = new Timeline(this);
 
     /** @property {String} switch (name of the child to render in current moment) */
 
@@ -305,7 +305,10 @@ Element.prototype.initTime = function() {
     return this;
 };
 
-Element.prototype.resetTime = Element.prototype.initTime;
+Element.prototype.resetTime = function() {
+    this.time.reset();
+    this.switch = null;
+};
 
 Element.prototype.initEvents = function() {
     this.evts = {}; // events cache
@@ -2553,7 +2556,7 @@ Element.transferVisuals = function(src, trg) {
 };
 
 Element.transferTime = function(src, trg) {
-    trg.time = src.time.clone();
+    trg.time = src.time.clone(trg);
 };
 
 // TODO: rename to matrixOf ?
@@ -2661,6 +2664,20 @@ Element.prototype.addDebugRender = function() {
     this.paint(Render.p_drawReg);
     this.paint(Render.p_drawName);
     this.paint(Render.p_drawMPath);
+};
+
+Element.prototype.getPath = function() {
+    var cursor = this, last;
+    var path = '';
+    while (cursor) {
+        path = cursor.name + '/' + path;
+        last = cursor;
+        cursor = cursor.parent;
+    };
+    if (last && last.scene) {
+        path = last.scene.name + '/' + path;
+    };
+    return '/' + path;
 };
 
 module.exports = Element;

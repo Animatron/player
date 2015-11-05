@@ -11,7 +11,7 @@ var Timeline = require('./timeline.js');
 function Scene(anim, name, duration) {
     this.anim = anim;
     this.name = name;
-    this.time = new Timeline();
+    this.time = new Timeline(this);
     this.time.setDuration(is.num(duration) ? duration : Infinity);
 
     this.children = [];
@@ -89,7 +89,7 @@ Scene.prototype.findById = function(id) {
 Scene.prototype._register = function(elm) {
     if (this.hash[elm.id]) throw errors.animation(ErrLoc.A.ELEMENT_IS_REGISTERED, this);
     elm.registered = true;
-    elm.anim = this.anim; elm.scene = this;
+    elm.anim = this.anim; elm.scene = this; elm.parent = null;
     this.hash[elm.id] = elm;
 
     var me = this;
@@ -120,6 +120,10 @@ Scene.prototype._unregister = function(elm, save_in_tree) { // save_in_tree is o
     elm.anim = null;
     elm.scene = null;
     //elm.parent = null;
+};
+
+Scene.prototype.getPath = function() {
+    return '/' + this.name + '/';
 };
 
 Scene._fromElement = function(elm) {

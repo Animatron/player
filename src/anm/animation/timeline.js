@@ -11,15 +11,17 @@ var events = require('../events.js'),
  *
  * Stores and manages all the timing of a single element.
  */
-function Timeline() {
+function Timeline(owner) {
+    this.owner = owner;
+
     this.start = 0;
     this.duration = Infinity;
     this.end = C.R_ONCE;
     this.nrep = Infinity;
     this.actions = [];
     this.paused = false;
-    this.pos = -this.start;
-    this.actualPos = -this.start;
+    this.pos = -this.start || 0;
+    this.actualPos = -this.start || 0;
     this.easing = null;
     this.actionsPos = 0;
 
@@ -183,8 +185,8 @@ Timeline.prototype.fireMessageAt = function(at, message) {
     this.addAction(at, function() { me.fireMessage(message); });
 }
 
-Timeline.prototype.clone = function() {
-    var trg = new Timeline();
+Timeline.prototype.clone = function(owner) {
+    var trg = new Timeline(owner || this.owner);
     trg.start = this.start; trg.duration = this.duration;
     trg.end = this.end; trg.nrep = this.nrep;
     trg.easing = this.easing;
