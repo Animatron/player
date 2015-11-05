@@ -11,7 +11,7 @@ var Timeline = require('./timeline.js');
 function Scene(anim, name, duration) {
     this.anim = anim;
     this.name = name;
-    this.time = new Timeline();
+    this.time = new Timeline(this);
     this.time.setDuration(is.num(duration) ? duration : Infinity);
 
     this.children = [];
@@ -57,6 +57,7 @@ Scene.prototype.add = function(arg1, arg2, arg3) {
     var element = Element._fromArguments(arg1, arg2, arg3);
     if (!element.children) throw errors.animation(ErrLoc.A.OBJECT_IS_NOT_ELEMENT, this);
     this._register(element);
+    element.parent = null;
     this.children.push(element);
 };
 
@@ -120,6 +121,10 @@ Scene.prototype._unregister = function(elm, save_in_tree) { // save_in_tree is o
     elm.anim = null;
     elm.scene = null;
     //elm.parent = null;
+};
+
+Scene.prototype.getPath = function() {
+    return '/' + this.name + '/';
 };
 
 Scene._fromElement = function(elm) {

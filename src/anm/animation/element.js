@@ -296,7 +296,7 @@ Element.prototype.initTime = function() {
 
     /** @property {anm.Timeline} timeline instance @readonly */
 
-    this.time = new Timeline();
+    this.time = new Timeline(this);
 
     /** @property {String} switch (name of the child to render in current moment) */
 
@@ -305,7 +305,10 @@ Element.prototype.initTime = function() {
     return this;
 };
 
-Element.prototype.resetTime = Element.prototype.initTime;
+Element.prototype.resetTime = function() {
+    this.time.reset();
+    this.switch = null;
+};
 
 Element.prototype.initEvents = function() {
     this.evts = {}; // events cache
@@ -729,7 +732,9 @@ Element.prototype.render = function(ctx, gtime, dt) {
     // user to do that)
     var drawMe = false;
 
-    var ltime = this.time.tick(dt);
+    var ltime = (this.parent && this.parent.affectsChildren)
+                ? this.time.tickParent(this.parent.time, dt)
+                : this.time.tick(dt);
     if (ltime === Element.NO_TIME) return;
 
     drawMe = this.__preRender(gtime, ltime, ctx);
@@ -743,18 +748,13 @@ Element.prototype.render = function(ctx, gtime, dt) {
     if (drawMe) {
         ctx.save();
 
-        // update global time with new local time (it may've been
-        // changed if there were jumps or something), so children will
-        // get the proper value
-        gtime = this.affectsChildren ? this.time.getGlobalTime(this) : gtime;
-
         var mask = this.$mask,
             renderMasked = false,
             mask_ltime, mask_gtime;
 
         if (mask) {
             mask_ltime = mask.time.tick(dt),
-            mask_gtime = mask.gtime(mask_ltime);
+            mask_gtime = mask.time.getGlobalTime(mask_ltime); // FIXME: gtime could be removed?
 
             // FIXME: move this chain completely into one method, or,
             //        which is even better, make all these checks to be modifiers
@@ -1096,6 +1096,10 @@ Element.prototype.loop = function(nrep) {
 Element.prototype.bounce = function(nrep) {
     this.time.setEndAction(C.R_BOUNCE, nrep);
     return this;
+};
+
+Element.prototype.mode = function(mode, nrep) {
+    this.time.setEndAction(mode, nrep);
 };
 
 /**
@@ -2553,7 +2557,7 @@ Element.transferVisuals = function(src, trg) {
 };
 
 Element.transferTime = function(src, trg) {
-    trg.time = src.time.clone();
+    trg.time = src.time.clone(trg);
 };
 
 // TODO: rename to matrixOf ?
@@ -2661,6 +2665,20 @@ Element.prototype.addDebugRender = function() {
     this.paint(Render.p_drawReg);
     this.paint(Render.p_drawName);
     this.paint(Render.p_drawMPath);
+};
+
+Element.prototype.getPath = function() {
+    var cursor = this, last;
+    var path = '';
+    while (cursor) {
+        path = cursor.name + '/' + path;
+        last = cursor;
+        cursor = cursor.parent;
+    };
+    if (last && last.scene) {
+        path = last.scene.name + '/' + path;
+    };
+    return '/' + path;
 };
 
 module.exports = Element;

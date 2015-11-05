@@ -224,6 +224,7 @@ Import.branch = function(type, src, psrc, all, anim) {
     } else {
         trg.band(0, Infinity);
     }
+    if (type === TYPE_CLIP) trg.affectsChildren = false;
     // in animatron layers are in reverse order
     for (var li = _layers.length; li--;) {
         /** layer **/
@@ -301,12 +302,12 @@ Import.branch = function(type, src, psrc, all, anim) {
          */
         // transfer repetition data
         if (lsrc[5]) {
-            ltrg.mode = Import.mode(lsrc[5][0]);
+            ltrg.time.mode = Import.mode(lsrc[5][0]);
             if (lsrc[5].length > 1) {
-                ltrg.nrep = lsrc[5][1] || Infinity;
+                ltrg.time.nrep = lsrc[5][1] || Infinity;
             }
         } else {
-            ltrg.mode = Import.mode(null);
+            ltrg.time.mode = Import.mode(null);
         }
 
         // if do not masks any layers, just add to target
