@@ -836,19 +836,19 @@ task('_build-file', { async: true }, function() {
     var BUILD_TIME = _extended_build_time();
     console.log('Build time:', BUILD_TIME);
 
-    var updateBuildFile = function(commitInfo) {
+    var updateBuildFile = function(commitLine) {
         jake.rmRf(_loc(BUILD_FILE));
         _print('Updating ' + BUILD_FILE + ' file.\n');
         jake.echo(BUILD_TIME + '\n' +
                   VERSION + '\n' +
-                  commitInfo, _loc(BUILD_FILE));
+                  commitLine, _loc(BUILD_FILE));
 
         _print(DONE_MARKER);
     };
 
-    _getCommitHash(function(commitHash) {
-        console.log(commitInfo);
-        updateBuildFile(commitHash);
+    _getCommitLine(function(commitLine) {
+        console.log(commitLine);
+        updateBuildFile(commitLine);
         complete();
     });
 
@@ -1040,11 +1040,11 @@ function _versionize(src) {
     _print('v -> ' + src);
 }
 
-function _getCommitHash(callback) {
+function _getCommitLine(callback) {
     if (isTeamCityBuild) {
-        var commitInfo = process.env.BUILD_VCS_NUMBER_Animatron_AnimatronPlayerDevelopment +
+        var commitLine = process.env.BUILD_VCS_NUMBER_Animatron_AnimatronPlayerDevelopment +
             '\n' + 'Built by TeamCity. Build #' + process.env.BUILD_NUMBER;
-        callback(commitInfo);
+        callback(commitLine);
     } else {
         var getCommit = jake.createExec([
           [ Binaries.GIT,
@@ -1053,8 +1053,8 @@ function _getCommitHash(callback) {
             '--format=format:"' + BUILD_FORMAT + '"'
           ].join(' ')
         ], EXEC_OPTS);
-        getCommit.on('stdout', function(commitInfo) {
-            callback(commitInfo.toString());
+        getCommit.on('stdout', function(commitLine) {
+            callback(commitLine.toString());
         });
         getCommit.addListener('stderr', function(msg) {
             fail(msg, 1);
