@@ -11,6 +11,8 @@ var Scene = require('./scene.js'),
     Clip = Element,
     Brush = require('../graphics/brush.js');
 
+var Timeline = require('./timeline.js');
+
 var events = require('../events.js'),
     provideEvents = events.provideEvents,
     errors = require('../errors.js'),
@@ -70,9 +72,9 @@ function Animation() {
     this.targets = {}; // Player instances where this animation was loaded, by ID
     this.$prefix = null; // functions to call before every frame
     //this.fps = undefined;
-    this.__informEnabled = true;
     this.__lastOverElm = null;
     this._laters = [];
+    // this.time = new Timeline(this); // TODO:
 
     var defaultScene = new Scene(this, '', 0);
     this.scenes = [];
@@ -277,7 +279,7 @@ Animation.prototype.eachScene = function(func) {
  */
 Animation.prototype.render = function(ctx, time, dt) {
     ctx.save();
-    this.time = time;
+    this.time = time; // FIXME: use Timeline instance here
     var zoom = this.zoom;
     if (zoom != 1) {
         ctx.scale(zoom, zoom);
@@ -340,7 +342,6 @@ Animation.prototype.currentScene = function() {
  * Reset all render-related data for itself, and the data of all the elements.
  */
 Animation.prototype.reset = function() {
-    this.__informEnabled = true;
     this.time = null;
     this.each(function(child) {
         child.reset();

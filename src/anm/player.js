@@ -499,6 +499,11 @@ Player.prototype.play = function(from, speed, stopAfter) {
     // used to resume playing in some special cases
     state.__lastPlayConf = [ from, speed, stopAfter ];
 
+    state.__startTime = Date.now();
+    state.__redraws = 0;
+    state.__rsec = 0;
+    state.__prevt = state.time || 0;
+
     state.from = from || 0;
     state.time = Player.NO_TIME;
     state.speed = (speed || 1) * (player.speed || 1) * (anim.speed || 1);
@@ -508,11 +513,6 @@ Player.prototype.play = function(from, speed, stopAfter) {
                                                               : Animation.DEFAULT_DURATION));
 
     if (state.duration === undefined) throw errors.player(ErrLoc.P.DURATION_IS_NOT_KNOWN, player);
-
-    state.__startTime = Date.now();
-    state.__redraws = 0;
-    state.__rsec = 0;
-    state.__prevt = 0;
 
     if (state.happens === C.STOPPED && !player.repeating) {
         player.fire(C.S_REPORT_STATS);
@@ -629,7 +629,7 @@ Player.prototype.pause = function() {
     state.from = state.time;
     state.happens = C.PAUSED;
 
-    if (state.time !== Player.NO_TIME) player.drawAt(state.time);
+    if (state.time !== Player.NO_TIME) player.drawCurrent();
 
     player.fire(C.S_CHANGE_STATE, C.PAUSED);
     player.fire(C.S_PAUSE, state.time);
@@ -858,7 +858,7 @@ Player.prototype.rect = function(rect) {
 Player.prototype.forceRedraw = function() {
     switch (this.state.happens) {
         case C.STOPPED: this.stop(); break;
-        case C.PAUSED: if (this.anim) this.drawAt(this.state.time); break;
+        case C.PAUSED: if (this.anim) this.drawCurrent(); break;
         case C.PLAYING: if (this.anim) { this._stopAndContinue(); } break;
         case C.NOTHING: if (!this.controls) this._drawSplash(); break;
         //case C.LOADING: case C.RES_LOADING: this._drawSplash(); break;
@@ -890,16 +890,19 @@ Player.prototype.drawAt = function(time) {
         ext_after = function(gtime, ctx) {
             if (u_after) u_after(gtime, ctx);
             anim.reset();
-            anim.__informEnabled = true;
         };
 
     var ctx_props = engine.getAnmProps(this.ctx);
     ctx_props.factor = this.factor();
 
-    anim.__informEnabled = false;
     Render.at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor, u_before, ext_after);
     return this;
 };
+
+Player.prototype.drawCurrent = function() {
+    Render.at(this.state.time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor,
+              this.__userBeforeRender, this.__userAfterRender);
+}
 
 /**
  * @method size
@@ -1373,7 +1376,7 @@ Player.prototype._reset = function() {
     }
     state.happens = C.NOTHING;
     state.from = 0;
-    state.time = Player.NO_TIME;
+    state.time = Player.NO_TIME; // FIXME: use Timeline instance here, or Animation.time
     state.duration = undefined;
     this.fire(C.S_CHANGE_STATE, C.NOTHING);
     if (this.controls) this.controls.reset();

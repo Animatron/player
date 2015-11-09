@@ -736,8 +736,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
     if (ltime === Element.NO_TIME) return;
 
     drawMe = this.__preRender(gtime, ltime, ctx);
-    // fire band start/end events
-    if (this.anim && this.anim.__informEnabled) this.inform(gtime, ltime);
     if (drawMe) {
         drawMe = this.time.fits() &&
                  this.modifiers(ltime, dt) &&
