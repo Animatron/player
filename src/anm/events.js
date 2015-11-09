@@ -19,20 +19,12 @@ function registerEvent(id, name) { C[id] = name; }
 // And, user gets `on` function to subcribe to events and `provides` to check
 // if it is allowed.
 function provideEvents(subj, events) {
-    subj.prototype._initHandlers = (function(evts) { // FIXME: make automatic
-        return function() {
-            var _hdls = {};
-            this.handlers = _hdls;
-            for (var ei = 0, el = evts.length; ei < el; ei++) {
-                _hdls[evts[ei]] = [];
-            }
-        };
-    })(events);
     subj.prototype.on = function(event, handler) {
-        if (!this.handlers) throw errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
         if (!this.provides(event)) throw errors.system('Event \'' + event +
                                                  '\' is not provided by ' + this);
         if (!handler) return;
+        if (!this.handlers) this.handlers = {};
+        if (!this.handlers[event]) this.handlers[event] = [];
         this.handlers[event].push(handler);
         // FIXME: make it chainable, use handler instance to unbind, instead of index
         return (this.handlers[event].length - 1);
@@ -42,55 +34,39 @@ function provideEvents(subj, events) {
     };
     subj.prototype.fire = function(event/*, evt_args*/) {
         if (this.disabled) return;
-        if (!this.handlers) throw errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
         if (!this.provides(event)) throw errors.system('Event \'' + event +
                                                  '\' is not provided by ' + this);
         if (this.filterEvent && !(this.filterEvent.apply(this, arguments))) return;
-        if (this['handle_'+event] || this.handlers[event].length) {
+        var _hdls = this.handlers ? this.handlers[event] : null;
+        if (this['handle_'+event] || (_hdls && _hdls.length)) {
             var evt_args = new Array(arguments.length - 1);
             for (var i = 1; i < arguments.length; i++) {
                 evt_args[i - 1] = arguments[i];
             }
             if (this['handle_'+event]) this['handle_'+event].apply(this, evt_args);
-            var _hdls = this.handlers[event];
-            for (var hi = 0, hl = _hdls.length; hi < hl; hi++) {
-                _hdls[hi].apply(this, evt_args);
+            if (_hdls) {
+                for (var hi = 0, hl = _hdls.length; hi < hl; hi++) {
+                    _hdls[hi].apply(this, evt_args);
+                }
             }
         }
 
     };
     subj.prototype.provides = (function(evts) {
         return function(event) {
-            if (!this.handlers) throw errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
             if (!event) return evts;
-            return this.handlers.hasOwnProperty(event);
+            return events.indexOf(event) >= 0;
         };
     })(events);
     subj.prototype.unbind = function(event, idx) {
-        if (!this.handlers) throw errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
-        if (!this.provides(event)) return;
+        if (!this.provides(event) || !this.handlers[event]) return;
         if (this.handlers[event][idx]) {
             this.handlers[event].splice(idx, 1);
         }
     };
     subj.prototype.disposeHandlers = function() {
-        if (!this.handlers) throw errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
-        var _hdls = this.handlers;
-        for (var evt in _hdls) {
-            if (_hdls.hasOwnProperty(evt)) _hdls[evt] = [];
-        }
+        this.handlers = {};
     };
-    /* FIXME: call fire/e_-funcs only from inside of their providers, */
-    /* TODO: wrap them with event objects */
-    var makeFireFunc = function(event) {
-        return function(evtobj) {
-            this.fire(event, evtobj);
-        };
-    };
-
-    for (var ei = 0, el = events.length; ei < el; ei++) {
-        subj.prototype['e_'+events[ei]] = makeFireFunc(events[ei]);
-    }
 }
 
 registerEvent('S_NEW_PLAYER', 'new');

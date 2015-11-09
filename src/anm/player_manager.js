@@ -20,7 +20,6 @@ var events = require('./events.js'),
 function PlayerManager() {
     this.hash = {};
     this.instances = [];
-    this._initHandlers();
 }
 
 events.provideEvents(PlayerManager, [ C.S_NEW_PLAYER, C.S_PLAYER_DETACH ]);

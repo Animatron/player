@@ -136,8 +136,6 @@ function Element(name, draw, onframe) {
     this.__detachQueue = [];
     this.__frameProcessors = [];
 
-    this._initHandlers(); // assign handlers for all of the events. TODO: make automatic with provideEvents
-
     // FIXME: add all of the `provideEvents` method to docs for all elements who provide them
     var me = this,
         default_on = this.on;

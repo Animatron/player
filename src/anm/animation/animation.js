@@ -73,7 +73,6 @@ function Animation() {
     this.__informEnabled = true;
     this.__lastOverElm = null;
     this._laters = [];
-    this._initHandlers(); // TODO: make automatic
 
     var defaultScene = new Scene(this, '', 0);
     this.scenes = [];
@@ -135,7 +134,7 @@ Animation.prototype.addScene = function(name, duration) {
     }
     var lastScene = this.scenes[this.scenes.length - 1];
     if (lastScene) {
-        lastScene.on(C.X_END, function() {
+        lastScene.time.on(C.X_END, function() {
             this.toNextScene();
         }.bind(this));
     }
