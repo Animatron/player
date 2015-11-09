@@ -28,7 +28,8 @@ function Timeline(owner) {
     this.passedStart = false;
     this.passedEnd = false;
 };
-provideEvents(Timeline, [ /*C.X_TICK, */C.X_START, C.X_END, C.X_MESSAGE ]);
+provideEvents(Timeline, [ /*C.X_TICK, */C.X_START, C.X_END, C.X_MESSAGE,
+    C.X_JUMP, C.X_PAUSE, C.X_CONTINUE, C.X_ITER ]);
 
 Timeline.prototype.reset = function() {
     this.paused = false;
@@ -61,14 +62,17 @@ Timeline.prototype.tick = function(dt) {
             this.passedEnd = true;
             toReturn = null;
         } else if (this.mode === C.R_STAY) {
+            var wasPaused = this.paused;
             this.paused = true;
             next = this.duration;
             toReturn = next;
+            if (!wasPaused) this.fire(C.X_PAUSE, next);
         } else if (this.mode === C.R_LOOP) {
             this.actionsPos = 0;
             var fits = Math.floor(next / this.duration);
             if ((fits < 0) || (fits > this.nrep)) { toReturn = null; }
-            else { next = next - (fits * this.duration); toReturn = next }
+            else { next = next - (fits * this.duration); toReturn = next; }
+            this.fire(C.X_JUMP, next); this.fire(C.X_ITER);
         } else if (this.mode === C.R_BOUNCE) {
             this.actionsPos = 0;
             var fits = Math.floor(next / this.duration);
@@ -78,23 +82,34 @@ Timeline.prototype.tick = function(dt) {
                 next = ((fits % 2) === 0) ? next : (this.duration - next);
                 toReturn = next;
             }
+            this.fire(C.X_JUMP, next); this.fire(C.X_ITER);
         }
-        // TODO: fire stop event
     } else if (next < 0) {
         toReturn = null;
-    } else {
-        // TODO: if (!this.passedStart && (this.pos <= 0) && (next >= 0)) { fire start };
+    }
+
+    if (is.defined(toReturn)) {
         toReturn = (this.easing ? this.easing(next) : next);
+        next = (this.easing ? this.easing(next) : next);
     }
 
     if (this.actions.length) {
         while ((this.actionsPos < this.actions.length) &&
-               (this.actions[this.actionsPos].time < next)) { // should easing be
+               (this.actions[this.actionsPos].time < next)) { // should actions handle eased time?
             this.actions[this.actionsPos].func();
             this.actionsPos++;
         }
         if (this.actionsPos === this.actions.length) { this.actionsPos = 0; }
     }
+
+    if ((this.pos <= 0) && (next > 0) && (next <= this.duration) && !this.passedStart) {
+        this.fire(C.X_START, next); this.passedStart = true;
+    }
+
+    if ((this.pos >= 0) && (this.pos <= this.duration) && (next > this.duration) && !this.passedEnd) {
+        this.fire(C.X_STOP, next); this.passedEnd = true;
+    }
+
     this.pos = next;
 
     return toReturn;
@@ -107,6 +122,10 @@ Timeline.prototype.tickParent = function(parent_time, last_dt) {
     this.actualPos = this.pos;
     return this.tick(last_dt);
 }
+
+Timeline.prototype.fits = function() {
+    return (this.pos >= 0) && (this.pos <= this.duration);
+};
 
 Timeline.prototype.setEndAction = function(type, nrep) {
     this.end = type;
@@ -156,23 +175,26 @@ Timeline.prototype.getGlobalTime = function() {
     return start + this.pos;
 };
 
-Timeline.prototype.fits = function() {
-    return (this.pos >= 0) && (this.pos <= this.duration);
+Timeline.prototype.pause = function() {
+    this.paused = true; this.fire(C.X_PAUSE, this.pos);
 };
-
-Timeline.prototype.pause = function() { this.paused = true; };
 
 Timeline.prototype.pauseAt = function(at) {
     var me = this; this.addAction(at, function() { me.pause(); });
 };
 
-Timeline.prototype.continue = function() { this.paused = false; };
+Timeline.prototype.continue = function() {
+    this.fire(C.X_CONTINUE, this.pos);
+    this.paused = false;
+};
 
 Timeline.prototype.countinueAt = function(at) {
     var me = this; this.addAction(at, function() { me.continue(); });
 };
 
-Timeline.prototype.jump = function(t) { this.pos = t; };
+Timeline.prototype.jump = function(t) {
+    this.pos = t; this.fire(C.X_JUMP, t);
+};
 
 Timeline.prototype.jumpAt = function(at, t) {
     var me = this; this.addAction(at, function() { me.jump(t); });
@@ -201,37 +223,5 @@ Timeline.prototype.clone = function(owner) {
     //trg.actions = this.actions.concat([])
     return trg;
 };
-
-/* Element.checkRepeatMode = function(time, band, mode, nrep) {
-    if (time === Element.NO_TIME) return Element.NO_TIME;
-    if (!is.finite(band[1])) return time - band[0];
-    var durtn, ffits, fits, t;
-    switch (mode) {
-        case C.R_ONCE:
-            return time - band[0];
-        case C.R_STAY:
-            return (t_cmp(time, band[1]) <= 0) ?
-                time - band[0] : band[1] - band[0];
-        case C.R_LOOP: {
-                durtn = band[1] - band[0];
-                if (durtn < 0) return -1;
-                ffits = (time - band[0]) / durtn;
-                fits = Math.floor(ffits);
-                if ((fits < 0) || (ffits > nrep)) return -1;
-                t = (time - band[0]) - (fits * durtn);
-                return t;
-            }
-        case C.R_BOUNCE: {
-                durtn = band[1] - band[0];
-                if (durtn < 0) return -1;
-                ffits = (time - band[0]) / durtn;
-                fits = Math.floor(ffits);
-                if ((fits < 0) || (ffits > nrep)) return -1;
-                t = (time - band[0]) - (fits * durtn);
-                t = ((fits % 2) === 0) ? t : (durtn - t);
-                return t;
-            }
-    }
-}; */
 
 module.exports = Timeline;

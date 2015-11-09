@@ -117,9 +117,13 @@ registerEvent('X_KPRESS', 'keypress');
 registerEvent('X_KUP', 'keyup');
 registerEvent('X_KDOWN', 'keydown');
 
-// * bands
+// * timeline
 registerEvent('X_START', 'bandstart');
 registerEvent('X_STOP', 'bandstop');
+registerEvent('X_PAUSE', 'timepause');
+registerEvent('X_CONTINUE', 'timecontinue');
+registerEvent('X_JUMP', 'timejump');
+registerEvent('X_ITER', 'iteration');
 
 // * Animation or Element error
 registerEvent('X_ERROR', 'error');
