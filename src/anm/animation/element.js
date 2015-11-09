@@ -730,8 +730,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
     // user to do that)
     var drawMe = false;
 
-    var ltime = (this.parent && this.parent.affectsChildren)
-                ? this.time.tickParent(this.parent.time, dt)
+    var ltime = (this.parent && this.parent.affectsChildren) // check `affectsChildren` inside `tickParent`?
+                ? this.time.tickParent(dt)
                 : this.time.tick(dt);
     if (ltime === Element.NO_TIME) return;
 
@@ -752,8 +752,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
         var mask_ltime;
 
         if (mask) {
-            mask_ltime = (mask.parent && mask.parent.affectsChildren)
-                         ? mask.time.tickParent(mask.parent.time, dt)
+            mask_ltime = (mask.parent && mask.parent.affectsChildren) // check `affectsChildren` inside `tickParent`?
+                         ? mask.time.tickParent(dt)
                          : mask.time.tick(dt);
 
             // FIXME: move this chain completely into one method, or,
