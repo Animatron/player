@@ -115,12 +115,15 @@ Timeline.prototype.tick = function(dt) {
     return toReturn;
 }
 
-Timeline.prototype.tickParent = function(parent_time, last_dt) {
+Timeline.prototype.tickParent = function(dt) {
     // this could be replaced with subscribing parent to children's
     // X_ITER and resetting their timeline
-    this.pos = parent_time.pos - this.start - last_dt;
+    if (!this.owner.parent) { return this.tick(dt); };
+    var parent_time = this.owner.parent.time;
+    if (!parent_time) return;
+    this.pos = parent_time.pos - this.start - dt;
     this.actualPos = this.pos;
-    return this.tick(last_dt);
+    return this.tick(dt);
 }
 
 Timeline.prototype.fits = function() {
