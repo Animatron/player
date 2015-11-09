@@ -85,7 +85,9 @@ Timeline.prototype.tick = function(dt) {
             this.fire(C.X_JUMP, next); this.fire(C.X_ITER);
         }
     } else if (next < 0) {
-        toReturn = null;
+        toReturn = undefined;
+    } else {
+        toReturn = next;
     }
 
     if (is.defined(toReturn)) {
