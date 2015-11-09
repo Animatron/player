@@ -107,7 +107,7 @@ Timeline.prototype.tick = function(dt) {
     }
 
     if ((this.pos >= 0) && (this.pos <= this.duration) && (next > this.duration) && !this.passedEnd) {
-        this.fire(C.X_STOP, next); this.passedEnd = true;
+        this.fire(C.X_END, next); this.passedEnd = true;
     }
 
     this.pos = next;
