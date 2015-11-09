@@ -133,6 +133,12 @@ Animation.prototype.addScene = function(name, duration) {
     } else {
         scene = name; scene.anim = this;
     }
+    var lastScene = this.scenes[this.scenes.length - 1];
+    if (lastScene) {
+        lastScene.on(C.X_END, function() {
+            this.toNextScene();
+        }.bind(this));
+    }
     this.scenes.push(scene);
     return scene;
 };
