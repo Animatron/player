@@ -749,12 +749,14 @@ Element.prototype.render = function(ctx, gtime, dt) {
         ctx.save();
 
         var mask = this.$mask,
-            renderMasked = false,
-            mask_ltime, mask_gtime;
+            renderMasked = false;
+
+        var mask_ltime;
 
         if (mask) {
-            mask_ltime = mask.time.tick(dt),
-            mask_gtime = mask.time.getGlobalTime(mask_ltime); // FIXME: gtime could be removed?
+            mask_ltime = (mask.parent && mask.parent.affectsChildren)
+                         ? mask.time.tickParent(mask.parent.time, dt)
+                         : mask.time.tick(dt);
 
             // FIXME: move this chain completely into one method, or,
             //        which is even better, make all these checks to be modifiers
@@ -831,6 +833,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
             mask.transform(mctx);
             mask.painters(mctx);
+            var mask_gtime = mask.time.getGlobalTime();
             mask.each(function(child) {
                 child.render(mctx, mask_gtime, dt);
             });
@@ -1439,19 +1442,11 @@ Element.prototype.detach = function() {
  * @method gtime
  *
  * Get global time (relative to {@link anm.Animation Animation} or {@link anm.Scene scene})
- * from band-local time (relative to element's band, not parent-local)
  *
- * @param {Number} ltime band-local time
  * @return {Number} global time
  */
 Element.prototype.gtime = function(ltime) {
-    var start = this.time.start,
-        cursor = this.parent;
-    while (cursor) {
-        start += cursor.time.start;
-        cursor = cursor.parent;
-    }
-    return start + ltime;
+    this.time.getGlobalTime();
 };
 
 /**

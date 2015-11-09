@@ -146,11 +146,11 @@ Timeline.prototype.getLastPosition = function() {
     return this.pos;
 };
 
-Timeline.prototype.getGlobalTime = function(parent) {
-    var cursor = parent;
-    var start = this.start;
+Timeline.prototype.getGlobalTime = function() {
+    var cursor = this.owner;
+    var start = 0;
     while (cursor) {
-        start += cursor.time.start;
+        start += cursor.time ? cursor.time.start : 0;
         cursor = cursor.parent;
     }
     return start + this.pos;
