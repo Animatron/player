@@ -18,6 +18,15 @@ function Scene(anim, name, duration) {
     this.hash = {};
 }
 
+Scene.prototype.render = function(ctx, gtime, dt) {
+    var scene_time = this.time.tick(dt);
+    if (this.time.fits()) {
+        this.each(function(child) {
+            child.render(ctx, scene_time, dt);
+        });
+    }
+}
+
 Scene.prototype.duration = function(value) {
     if (!is.defined(value)) return this.getDuration();
     this.setDuration(value);

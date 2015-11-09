@@ -73,7 +73,6 @@ function Animation() {
     this.__informEnabled = true;
     this.__lastOverElm = null;
     this._laters = [];
-    this._initHandlers(); // TODO: make automatic
 
     var defaultScene = new Scene(this, '', 0);
     this.scenes = [];
@@ -132,6 +131,12 @@ Animation.prototype.addScene = function(name, duration) {
         scene = new Scene(this, name, duration);
     } else {
         scene = name; scene.anim = this;
+    }
+    var lastScene = this.scenes[this.scenes.length - 1];
+    if (lastScene) {
+        lastScene.time.on(C.X_END, function() {
+            this.toNextScene();
+        }.bind(this));
     }
     this.scenes.push(scene);
     return scene;
@@ -283,9 +288,7 @@ Animation.prototype.render = function(ctx, time, dt) {
         ctx.fillRect(0, 0, this.width, this.height);
     }
     time = this.$prefix ? this.$prefix(time, ctx) : time;
-    this.currentScene.each(function(child) {
-        child.render(ctx, time, dt);
-    });
+    this.currentScene.render(ctx, time, dt);
     ctx.restore();
 };
 

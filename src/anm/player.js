@@ -218,7 +218,6 @@ Player.EMPTY_BG = 'rgba(0,0,0,.05)';
 Player.prototype.init = function(elm, opts) {
     this.viewId = utils.getObjectId();
     if (!engine.isDocReady()) { log.warn(ErrLoc.P.DOM_NOT_READY); };
-    this._initHandlers(); /* TODO: make automatic */
     this.on(C.S_ERROR, this.__onerror());
     if (this.canvas || this.wrapper) throw errors.player(ErrLoc.P.INIT_TWICE, this);
     if (this.anim) throw errors.player(ErrLoc.P.INIT_AFTER_LOAD, this);
