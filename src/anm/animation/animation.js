@@ -74,7 +74,7 @@ function Animation() {
     //this.fps = undefined;
     this.__lastOverElm = null;
     this._laters = [];
-    // this.time = new Timeline(this); // TODO:
+    this.time = new Timeline(this);
 
     var defaultScene = new Scene(this, '', 0);
     this.scenes = [];
@@ -342,7 +342,7 @@ Animation.prototype.currentScene = function() {
  * Reset all render-related data for itself, and the data of all the elements.
  */
 Animation.prototype.reset = function() {
-    this.time = null;
+    this.time.reset();
     this.each(function(child) {
         child.reset();
     });

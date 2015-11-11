@@ -27,8 +27,8 @@ function Controls(player) {
     this.info = null;
     this.invisible = player.controlsInvisible;
 
+    this.happens = C.NOTHING;
     this.state = {
-        happens: C.NOTHING,
         mpos: {x: 0, y: 0},
         alpha: 1,
         click: false,
@@ -71,7 +71,7 @@ Controls.prototype.subscribeEvents = function() {
     var me=this;
 
     me.player.on(C.S_CHANGE_STATE, function(state) {
-        me.state.happens = state;
+        me.happens = state;
         me.state.changed = true;
     });
 
@@ -97,7 +97,7 @@ Controls.prototype.checkMouseTimeout = function(gtime) {
         var idleTime = gtime - this.state.mouseInteractedAt;
         if (idleTime > this.theme.fadeTimes.idle &&
             //if we're in a state where controls should autohide
-            (this.state.happens === C.PLAYING || this.state.happens === C.PAUSED) &&
+            (this.happens === C.PLAYING || this.happens === C.PAUSED) &&
             //and the mouse is not busy somewhere on the bottom area
             !Controls.isInProgressArea(this.state.mpos, this.bounds[2], this.bounds[3])
         ) {
@@ -139,7 +139,7 @@ Controls.prototype.render = function(gtime) {
     var dt = gtime - this.state.gtime;
     var prevGtime = this.state.gtime;
     this.state.gtime = gtime;
-    this.state.time = this.player.state.time;
+    this.state.time = this.player.time.getLastPosition();
 
     if (this.invisible) {
         return;
@@ -156,7 +156,7 @@ Controls.prototype.render = function(gtime) {
 
     var state = this.state,
         player = this.player,
-        s = state.happens,
+        s = this.happens,
         coords = state.mpos,
         time = state.time;
 
@@ -226,7 +226,7 @@ Controls.prototype.react = function() {
     if (this.hidden) return;
 
     var p = this.player,
-        s = this.state.happens,
+        s = this.happens,
         stateDuration = p.state.duration,
         animDuration = p.anim.getDuration(),
         btnWidth = theme.progress.buttonWidth,
@@ -278,7 +278,7 @@ Controls.prototype.handleMouseMove = function(evt) {
     var pos = engine.getEventPosition(evt, this.canvas);
     this.state.mpos.x = pos.x;
     this.state.mpos.y = pos.y;
-    if (this.state.happens === C.PLAYING || this.state.happens === C.PAUSED) {
+    if (this.happens === C.PLAYING || this.happens === C.PAUSED) {
         //if we are in the state where the playhead is accessible,
         //let's check if the mouse was there.
         if (Controls.isInProgressArea(this.state.mpos, this.bounds[2], this.bounds[3])) {
@@ -309,7 +309,7 @@ Controls.prototype.handleMouseEnter = function() {
 };
 
 Controls.prototype.handleMouseLeave = function() {
-    if (this.state.happens === C.PLAYING || this.state.happens === C.PAUSED) {
+    if (this.happens === C.PLAYING || this.happens === C.PAUSED) {
         this.hide();
     }
 };

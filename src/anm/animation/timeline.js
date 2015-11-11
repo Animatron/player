@@ -24,6 +24,7 @@ function Timeline(owner) {
     this.actualPos = -this.start || 0;
     this.easing = null;
     this.actionsPos = 0;
+    this.speed = 1;
 
     this.passedStart = false;
     this.passedEnd = false;
