@@ -1042,7 +1042,8 @@ function _versionize(src) {
 
 function _getCommitLine(callback) {
     if (isTeamCityBuild) {
-        var commitLine = process.env.BUILD_VCS_NUMBER_Animatron_AnimatronPlayerDevelopment +
+        var commitLine = (process.env.BUILD_VCS_NUMBER_Animatron_AnimatronPlayerDevelopment ||
+                          process.env.BUILD_VCS_NUMBER_Animatron_AnimatronPlayerMaster || '<Commit hash not found>') +
             '\n' + 'Built by TeamCity. Build #' + process.env.BUILD_NUMBER;
         callback(commitLine);
     } else {
