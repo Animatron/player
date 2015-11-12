@@ -226,12 +226,15 @@ Controls.prototype.react = function() {
     if (this.hidden) return;
 
     var p = this.player,
-        s = this.state.happens,
-        stateDuration = p.state.duration,
-        animDuration = p.anim.getDuration(),
+        s = this.state.happens;
+
+    if ((s === C.NOTHING) || (s === C.LOADING) || (s === C.ERROR)) return;
+
+    var stateDuration = p.state.duration,
+        animDuration = p.anim ? p.anim.getDuration() : 0,
         btnWidth = theme.progress.buttonWidth,
         bottomHeight = theme.bottomControls.height;
-    if ((s === C.NOTHING) || (s === C.LOADING) || (s === C.ERROR)) return;
+
     var coords = this.state.mpos,
         w = this.bounds[2], h = this.bounds[3];
 
