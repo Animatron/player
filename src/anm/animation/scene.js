@@ -136,6 +136,35 @@ Scene.prototype.getPath = function() {
     return '/' + this.name + '/';
 };
 
+Scene.prototype.at = function(t, f) {
+    return this.time.addAction(t, f);
+};
+
+Scene.prototype.play = function() {
+    this.time.continue();
+    return this;
+};
+
+Scene.prototype.stop = function() {
+    this.time.pause();
+    return this;
+};
+
+Scene.prototype.jump = function(t) {
+    this.time.jump(t);
+    return this;
+};
+
+Scene.prototype.jumpTo = function(elm) {
+    this.time.jumpTo(elm);
+    return this;
+};
+
+Scene.prototype.jumpAt = function(at, t) {
+    this.time.jumpAt(at, t);
+    return this;
+};
+
 Scene._fromElement = function(elm) {
     var scene = new Scene(elm.anim, elm.name/*, elm.time.getDuration()*/);
     scene.time = elm.time.clone();
