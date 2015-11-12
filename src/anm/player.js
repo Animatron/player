@@ -878,12 +878,17 @@ Player.prototype.drawAt = function(time) {
     var ctx_props = engine.getAnmProps(this.ctx);
     ctx_props.factor = this.factor();
 
+    // var prev_pos = anim.time.getLastPosition();
+    // anim.jump(time);
+    // Render.next(0, this.ctx, this.anim...);
+    // anim.jump(prev_pos);
     Render.at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor, u_before, ext_after);
     return this;
 };
 
 Player.prototype.drawCurrent = function() {
-    Render.at(this.state.time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor,
+    // Render.next(0, this.ctx, this.anim..)
+    Render.at(this.anim.time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor,
               this.__userBeforeRender, this.__userAfterRender);
 }
 

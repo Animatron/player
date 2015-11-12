@@ -30,9 +30,7 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
     if (typeof timeCounters[player.id] === 'undefined') {
         timeCounters[player.id] = 0;
     }
-    var pl_state = player.state;
-
-    if (pl_state.happens !== C.PLAYING) return;
+    if (player.happens !== C.PLAYING) return;
 
     var msec = (Date.now() - pl_state.__startTime);
     var sec = msec / 1000;
