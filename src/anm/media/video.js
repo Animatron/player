@@ -78,7 +78,7 @@ Video.prototype.load = function(uid, player) {
 
             var loadingListener = function(e) {
                 var ranges = [];
-                var duration = el.time.getDuration();
+                var duration = el.duration;
                 for (var i = 0; i < el.buffered.length; i++) {
                     ranges.push([ el.buffered.start(i),
                                   el.buffered.end(i) ]);
