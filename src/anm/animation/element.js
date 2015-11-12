@@ -1113,12 +1113,12 @@ Element.prototype.mode = function(mode, nrep) {
  *
  * See also: {@link anm.Element#band band}, {@link anm.Element#play play}, {@link anm.Element#stop stop}
  *
- * @param {Number} t target time for a jump
+ * @param {Number} t target local time for a jump
  *
  * @return {anm.Element} itself
  */
-Element.prototype.jump = function(loc_t) {
-    this.time.jump(loc_t);
+Element.prototype.jump = function(t) {
+    this.time.jump(t);
     return this;
 };
 
@@ -1139,13 +1139,12 @@ Element.prototype.jump = function(loc_t) {
 Element.prototype.jumpTo = function(element) {
     var elm = is.str(selector) ? this.find(selector) : selector;
     if (!elm) return;
-    var start = elm.time.start,
-        cursor = elm.parent;
-    while (cursor && (cursor !== this)) {
-        start += cursor.time.start;
-        cursor = cursor.parent;
-    }
-    this.jump(start);
+    this.time.jumpTo(elm);
+    return this;
+};
+
+Element.prototype.jumpAt = function(at, t) {
+    this.time.jumpAt(at, t);
     return this;
 };
 
@@ -1160,13 +1159,10 @@ Element.prototype.jumpTo = function(element) {
   * @return {anm.Element} itself
   */
 Element.prototype.play = function() {
-    if (!this.paused) return;
-    this.paused = false;
-    this.t = null;
-    this.pausedAt = undefined;
-    if (this.__m_stop) this.removeModifier(this.__m_stop);
+    this.time.continue();
     return this;
 }
+//Element.prototype.continue = Element.prototype.play;
 
 /**
  * @method stop

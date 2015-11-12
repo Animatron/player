@@ -176,6 +176,7 @@ Timeline.prototype.getGlobalTime = function() {
 };
 
 Timeline.prototype.pause = function() {
+    if (this.paused) return;
     this.paused = true; this.fire(C.X_PAUSE, this.pos);
 };
 
@@ -184,6 +185,7 @@ Timeline.prototype.pauseAt = function(at) {
 };
 
 Timeline.prototype.continue = function() {
+    if (!this.paused) return;
     this.fire(C.X_CONTINUE, this.pos);
     this.paused = false;
 };
@@ -198,6 +200,16 @@ Timeline.prototype.jump = function(t) {
 
 Timeline.prototype.jumpAt = function(at, t) {
     var me = this; this.addAction(at, function() { me.jump(t); });
+};
+
+Timeline.prototype.jumpTo = function(child) {
+    var start = elm.time.start,
+        cursor = elm.parent;
+    while (cursor && (cursor !== this.owner)) {
+        start += cursor.time.start;
+        cursor = cursor.parent;
+    }
+    this.jump(start);
 };
 
 Timeline.prototype.easing = function(f) { this.easing = f; };
