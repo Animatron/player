@@ -29,7 +29,7 @@ function Timeline(owner) {
     this.passedStart = false;
     this.passedEnd = false;
 };
-provideEvents(Timeline, [ /*C.X_TICK, */C.X_START, C.X_END, C.X_MESSAGE,
+provideEvents(Timeline, [ /*C.X_TICK, */C.X_START, C.X_STOP, C.X_MESSAGE,
     C.X_JUMP, C.X_PAUSE, C.X_CONTINUE, C.X_ITER ]);
 
 Timeline.prototype.reset = function() {
@@ -110,7 +110,7 @@ Timeline.prototype.tick = function(dt) {
     }
 
     if ((this.pos >= 0) && (this.pos <= this.duration) && (next > this.duration) && !this.passedEnd) {
-        this.fire(C.X_END, next); this.passedEnd = true;
+        this.fire(C.X_STOP, next); this.passedEnd = true;
     }
 
     this.pos = next;
@@ -162,7 +162,7 @@ Timeline.prototype.getGlobalBand = function(parent) {
     var start = this.start;
     while (cursor) {
         start += cursor.time.start;
-        cursor = cursor.parent;
+        cursor = cursor.parent || cursor.scene;
     }
     return [start, this.duration];
 };
@@ -171,14 +171,18 @@ Timeline.prototype.getLastPosition = function() {
     return this.pos;
 };
 
-Timeline.prototype.getGlobalTime = function() {
+Timeline.prototype.getGlobalStart = function() {
     var cursor = this.owner;
     var start = 0;
     while (cursor) {
         start += cursor.time ? cursor.time.start : 0;
-        cursor = cursor.parent;
+        cursor = cursor.parent || cursor.scene;
     }
-    return start + this.pos;
+    return start;
+};
+
+Timeline.prototype.getGlobalTime = function() {
+    return this.getGlobalStart() + this.pos;
 };
 
 Timeline.prototype.pause = function() {

@@ -136,7 +136,7 @@ Animation.prototype.addScene = function(name, duration) {
     }
     var lastScene = this.scenes[this.scenes.length - 1];
     if (lastScene) {
-        lastScene.time.on(C.X_END, function() {
+        lastScene.time.on(C.X_STOP, function() {
             this.toNextScene();
         }.bind(this));
     }
@@ -324,7 +324,7 @@ Animation.prototype.jump = function(t) {
 Animation.prototype.jumpTo = function(selector) {
     var elm = is.str(selector) ? this.find(selector) : selector;
     if (!elm) return;
-    this.jump(elm.getGlobalBand()[0]);
+    this.jump(elm.time.getGlobalStart());
 };
 
 /* Animation.prototype.nextScene = function() {
@@ -452,7 +452,7 @@ Animation.prototype.filterEvent = function(type, evt) {
         var targetFound = false;
         anim.reverseEach(function(child) {
             child.inside(pos, function(elm) { // filter elements
-                return is.defined(elm.cur_t) && elm.fits(elm.cur_t);
+                return elm.time.fits();
             }, function(elm, local_pos) { // point is inside
                 targetFound = true;
                 if (type !== 'mousemove') {
