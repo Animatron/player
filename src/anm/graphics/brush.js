@@ -182,6 +182,7 @@ Brush.prototype.adapt = function(ctx) {
         var cctx = canvas.getContext('2d');
         elm.pivot(0,0);
         elm.disabled = false;
+        var prevPos = elm.getTime();
         elm.render(cctx, 0, 0);
         elm.disabled = true;
         fill = canvas;

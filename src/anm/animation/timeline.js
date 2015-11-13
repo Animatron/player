@@ -217,6 +217,11 @@ Timeline.prototype.jumpTo = function(child) {
     this.jump(start);
 };
 
+Timeline.prototype.jumpToStart = function() {
+    this.actionsPos = 0;
+    this.pos = 0; this.fire(C.X_JUMP, 0);
+};
+
 Timeline.prototype.easing = function(f) { this.easing = f; };
 
 Timeline.prototype.fireMessage = function(message) {

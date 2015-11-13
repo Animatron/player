@@ -500,6 +500,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
     player.__rsec = 0;
     player.__prevt = anim.time.getLastPosition();
 
+    anim.continue();
     anim.jump(from || 0);
     if (is.num(speed)) anim.time.setSpeed(speed || 1); // FIXME: return speed of Animation back on player.stop
     // FIXME: use stopAfter
@@ -579,7 +580,10 @@ Player.prototype.stop = function() {
 
     player.fire(C.S_STOP);
 
-    if (anim) anim.reset(); // will also reset anim.time
+    if (anim) {
+        anim.reset();
+        anim.jumpToStart();
+    }
 
     return player;
 };
@@ -615,15 +619,15 @@ Player.prototype.pause = function() {
         __stopAnim(player.__lastReq);
     }
 
-    var time = player.anim ? player.anim.time : null;
-    if (time) time.pause();
+    if (player.anim) player.anim.pause();
 
     player.happens = C.PAUSED;
 
-    if (time && time.fits()) player.drawCurrent();
+    var anim_time = player.anim ? player.anim.pause : null;
+    if (anim_time && anim_time.fits()) player.drawCurrent();
 
     player.fire(C.S_CHANGE_STATE, C.PAUSED);
-    player.fire(C.S_PAUSE, time ? time.getLastPosition() : Player.NO_TIME);
+    player.fire(C.S_PAUSE, anim_time ? anim_time.getLastPosition() : Player.NO_TIME);
 
     return player;
 };
@@ -643,6 +647,10 @@ Player.prototype.seek = function(time) {
     } else {
         return this.pause().play(time);
     }
+};
+
+Player.prototype.getTime = function() {
+    return this.anim ? this.anim.getTime() : Player.NO_TIME;
 };
 
 /**
@@ -1245,8 +1253,8 @@ Player.prototype._drawStill = function() {
         if (player.__thumb) {
             player._drawThumbnail();
         } else if (anim) {
-            if (!player.infiniteDuration && is.finite(anim.time.getDuration())) {
-                player.drawAt(anim.time.getDuration() * Player.PREVIEW_POS);
+            if (!player.infiniteDuration && is.finite(anim.getDuration())) {
+                player.drawAt(anim.getDuration() * Player.PREVIEW_POS);
             } else {
                 player.drawCurrent();
             }

@@ -140,15 +140,17 @@ Scene.prototype.at = function(t, f) {
     return this.time.addAction(t, f);
 };
 
-Scene.prototype.play = function() {
+Scene.prototype.continue = function() {
     this.time.continue();
     return this;
 };
+Scene.prototype.play = Scene.prototype.continue; // FIXME
 
-Scene.prototype.stop = function() {
+Scene.prototype.pause = function() {
     this.time.pause();
     return this;
 };
+Scene.prototype.stop = Scene.prototype.pause; // FIXME
 
 Scene.prototype.jump = function(t) {
     this.time.jump(t);
@@ -170,6 +172,10 @@ Scene.prototype.jumpTo = function(elm) {
 Scene.prototype.jumpAt = function(at, t) {
     this.time.jumpAt(at, t);
     return this;
+};
+
+Scene.prototype.getTime = function() {
+    return this.time.getLastPosition();
 };
 
 Scene._fromElement = function(elm) {

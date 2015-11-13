@@ -823,7 +823,7 @@ Element.prototype.render = function(ctx, dt) {
             this.transform(bctx);
             this.painters(bctx);
             this.each(function(child) {
-                child.render(bctx, gtime, dt);
+                child.render(bctx, dt);
             });
 
             mask.transform(mctx);
@@ -1144,6 +1144,14 @@ Element.prototype.jumpAt = function(at, t) {
     return this;
 };
 
+Element.prototype.jumpToStart = function() {
+    this.time.jumpToStart(at, t);
+};
+
+Element.prototype.getTime = function() {
+    return this.time.getLastPosition();
+};
+
 /**
   * @method play
   * @chainable
@@ -1158,7 +1166,7 @@ Element.prototype.play = function() {
     this.time.continue();
     return this;
 }
-//Element.prototype.continue = Element.prototype.play;
+Element.prototype.continue = Element.prototype.play; // FIXME
 
 /**
  * @method stop
@@ -1177,6 +1185,7 @@ Element.prototype.stop = function() {
     this.time.pause();
     return this;
 }
+Element.prototype.pause = Element.prototype.stop; // FIXME
 
 /**
  * @method at
