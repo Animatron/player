@@ -70,7 +70,6 @@ function Animation() {
     this.repeat = false;
     this.meta = {};
     this.targets = {}; // Player instances where this animation was loaded, by ID
-    this.$prefix = null; // functions to call before every frame
     //this.fps = undefined;
     this.__lastOverElm = null;
     this._laters = [];
@@ -136,7 +135,7 @@ Animation.prototype.addScene = function(name, duration) {
     }
     var lastScene = this.scenes[this.scenes.length - 1];
     if (lastScene) {
-        lastScene.time.on(C.X_STOP, function() {
+        lastScene.time.on(C.X_END, function() {
             this.toNextScene();
         }.bind(this));
     }
@@ -274,13 +273,12 @@ Animation.prototype.eachScene = function(func) {
  * Render the Animation for given context at given time.
  *
  * @param {Canvas2DContext} context
- * @param {Number} time
- * @param {Number} [dt] The difference in time between current frame and previous one
+ * @param {Number} dt The difference in time between current frame and previous one
  */
-Animation.prototype.render = function(ctx, time, dt) {
+Animation.prototype.render = function(ctx, dt) {
     ctx.save();
-    this.time = time; // FIXME: use Timeline instance here
     var zoom = this.zoom;
+    this.time.tick(dt);
     if (zoom != 1) {
         ctx.scale(zoom, zoom);
     }
@@ -289,8 +287,7 @@ Animation.prototype.render = function(ctx, time, dt) {
         this.bgfill.apply(ctx);
         ctx.fillRect(0, 0, this.width, this.height);
     }
-    time = this.$prefix ? this.$prefix(time, ctx) : time;
-    this.currentScene.render(ctx, time, dt);
+    this.currentScene.render(ctx, dt);
     ctx.restore();
 };
 
@@ -591,22 +588,6 @@ Animation.prototype.findById = function(id) {
         found = scenes[i].findById(id);
     }
     return found;
-};
-
-/**
- * @method prefix
- *
- * Perform the function exactly before rendering all the elements inside,
- * before the new frame, but after the preparations. This function *should*
- * return the time value passed in or a new time value.
- *
- * @param {Function} f function to call
- * @param {Number} f.t time
- * @param {Context2D} f.ctx canvas context
- * @param {Number} f.return new time value
- */
-Animation.prototype.prefix = function(f) {
-    this.$prefix = f;
 };
 
 /**

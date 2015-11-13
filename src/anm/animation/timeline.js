@@ -29,7 +29,7 @@ function Timeline(owner) {
     this.passedStart = false;
     this.passedEnd = false;
 };
-provideEvents(Timeline, [ /*C.X_TICK, */C.X_START, C.X_STOP, C.X_MESSAGE,
+provideEvents(Timeline, [ /*C.X_TICK, */C.X_START, C.X_END, C.X_MESSAGE,
     C.X_JUMP, C.X_PAUSE, C.X_CONTINUE, C.X_ITER ]);
 
 Timeline.prototype.reset = function() {
@@ -97,10 +97,14 @@ Timeline.prototype.tick = function(dt) {
     }
 
     if (this.actions.length) {
-        while ((this.actionsPos < this.actions.length) &&
-               (this.actions[this.actionsPos].time < next)) { // should actions handle eased time?
-            this.actions[this.actionsPos].func();
+        var curAction = this.actions[this.actionsPos];
+        while (curAction && (this.actionsPos < this.actions.length) &&
+               (curAction.time <= next) &&
+               ((curAction.time > this.pos) ||
+                ((dt > 0) && (curAction.time == this.pos)))) {
+            curAction.func();
             this.actionsPos++;
+            curAction = this.actions[this.actionsPos];
         }
         if (this.actionsPos === this.actions.length) { this.actionsPos = 0; }
     }
@@ -110,7 +114,7 @@ Timeline.prototype.tick = function(dt) {
     }
 
     if ((this.pos >= 0) && (this.pos <= this.duration) && (next > this.duration) && !this.passedEnd) {
-        this.fire(C.X_STOP, next); this.passedEnd = true;
+        this.fire(C.X_END, next); this.passedEnd = true;
     }
 
     this.pos = next;
@@ -126,6 +130,7 @@ Timeline.prototype.tickParent = function(dt) {
     if (!parent_time) return;
     this.pos = parent_time.pos - this.start - dt;
     this.actualPos = this.pos;
+    // this._scrollActionsTo?
     return this.tick(dt);
 }
 
@@ -205,6 +210,7 @@ Timeline.prototype.countinueAt = function(at) {
 };
 
 Timeline.prototype.jump = function(t) {
+    this._scrollActionsTo(t);
     this.pos = t; this.fire(C.X_JUMP, t);
 };
 
@@ -235,6 +241,15 @@ Timeline.prototype.onMessage = function(message, handler) {
 Timeline.prototype.fireMessageAt = function(at, message) {
     var me = this;
     this.addAction(at, function() { me.fireMessage(message); });
+};
+
+Timeline.prototype._scrollActionsTo = function(time) {
+    var curAction = this.actions[this.actionsPos];
+    while (curAction && (this.actionsPos < this.actions.length) &&
+           (curAction.time < time)) {
+        this.actionsPos++;
+        curAction = this.actions[this.actionsPos];
+    }
 };
 
 Timeline.prototype.clone = function(owner) {

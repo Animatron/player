@@ -146,7 +146,7 @@ function Element(name, draw, onframe) {
      *
      * There's quite big list of possible events to subscribe, and it will be added here later. `TODO`
      *
-     * For example, `C.X_START` and `C.X_STOP` events are fired when this element's band
+     * For example, `C.X_START` and `C.X_END` events are fired when this element's band
      * starts and finishes in process of animation rendering.
      *
      * @param {C.X*} type event type
@@ -170,7 +170,7 @@ Element.DEFAULT_LEN = Infinity;
 Element._customImporters = [];
 provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_MMOVE, C.X_MOVER, C.X_MOUT,
-                         C.X_START, C.X_STOP ]);
+                         C.X_START, C.X_END ]);
 /**
  * @method is
  *
@@ -713,13 +713,12 @@ Element.prototype.invTransform = function(ctx) {
  * child or sub-child, if has some.
  *
  * @param {Context2D} ctx context to draw onto
- * @param {Number} gtime global time since the start of the animation (or scene), in seconds
  * @param {Number} dt time passed since the previous frame was rendered, in seconds
  *
  * @return {anm.Element} itself
  */
 // > Element.render % (ctx: Context, gtime: Float, dt: Float)
-Element.prototype.render = function(ctx, gtime, dt) {
+Element.prototype.render = function(ctx, dt) {
     if (this.disabled) return;
 
     this.rendering = true;
@@ -768,7 +767,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
             this.transform(ctx);
             this.painters(ctx);
             this.each(function(child) {
-                child.render(ctx, gtime, dt);
+                child.render(ctx, dt);
             });
         } else {
             // FIXME: the complete mask process should be a Painter.
@@ -829,9 +828,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
             mask.transform(mctx);
             mask.painters(mctx);
-            var mask_gtime = mask.time.getGlobalTime();
             mask.each(function(child) {
-                child.render(mctx, mask_gtime, dt);
+                child.render(mctx, dt);
             });
 
             bctx.globalCompositeOperation = 'destination-in';
@@ -2404,7 +2402,7 @@ Element.prototype.__checkSwitcher = function(gtime) {
 }
 Element.prototype.filterEvent = function(type, evt) {
     if ((type != C.X_START) &&
-        (type != C.X_STOP) && this.shown) {
+        (type != C.X_END) && this.shown) {
         this.__saveEvt(type, evt);
     }
     return true;
@@ -2432,10 +2430,10 @@ Element.prototype.__loadEvents = function() {
     }
 };
 
-Element.prototype.__preRender = function(gtime, ltime, ctx) {
+Element.prototype.__preRender = function(ltime, ctx) {
     var cr = this.__frameProcessors;
     for (var i = 0, cl = cr.length; i < cl; i++) {
-        if (cr[i].call(this, gtime, ltime, ctx) === false) return false;
+        if (cr[i].call(this, ltime, ctx) === false) return false;
     }
     return true;
 };

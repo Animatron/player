@@ -32,26 +32,29 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
     }
     if (player.happens !== C.PLAYING) return;
 
-    var msec = (Date.now() - pl_state.__startTime);
+    var timeline = anim.time;
+
+    var msec = (Date.now() - player.__startTime);
     var sec = msec / 1000;
 
-    var time = (sec * pl_state.speed) + pl_state.from,
-        dt = time - pl_state.__prevt;
-    pl_state.time = time;
-    pl_state.__dt = dt;
-    pl_state.__prevt = time;
+    var time = (sec * timeline.speed) + player.__startFrom,
+        dt = time - player.__prevt;
+    player.__dt = dt;
+    player.__prevt = time;
 
     if (before) {
         if (!before(time)) return;
     }
 
-    if (pl_state.__rsec === 0) pl_state.__rsec = msec;
-    if ((msec - pl_state.__rsec) >= 1000) {
-        pl_state.afps = pl_state.__redraws;
-        pl_state.__rsec = msec;
-        pl_state.__redraws = 0;
+    var fps = 0;
+    if (player.__rsec === 0) player.__rsec = msec;
+    if ((msec - player.__rsec) >= 1000) {
+        fps = player.__redraws;
+        player.__rsec = msec;
+        player.__redraws = 0;
     }
-    pl_state.__redraws++;
+    player.fps = fps;
+    player.__redraws++;
 
     r_at(time, dt, ctx, anim,
            player.width, player.height, player.zoom, player.ribbonsColor,
@@ -59,7 +62,7 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
 
     // show fps
     if (player.debug) {
-        r_fps(ctx, pl_state.afps, time);
+        r_fps(ctx, fps, time);
     }
 
     if (after) {
@@ -73,7 +76,7 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
         timeCounters[player.id] = 0;
     }
 
-    return (pl_state.__lastReq = nextFrame(function() {
+    return (player.__lastReq = nextFrame(function() {
         r_loop(ctx, player, anim, before, after, before_render, after_render);
     }));
 }

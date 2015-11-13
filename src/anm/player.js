@@ -495,6 +495,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
     player.__lastPlayConf = [ from, speed, stopAfter ];
 
     player.__startTime = Date.now();
+    player.__startFrom = from || 0;
     player.__redraws = 0;
     player.__rsec = 0;
     player.__prevt = anim.time.getLastPosition();

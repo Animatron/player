@@ -18,11 +18,11 @@ function Scene(anim, name, duration) {
     this.hash = {};
 }
 
-Scene.prototype.render = function(ctx, gtime, dt) {
-    var scene_time = this.time.tick(dt);
+Scene.prototype.render = function(ctx, dt) {
+    this.time.tick(dt);
     if (this.time.fits()) {
         this.each(function(child) {
-            child.render(ctx, scene_time, dt);
+            child.render(ctx, dt);
         });
     }
 }
