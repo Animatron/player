@@ -2868,9 +2868,9 @@ Element.transferTime = function(src, trg) {
 Element.getMatrixOf = function(elm, m) {
     var t = (m ? (m.reset(), m)
                 : new Transform());
-    var tr = Element.getTranslate(elm);
-    t.translate(tr ? tr.x : elm.x, tr ? tr.y : elm.y);
-    t.rotate(elm.angle + Element.getRotate(elm));
+    var tr = elm.getTranslate();
+    t.translate(tr.x, tr.y);
+    t.rotate(elm.getRotate());
     t.shear(elm.hx, elm.hy);
     t.scale(elm.sx, elm.sy);
     t.translate(-elm.$reg[0], -elm.$reg[1]);
@@ -2885,47 +2885,50 @@ Element.getMatrixOf = function(elm, m) {
     return t;
 };
 
-Element.getTranslate = function(elm) {
-    if (elm.parent && elm.parent.layer2Bone) {
-	elm.$bonePath = elm.$bonePath || Element.bonePath(elm);
+Element.prototype.getTranslate = function() {
+    if (this.parent && this.parent.layer2Bone) {
+	var bonepath = this.bonePath();
         var result = {x: 0, y: 0};
         var rotate = 0;
         var bone = null;
-	for (var li = 0; li < elm.$bonePath.length; li++) {
-            bone = elm.$bonePath[li];
+	for (var li = 0; li < bonepath.length; li++) {
+            bone = bonepath[li];
             rotate += bone.bonerotate;
 	    result.x += bone.bonelength * Math.cos(rotate);
 	    result.y += bone.bonelength * Math.sin(rotate);
 	}
-        elm = bone ? elm.parent.children[elm.$bonePath[0].$from] : elm;
+        var elm = bone ? this.parent.children[bonepath[0].$from] : this;
         result.x += elm.x;
         result.y += elm.y;
         return result;
     }
-    return null;
+    return this;
 };
 
-Element.getRotate = function(elm) {
-    if (elm.parent && elm.parent.layer2Bone) {
-        elm.$bonePath = elm.$bonePath || Element.bonePath(elm);
+Element.prototype.getRotate = function() {
+    if (this.parent && this.parent.layer2Bone) {
+        this.$bonePath = this.$bonePath || Element.bonePath(this);
 	var result = 0;
-	for (var li = elm.$bonePath.length; li--;) {
-	    result += elm.$bonePath[li].bonerotate;
+	for (var li = this.$bonePath.length; li--;) {
+	    result += this.$bonePath[li].bonerotate;
 	}
-        return result;
+        return result + this.angle;
     }
-    return 0;
+    return this.angle;
 };
 
-Element.bonePath = function(elm) {
-    var l2b = elm.parent.layer2Bone;
-    var result = [];
-    var bone = l2b[elm.parent.children.indexOf(elm)];
-    while (bone) {
-       result.push(bone);
-       bone = l2b[bone.$from];
+Element.prototype.bonePath = function() {
+    if (!this.$bonePath) {
+        var l2b = this.parent.layer2Bone;
+        var result = [];
+        var bone = l2b[this.parent.children.indexOf(this)];
+        while (bone) {
+            result.push(bone);
+            bone = l2b[bone.$from];
+        }
+        this.$bonePath = result.reverse();
     }
-    return result.reverse();
+    return this.$bonePath;
 };
 
 Element.getIMatrixOf = function(elm, m) {
