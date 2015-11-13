@@ -152,11 +152,18 @@ Scene.prototype.stop = function() {
 
 Scene.prototype.jump = function(t) {
     this.time.jump(t);
+    this.each(function(child) {
+        child.time.jump(t); // all scenes start at t==0, so it's safe not to subtract start
+    });
     return this;
 };
 
 Scene.prototype.jumpTo = function(elm) {
     this.time.jumpTo(elm);
+    var new_t = this.time.pos;
+    this.each(function(child) {
+        child.time.jump(new_t); // all scenes start at t==0, so it's safe not to subtract start
+    });
     return this;
 };
 

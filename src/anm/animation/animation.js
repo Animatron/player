@@ -298,16 +298,13 @@ Animation.prototype.render = function(ctx, dt) {
  * every Player where this animation was loaded inside. It will skip a jump, if it's already in process
  * of jumping.
  *
- * @param {Number} time
+ * @param {Number} time global animation time
  */
 Animation.prototype.jump = function(t) {
-    if (this.jumping) return;
-    this.jumping = true;
-    utils.keys(this.targets, function(id, player) {
-        if (player) player.seek(t);
-    });
-    this.jumping = false;
+    this.time.jump(t);
+    this.goToSceneAt(t);
 };
+
 
 /**
  * @method jumpTo
@@ -321,7 +318,23 @@ Animation.prototype.jump = function(t) {
 Animation.prototype.jumpTo = function(selector) {
     var elm = is.str(selector) ? this.find(selector) : selector;
     if (!elm) return;
-    this.jump(elm.time.getGlobalStart());
+    //this.jump(elm.time.getGlobalStart());
+    this.time.jumpTo(elm);
+    this.goToSceneAt(this.time.getLastPosition());
+};
+
+Animation.prototype.goToSceneAt = function(t) {
+    var loc_t = t;
+    var i = 0,
+        cursor = this.scenes[i];
+    while (/*(i < this.scenes.length) && */cursor && (loc_t > cursor.time.duration)) {
+        loc_t = loc_t - cursor.time.duration;
+        i++; cursor = this.scenes[i];
+    }
+    if (cursor) {
+        cursor.jump(loc_t);
+        this.setCurrentScene(i);
+    }
 };
 
 /* Animation.prototype.nextScene = function() {

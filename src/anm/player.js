@@ -500,7 +500,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
     player.__rsec = 0;
     player.__prevt = anim.time.getLastPosition();
 
-    anim.time.jump(from || 0);
+    anim.jump(from || 0);
     if (is.num(speed)) anim.time.setSpeed(speed || 1); // FIXME: return speed of Animation back on player.stop
     // FIXME: use stopAfter
     // FIXME: if player.infiniteDuration is set, duration should be changed to infinite (and returned back on player.stop)
@@ -1248,7 +1248,7 @@ Player.prototype._drawStill = function() {
             if (!player.infiniteDuration && is.finite(anim.time.getDuration())) {
                 player.drawAt(anim.time.getDuration() * Player.PREVIEW_POS);
             } else {
-                player.drawAt(anim.time.getLastPosition());
+                player.drawCurrent();
             }
         }
     } else {
@@ -1513,9 +1513,8 @@ Player.prototype.__beforeFrame = function(anim) {
                    player.repeating = true;
                    player.play();
                    player.fire(C.S_REPEAT);
-               } else if (!player.infiniteDuration &&
-                       is.finite(state.duration)) {
-                   player.drawAt(state.duration);
+               } else {
+                   player.drawCurrent();
                 }
                 return false;
             }
