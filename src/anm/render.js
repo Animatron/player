@@ -56,7 +56,7 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
     player.fps = fps;
     player.__redraws++;
 
-    r_at(time, dt, ctx, anim,
+    r_next(dt, ctx, anim,
            player.width, player.height, player.zoom, player.ribbonsColor,
            before_render, after_render);
 
@@ -81,7 +81,7 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
     }));
 }
 
-function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, after) {
+function r_next(dt, ctx, anim, width, height, zoom, rib_color, before, after) {
     ctx.save();
     var ratio = engine.PX_RATIO;
     if (ratio !== 1) { ctx.scale(ratio, ratio); }
@@ -93,10 +93,10 @@ function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, after
     if (!size_differs) {
         ctx.clearRect(0, 0, anim.width,
                             anim.height);
-        if (before) before(time, ctx);
+        if (before) before(anim.time.pos, ctx);
         if (zoom != 1) { ctx.scale(zoom, zoom); }
-        anim.render(ctx, time, dt);
-        if (after) after(time, ctx);
+        anim.render(ctx, dt);
+        if (after) after(anim.time.pos, ctx);
         ctx.restore();
     } else {
         r_with_ribbons(ctx, anim,
@@ -105,10 +105,10 @@ function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, after
                        rib_color,
             function(_scale) {
                 ctx.clearRect(0, 0, anim.width, anim.height);
-                if (before) before(time, ctx);
+                if (before) before(anim.time.pos, ctx);
                 if (zoom != 1) { ctx.scale(zoom, zoom); }
-                anim.render(ctx, time, dt);
-                if (after) after(time, ctx);
+                anim.render(ctx, dt);
+                if (after) after(anim.time.pos, ctx);
                 ctx.restore();
             });
     }
@@ -169,7 +169,7 @@ function r_fps(ctx, fps, time) {
 }
 
 Render.loop = r_loop;
-Render.at = r_at;
+Render.next = r_next;
 Render.drawFPS = r_fps;
 
 // SYSTEM PAINTERS

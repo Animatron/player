@@ -96,18 +96,7 @@ Timeline.prototype.tick = function(dt) {
         next = (this.easing ? this.easing(next) : next);
     }
 
-    if (this.actions.length) {
-        var curAction = this.actions[this.actionsPos];
-        while (curAction && (this.actionsPos < this.actions.length) &&
-               (curAction.time <= next) &&
-               ((curAction.time > this.pos) ||
-                ((dt > 0) && (curAction.time == this.pos)))) {
-            curAction.func();
-            this.actionsPos++;
-            curAction = this.actions[this.actionsPos];
-        }
-        if (this.actionsPos === this.actions.length) { this.actionsPos = 0; }
-    }
+    this._performActionsUpTo(next);
 
     if ((this.pos <= 0) && (next > 0) && (next <= this.duration) && !this.passedStart) {
         this.fire(C.X_START, next); this.passedStart = true;
@@ -210,7 +199,7 @@ Timeline.prototype.countinueAt = function(at) {
 };
 
 Timeline.prototype.jump = function(t) {
-    this._scrollActionsTo(t);
+    if (t !== this.pos) this._scrollActionsTo(t);
     this.pos = t; this.fire(C.X_JUMP, t);
 };
 
@@ -243,6 +232,27 @@ Timeline.prototype.fireMessageAt = function(at, message) {
     this.addAction(at, function() { me.fireMessage(message); });
 };
 
+Timeline.prototype._performActionsUpTo = function(next) {
+    if (!this.actions.length) return;
+    var curAction = this.actions[this.actionsPos];
+    // scroll to current time (this.time) first, if we're not there already
+    while (curAction && (this.actionsPos < this.actions.length) &&
+           (curAction.time < this.pos)) {
+        this.actionsPos++;
+        curAction = this.actions[this.actionsPos];
+    }
+    // then perform everything before `next` time
+    while (curAction && (this.actionsPos < this.actions.length) &&
+           (curAction.time <= next) &&
+           ((curAction.time > this.pos) ||
+            ((dt > 0) && (curAction.time == this.pos)))) {
+        curAction.func();
+        this.actionsPos++;
+        curAction = this.actions[this.actionsPos];
+    }
+    if (this.actionsPos === this.actions.length) { this.actionsPos = 0; }
+}
+
 Timeline.prototype._scrollActionsTo = function(time) {
     var curAction = this.actions[this.actionsPos];
     while (curAction && (this.actionsPos < this.actions.length) &&
@@ -250,6 +260,7 @@ Timeline.prototype._scrollActionsTo = function(time) {
         this.actionsPos++;
         curAction = this.actions[this.actionsPos];
     }
+    if (this.actionsPos === this.actions.length) { this.actionsPos = 0; }
 };
 
 Timeline.prototype.clone = function(owner) {
