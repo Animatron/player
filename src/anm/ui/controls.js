@@ -110,7 +110,7 @@ Controls.prototype.checkMouseTimeout = function(gtime) {
 
 //check if controls are being faded in/out, update alpha accordingly
 //return true if a fade is in progress
-Controls.prototype.checkFade = function(dt) {
+Controls.prototype.checkFade = function(x) {
     var fadeMode = this.fadeMode,
         fadeModifier = false,
         alpha = this.alpha;
@@ -377,7 +377,7 @@ Controls.prototype.setupRenderLoop = function() {
     var controls = this;
     var renderFunc = function(t) {
         controls.render(t);
-        lastRequest = nextFrame(renderFunc);
+        nextFrame(renderFunc);
     };
     lastRequest = nextFrame(renderFunc);
 };
@@ -388,7 +388,7 @@ Controls.prototype.stopRenderLoop = function() {
 
 //check whether the mpos coordinates are within the bottom area
 Controls.isInProgressArea = function(mpos, w, h) {
-    return(mpos.y <= h && mpos.y >= (h - theme.bottomControls.height));
+    return (mpos.y <= h && mpos.y >= (h - theme.bottomControls.height));
 };
 
 //draw the play/pause button background
