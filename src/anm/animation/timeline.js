@@ -24,11 +24,12 @@ function Timeline(owner) {
     this.actualPos = -this.start || 0;
     this.easing = null;
     this.actionsPos = 0;
+    this.speed = 1;
 
     this.passedStart = false;
     this.passedEnd = false;
 };
-provideEvents(Timeline, [ /*C.X_TICK, */C.X_START, C.X_STOP, C.X_MESSAGE,
+provideEvents(Timeline, [ /*C.X_TICK, */C.X_START, C.X_END, C.X_MESSAGE,
     C.X_JUMP, C.X_PAUSE, C.X_CONTINUE, C.X_ITER ]);
 
 Timeline.prototype.reset = function() {
@@ -95,21 +96,14 @@ Timeline.prototype.tick = function(dt) {
         next = (this.easing ? this.easing(next) : next);
     }
 
-    if (this.actions.length) {
-        while ((this.actionsPos < this.actions.length) &&
-               (this.actions[this.actionsPos].time < next)) { // should actions handle eased time?
-            this.actions[this.actionsPos].func();
-            this.actionsPos++;
-        }
-        if (this.actionsPos === this.actions.length) { this.actionsPos = 0; }
-    }
+    this._performActionsUpTo(next);
 
     if ((this.pos <= 0) && (next > 0) && (next <= this.duration) && !this.passedStart) {
         this.fire(C.X_START, next); this.passedStart = true;
     }
 
     if ((this.pos >= 0) && (this.pos <= this.duration) && (next > this.duration) && !this.passedEnd) {
-        this.fire(C.X_STOP, next); this.passedEnd = true;
+        this.fire(C.X_END, next); this.passedEnd = true;
     }
 
     this.pos = next;
@@ -125,6 +119,7 @@ Timeline.prototype.tickParent = function(dt) {
     if (!parent_time) return;
     this.pos = parent_time.pos - this.start - dt;
     this.actualPos = this.pos;
+    // this._scrollActionsTo?
     return this.tick(dt);
 }
 
@@ -204,6 +199,7 @@ Timeline.prototype.countinueAt = function(at) {
 };
 
 Timeline.prototype.jump = function(t) {
+    if (t !== this.pos) this._scrollActionsTo(t);
     this.pos = t; this.fire(C.X_JUMP, t);
 };
 
@@ -221,7 +217,20 @@ Timeline.prototype.jumpTo = function(child) {
     this.jump(start);
 };
 
+Timeline.prototype.jumpToStart = function() {
+    this.actionsPos = 0;
+    this.pos = 0; this.fire(C.X_JUMP, 0);
+};
+
+Timeline.prototype.jumpToEnd = function() {
+    this.actionsPos = this.duration;
+    this.pos = this.duration; this.fire(C.X_JUMP, this.pos);
+};
+
 Timeline.prototype.easing = function(f) { this.easing = f; };
+
+Timeline.prototype.isBefore = function(t) { return (this.pos < t); };
+Timeline.prototype.isAfter = function(t) { return (this.pos > t); };
 
 Timeline.prototype.fireMessage = function(message) {
     this.fire(C.X_MESSAGE, message);
@@ -234,6 +243,37 @@ Timeline.prototype.onMessage = function(message, handler) {
 Timeline.prototype.fireMessageAt = function(at, message) {
     var me = this;
     this.addAction(at, function() { me.fireMessage(message); });
+};
+
+Timeline.prototype._performActionsUpTo = function(next) {
+    if (!this.actions.length) return;
+    var curAction = this.actions[this.actionsPos];
+    // scroll to current time (this.time) first, if we're not there already
+    while (curAction && (this.actionsPos < this.actions.length) &&
+           (curAction.time < this.pos)) {
+        this.actionsPos++;
+        curAction = this.actions[this.actionsPos];
+    }
+    // then perform everything before `next` time
+    while (curAction && (this.actionsPos < this.actions.length) &&
+           (curAction.time <= next) &&
+           ((curAction.time > this.pos) ||
+            ((dt > 0) && (curAction.time == this.pos)))) {
+        curAction.func();
+        this.actionsPos++;
+        curAction = this.actions[this.actionsPos];
+    }
+    if (this.actionsPos === this.actions.length) { this.actionsPos = 0; }
+}
+
+Timeline.prototype._scrollActionsTo = function(time) {
+    var curAction = this.actions[this.actionsPos];
+    while (curAction && (this.actionsPos < this.actions.length) &&
+           (curAction.time < time)) {
+        this.actionsPos++;
+        curAction = this.actions[this.actionsPos];
+    }
+    if (this.actionsPos === this.actions.length) { this.actionsPos = 0; }
 };
 
 Timeline.prototype.clone = function(owner) {

@@ -18,11 +18,12 @@ function Scene(anim, name, duration) {
     this.hash = {};
 }
 
-Scene.prototype.render = function(ctx, gtime, dt) {
-    var scene_time = this.time.tick(dt);
+Scene.prototype.render = function(ctx, dt) {
+    this.time.tick(dt);
+    //console.log('Scene', this.name, this.getTime());
     if (this.time.fits()) {
         this.each(function(child) {
-            child.render(ctx, scene_time, dt);
+            child.render(ctx, dt);
         });
     }
 }
@@ -140,29 +141,46 @@ Scene.prototype.at = function(t, f) {
     return this.time.addAction(t, f);
 };
 
-Scene.prototype.play = function() {
+Scene.prototype.continue = function() {
     this.time.continue();
     return this;
 };
+Scene.prototype.play = Scene.prototype.continue; // FIXME
 
-Scene.prototype.stop = function() {
+Scene.prototype.pause = function() {
     this.time.pause();
     return this;
 };
+Scene.prototype.stop = Scene.prototype.pause; // FIXME
 
 Scene.prototype.jump = function(t) {
     this.time.jump(t);
+    this.each(function(child) {
+        child.time.jump(t); // all scenes start at t==0, so it's safe not to subtract start
+    });
     return this;
 };
 
 Scene.prototype.jumpTo = function(elm) {
     this.time.jumpTo(elm);
+    var new_t = this.time.pos;
+    this.each(function(child) {
+        child.time.jump(new_t); // all scenes start at t==0, so it's safe not to subtract start
+    });
     return this;
+};
+
+Scene.prototype.jumpToStart = function() {
+    this.jump(0);
 };
 
 Scene.prototype.jumpAt = function(at, t) {
     this.time.jumpAt(at, t);
     return this;
+};
+
+Scene.prototype.getTime = function() {
+    return this.time.getLastPosition();
 };
 
 Scene._fromElement = function(elm) {

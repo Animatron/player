@@ -37,7 +37,7 @@ Video.prototype.connect = function(element, anim) {
         me.play.apply(me, arguments);
     });
     var stop = function() { me.stop(); };
-    element.on(C.X_STOP, stop);
+    element.on(C.X_END, stop);
     anim.on(C.A_STOP, stop);
     anim.on(C.A_PAUSE, stop);
 };

@@ -95,7 +95,7 @@ registerEvent('X_KDOWN', 'keydown');
 
 // * timeline
 registerEvent('X_START', 'bandstart');
-registerEvent('X_STOP', 'bandstop');
+registerEvent('X_END', 'bandend');
 registerEvent('X_PAUSE', 'timepause');
 registerEvent('X_CONTINUE', 'timecontinue');
 registerEvent('X_JUMP', 'timejump');

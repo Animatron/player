@@ -83,7 +83,7 @@ Import.project = function(prj) {
     root.fonts = Import.fonts(prj);
     Import.root = root;
     Import.anim(prj, root); // will inject all required properties directly in animation object
-    if (prj.meta.duration) root.duration = prj.meta.duration;
+    if (prj.meta.duration) root.setDuration(prj.meta.duration);
 
     Import._paths = prj.anim.paths;
     Import._path_cache = new ValueCache();

@@ -56,12 +56,12 @@ PlayerManager.prototype.handleDocumentHiddenChange = function(hidden) {
     var i, player;
     for (i = 0; i < this.instances.length; i++) {
         player = this.instances[i];
-        if (hidden && player.state.happens === C.PLAYING) {
+        if (hidden && player.happens === C.PLAYING) {
             player._pausedViaHidden = true;
             player.pause();
         } else if (!hidden && player._pausedViaHidden) {
             player._pausedViaHidden = false;
-            player.play(player.state.from);
+            if (player.anim) player.play(player.anim.getTime());
         }
     }
 };

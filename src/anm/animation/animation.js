@@ -11,6 +11,8 @@ var Scene = require('./scene.js'),
     Clip = Element,
     Brush = require('../graphics/brush.js');
 
+var Timeline = require('./timeline.js');
+
 var events = require('../events.js'),
     provideEvents = events.provideEvents,
     errors = require('../errors.js'),
@@ -68,11 +70,10 @@ function Animation() {
     this.repeat = false;
     this.meta = {};
     this.targets = {}; // Player instances where this animation was loaded, by ID
-    this.$prefix = null; // functions to call before every frame
     //this.fps = undefined;
-    this.__informEnabled = true;
     this.__lastOverElm = null;
     this._laters = [];
+    this.time = new Timeline(this);
 
     var defaultScene = new Scene(this, '', 0);
     this.scenes = [];
@@ -134,7 +135,7 @@ Animation.prototype.addScene = function(name, duration) {
     }
     var lastScene = this.scenes[this.scenes.length - 1];
     if (lastScene) {
-        lastScene.time.on(C.X_STOP, function() {
+        lastScene.time.on(C.X_END, function() {
             this.toNextScene();
         }.bind(this));
     }
@@ -143,12 +144,16 @@ Animation.prototype.addScene = function(name, duration) {
 };
 
 Animation.prototype.getDuration = function() {
+    return this.time.getDuration();
+};
+
+/*Animation.prototype.getTotalDurationFromScenes = function() {
     var duration = 0;
     this.eachScene(function(scene) {
         duration += scene.getDuration();
     });
     return duration;
-};
+}*/
 
 Animation.prototype.getScenes = function() {
     return this.scenes;
@@ -158,6 +163,7 @@ Animation.prototype.toNextScene = function() {
     if ((this.currentSceneIdx + 1) >= this.scenes.length) return null;
     this.currentSceneIdx++;
     this.currentScene = this.scenes[this.currentSceneIdx];
+    this.currentScene.continue();
     return this.currentScene;
 };
 
@@ -165,12 +171,14 @@ Animation.prototype.toPrevScene = function() {
     if ((this.currentSceneIdx - 1) < 0) return null;
     this.currentSceneIdx--;
     this.currentScene = this.scenes[this.currentSceneIdx];
+    this.currentScene.continue(); // ensure it's not paused
     return this.currentScene;
 };
 
 Animation.prototype.setCurrentScene = function(idx) {
     this.currentSceneIdx = idx;
     this.currentScene = this.scenes[this.currentSceneIdx];
+    this.currentScene.continue(); // ensure it's not paused
     return this;
 };
 
@@ -181,7 +189,10 @@ Animation.prototype.getCurrentScene = function() {
 Animation.prototype.replaceScene = function(idx, scene) {
     scene.anim = this;
     this.scenes[idx] = scene;
-    if (this.currentSceneIdx === idx) { this.currentScene = scene; }
+    if (this.currentSceneIdx === idx) {
+        this.currentScene = scene;
+        this.currentScene.continue(); // ensure it's not paused
+    }
     return this;
 };
 
@@ -272,13 +283,13 @@ Animation.prototype.eachScene = function(func) {
  * Render the Animation for given context at given time.
  *
  * @param {Canvas2DContext} context
- * @param {Number} time
- * @param {Number} [dt] The difference in time between current frame and previous one
+ * @param {Number} dt The difference in time between current frame and previous one
  */
-Animation.prototype.render = function(ctx, time, dt) {
+Animation.prototype.render = function(ctx, dt) {
     ctx.save();
-    this.time = time;
     var zoom = this.zoom;
+    this.time.tick(dt);
+    //console.log('Animation', this.getTime());
     if (zoom != 1) {
         ctx.scale(zoom, zoom);
     }
@@ -287,9 +298,18 @@ Animation.prototype.render = function(ctx, time, dt) {
         this.bgfill.apply(ctx);
         ctx.fillRect(0, 0, this.width, this.height);
     }
-    time = this.$prefix ? this.$prefix(time, ctx) : time;
-    this.currentScene.render(ctx, time, dt);
+    this.currentScene.render(ctx, dt);
     ctx.restore();
+};
+
+Animation.prototype.pause = function() {
+    this.time.pause();
+    this.currentScene.pause();
+};
+
+Animation.prototype.continue = function() {
+    this.time.continue();
+    this.currentScene.continue();
 };
 
 /**
@@ -299,15 +319,12 @@ Animation.prototype.render = function(ctx, time, dt) {
  * every Player where this animation was loaded inside. It will skip a jump, if it's already in process
  * of jumping.
  *
- * @param {Number} time
+ * @param {Number} time global animation time
  */
 Animation.prototype.jump = function(t) {
-    if (this.jumping) return;
-    this.jumping = true;
-    utils.keys(this.targets, function(id, player) {
-        if (player) player.seek(t);
-    });
-    this.jumping = false;
+    var prev_time = this.getTime();
+    this.time.jump(t);
+    if (t !== prev_time) this.goToSceneAt(t);
 };
 
 /**
@@ -322,7 +339,46 @@ Animation.prototype.jump = function(t) {
 Animation.prototype.jumpTo = function(selector) {
     var elm = is.str(selector) ? this.find(selector) : selector;
     if (!elm) return;
-    this.jump(elm.time.getGlobalStart());
+    //this.jump(elm.time.getGlobalStart());
+    var prev_time = this.getTime();
+    this.time.jumpTo(elm);
+    if (t !== prev_time) this.goToSceneAt(this.getTime());
+};
+
+Animation.prototype.jumpToStart = function() {
+    this.time.jumpToStart();
+    this.setCurrentScene(0);
+    this.currentScene.jumpToStart();
+};
+
+Animation.prototype.getTime = function() {
+    return this.time.getLastPosition();
+};
+
+Animation.prototype.setDuration = function(duration) {
+    this.time.setDuration(duration);
+};
+
+Animation.prototype.goToSceneAt = function(t) {
+    if (t <= this.getDuration()) {
+        var loc_t = t;
+        var i = 0,
+            cursor = this.scenes[i];
+        while (/*(i < this.scenes.length) && */cursor && (loc_t > cursor.time.duration)) {
+            loc_t = loc_t - cursor.time.duration;
+            i++; cursor = this.scenes[i];
+        }
+        if (cursor) {
+            cursor.jump(loc_t);
+            this.setCurrentScene(i);
+        } else {
+            this.setCurrentScene(0);
+            this.currentScene.jumpToStart();
+        }
+    } else {
+        this.setCurrentScene(this.scenes.length - 1);
+        this.currentScene.time.jumpToEnd();
+    }
 };
 
 /* Animation.prototype.nextScene = function() {
@@ -340,8 +396,7 @@ Animation.prototype.currentScene = function() {
  * Reset all render-related data for itself, and the data of all the elements.
  */
 Animation.prototype.reset = function() {
-    this.__informEnabled = true;
-    this.time = null;
+    this.time.reset();
     this.each(function(child) {
         child.reset();
     });
@@ -590,22 +645,6 @@ Animation.prototype.findById = function(id) {
         found = scenes[i].findById(id);
     }
     return found;
-};
-
-/**
- * @method prefix
- *
- * Perform the function exactly before rendering all the elements inside,
- * before the new frame, but after the preparations. This function *should*
- * return the time value passed in or a new time value.
- *
- * @param {Function} f function to call
- * @param {Number} f.t time
- * @param {Context2D} f.ctx canvas context
- * @param {Number} f.return new time value
- */
-Animation.prototype.prefix = function(f) {
-    this.$prefix = f;
 };
 
 /**
