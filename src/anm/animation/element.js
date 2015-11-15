@@ -134,7 +134,6 @@ function Element(name, draw, onframe) {
     this.__painters_hash = {}; // applied painters, by id
 
     this.__detachQueue = [];
-    this.__frameProcessors = [];
 
     // FIXME: add all of the `provideEvents` method to docs for all elements who provide them
     var me = this,
@@ -734,7 +733,6 @@ Element.prototype.render = function(ctx, dt) {
                 : this.time.tick(dt);
     if (ltime === Element.NO_TIME) return;
 
-    drawMe = this.__preRender(gtime, ltime, ctx);
     if (drawMe) {
         drawMe = this.time.fits() &&
                  this.modifiers(ltime, dt) &&
@@ -2437,14 +2435,6 @@ Element.prototype.__loadEvents = function() {
         }
         this.__evtCache = [];
     }
-};
-
-Element.prototype.__preRender = function(ltime, ctx) {
-    var cr = this.__frameProcessors;
-    for (var i = 0, cl = cr.length; i < cl; i++) {
-        if (cr[i].call(this, ltime, ctx) === false) return false;
-    }
-    return true;
 };
 
 Element.prototype.__safeDetach = function(what, _cnt) {

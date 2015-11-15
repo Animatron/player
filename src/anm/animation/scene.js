@@ -169,6 +169,10 @@ Scene.prototype.jumpTo = function(elm) {
     return this;
 };
 
+Scene.prototype.jumpToStart = function() {
+    this.jump(0);
+};
+
 Scene.prototype.jumpAt = function(at, t) {
     this.time.jumpAt(at, t);
     return this;

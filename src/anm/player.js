@@ -1510,15 +1510,13 @@ Player.prototype.__beforeFrame = function(anim) {
         return function(time) {
             anim.clearAllLaters();
             if (player.happens !== C.PLAYING) return false;
-            if (((state.stop !== Player.NO_TIME) &&
-                 (time >= (state.from + state.stop))) ||
-                (is.finite(state.duration) &&
-                 (time > (state.duration + Player.PEFF)))) {
+            if (player.anim && !player.anim.time.fits()) {
                 player.fire(C.S_COMPLETE);
                 state.time = 0;
                 player.stop();
                 if (player.repeat || anim.repeat) {
                    player.repeating = true;
+                   player.anim.jump(0);
                    player.play();
                    player.fire(C.S_REPEAT);
                } else {
@@ -1659,7 +1657,7 @@ Player.prototype._applyTimeOptionsIfSet = function() {
     // then the rule (for the moment) is: last one wins
     if (this.autoPlay) {
         if (this.happens === C.PLAYING) this.stop();
-        this.play(this.startFrom || this.time.getLastPosition());
+        this.play(this.startFrom || this.anim.getTime());
     } else if (this.startFrom) {
         if (this.happens === C.PLAYING) this.stop();
         this.play(this.startFrom);
