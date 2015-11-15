@@ -494,24 +494,26 @@ Player.prototype.play = function(from, speed, stopAfter) {
     // used to resume playing in some special cases
     player.__lastPlayConf = [ from, speed, stopAfter ];
 
+    anim.continue();
+    anim.jump(from || 0);
+
     player.__startTime = Date.now();
     player.__startFrom = from || 0;
     player.__redraws = 0;
     player.__rsec = 0;
-    player.__prevt = anim.time.getLastPosition();
+    player.__prevt = anim.getTime();
 
-    anim.continue();
-    anim.jump(from || 0);
-    if (is.num(speed)) anim.time.setSpeed(speed || 1); // FIXME: return speed of Animation back on player.stop
-    // FIXME: use stopAfter
-    // FIXME: if player.infiniteDuration is set, duration should be changed to infinite (and returned back on player.stop)
-    /* state.from = from || 0;
-    state.time = Player.NO_TIME;
-    state.speed = (speed || 1) * (player.speed || 1) * (anim.speed || 1);
-    state.stop = (typeof stopAfter !== 'undefined') ? stopAfter : state.stop;
-    state.duration = player.infiniteDuration ? Infinity
-                     : (anim.getDuration() || (anim.isEmpty() ? 0
-                                                              : Animation.DEFAULT_DURATION)); */
+    // FIXME: lines below should not modify animation time, but rather use some temporary time configuration
+    //        living through one playthrough and dying after stop.
+    if (is.num(speed)) anim.time.setSpeed(speed || 1);
+    if (is.num(stopAfter)) {
+        player.stopAfter = stopAfter;
+    } else {
+        player.stopAfter = Infinity;
+    }
+
+    if (anim.isEmpty()) anim.setDuration(0);
+    if (player.infiniteDuration) anim.setDuration(Infinity);
 
     if (player.happens === C.STOPPED && !player.repeating) {
         player.fire(C.S_REPORT_STATS);
@@ -1509,7 +1511,8 @@ Player.prototype.__beforeFrame = function(anim) {
         return function(time) {
             anim.clearAllLaters();
             if (player.happens !== C.PLAYING) return false;
-            if (player.anim && !player.anim.time.fits()) {
+            if (player.anim && (!player.anim.time.fits() ||
+                                player.anim.time.isAfter(player.stopAfter))) {
                 player.fire(C.S_COMPLETE);
                 player.stop();
                 if (player.repeat || anim.repeat) {

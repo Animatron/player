@@ -110,7 +110,7 @@ Controls.prototype.checkMouseTimeout = function(gtime) {
 
 //check if controls are being faded in/out, update alpha accordingly
 //return true if a fade is in progress
-Controls.prototype.checkFade = function(x) {
+Controls.prototype.checkFade = function(dt) {
     var fadeMode = this.fadeMode,
         fadeModifier = false,
         alpha = this.alpha;

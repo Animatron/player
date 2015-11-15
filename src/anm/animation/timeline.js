@@ -229,6 +229,9 @@ Timeline.prototype.jumpToEnd = function() {
 
 Timeline.prototype.easing = function(f) { this.easing = f; };
 
+Timeline.prototype.isBefore = function(t) { return (this.pos < t); };
+Timeline.prototype.isAfter = function(t) { return (this.pos > t); };
+
 Timeline.prototype.fireMessage = function(message) {
     this.fire(C.X_MESSAGE, message);
 };

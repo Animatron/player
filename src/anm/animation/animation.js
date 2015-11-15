@@ -322,8 +322,9 @@ Animation.prototype.continue = function() {
  * @param {Number} time global animation time
  */
 Animation.prototype.jump = function(t) {
+    var prev_time = this.getTime();
     this.time.jump(t);
-    this.goToSceneAt(t);
+    if (t !== prev_time) this.goToSceneAt(t);
 };
 
 /**
@@ -339,8 +340,9 @@ Animation.prototype.jumpTo = function(selector) {
     var elm = is.str(selector) ? this.find(selector) : selector;
     if (!elm) return;
     //this.jump(elm.time.getGlobalStart());
+    var prev_time = this.getTime();
     this.time.jumpTo(elm);
-    this.goToSceneAt(this.time.getLastPosition());
+    if (t !== prev_time) this.goToSceneAt(this.getTime());
 };
 
 Animation.prototype.jumpToStart = function() {
