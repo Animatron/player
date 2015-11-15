@@ -222,6 +222,11 @@ Timeline.prototype.jumpToStart = function() {
     this.pos = 0; this.fire(C.X_JUMP, 0);
 };
 
+Timeline.prototype.jumpToEnd = function() {
+    this.actionsPos = this.duration;
+    this.pos = this.duration; this.fire(C.X_JUMP, this.pos);
+};
+
 Timeline.prototype.easing = function(f) { this.easing = f; };
 
 Timeline.prototype.fireMessage = function(message) {

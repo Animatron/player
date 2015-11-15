@@ -20,6 +20,7 @@ function Scene(anim, name, duration) {
 
 Scene.prototype.render = function(ctx, dt) {
     this.time.tick(dt);
+    //console.log('Scene', this.name, this.getTime());
     if (this.time.fits()) {
         this.each(function(child) {
             child.render(ctx, dt);

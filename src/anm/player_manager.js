@@ -61,7 +61,7 @@ PlayerManager.prototype.handleDocumentHiddenChange = function(hidden) {
             player.pause();
         } else if (!hidden && player._pausedViaHidden) {
             player._pausedViaHidden = false;
-            if (player.anim) player.play(player.anim.time.getLastPosition());
+            if (player.anim) player.play(player.anim.getTime());
         }
     }
 };

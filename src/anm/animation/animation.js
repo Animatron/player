@@ -289,6 +289,7 @@ Animation.prototype.render = function(ctx, dt) {
     ctx.save();
     var zoom = this.zoom;
     this.time.tick(dt);
+    //console.log('Animation', this.getTime());
     if (zoom != 1) {
         ctx.scale(zoom, zoom);
     }
@@ -352,20 +353,29 @@ Animation.prototype.getTime = function() {
     return this.time.getLastPosition();
 };
 
+Animation.prototype.setDuration = function(duration) {
+    this.time.setDuration(duration);
+};
+
 Animation.prototype.goToSceneAt = function(t) {
-    var loc_t = t;
-    var i = 0,
-        cursor = this.scenes[i];
-    while (/*(i < this.scenes.length) && */cursor && (loc_t > cursor.time.duration)) {
-        loc_t = loc_t - cursor.time.duration;
-        i++; cursor = this.scenes[i];
-    }
-    if (cursor) {
-        cursor.jump(loc_t);
-        this.setCurrentScene(i);
+    if (t <= this.getDuration()) {
+        var loc_t = t;
+        var i = 0,
+            cursor = this.scenes[i];
+        while (/*(i < this.scenes.length) && */cursor && (loc_t > cursor.time.duration)) {
+            loc_t = loc_t - cursor.time.duration;
+            i++; cursor = this.scenes[i];
+        }
+        if (cursor) {
+            cursor.jump(loc_t);
+            this.setCurrentScene(i);
+        } else {
+            this.setCurrentScene(0);
+            this.currentScene.jumpToStart();
+        }
     } else {
-        this.setCurrentScene(0);
-        this.currentScene.jumpToStart();
+        this.setCurrentScene(this.scenes.length - 1);
+        this.currentScene.time.jumpToEnd();
     }
 };
 

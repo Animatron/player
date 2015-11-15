@@ -722,23 +722,16 @@ Element.prototype.render = function(ctx, dt) {
 
     this.rendering = true;
 
-    // context is saved before the actual decision, if we draw or not, for safety:
-    // because context anyway may be changed with user functions,
-    // like modifiers who return false (and we do not want to restrict
-    // user to do that)
-    var drawMe = false;
-
     var ltime = (this.parent && this.parent.affectsChildren) // check `affectsChildren` inside `tickParent`?
                 ? this.time.tickParent(dt)
                 : this.time.tick(dt);
     if (ltime === Element.NO_TIME) return;
 
-    if (drawMe) {
-        drawMe = this.time.fits() &&
+    var drawMe = this.time.fits() &&
                  this.modifiers(ltime, dt) &&
                  this.visible; // modifiers should be applied even if element isn't visible
-    }
     if (drawMe) {
+        //console.log('Element', this.name, this.getTime());
         ctx.save();
 
         var mask = this.$mask,
@@ -1143,7 +1136,7 @@ Element.prototype.jumpAt = function(at, t) {
 };
 
 Element.prototype.jumpToStart = function() {
-    this.time.jumpToStart(at, t);
+    this.time.jumpToStart();
 };
 
 Element.prototype.getTime = function() {

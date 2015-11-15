@@ -607,7 +607,6 @@ Player.prototype.pause = function() {
         return player;
     }
 
-    player._ensureHasState();
     player._ensureHasAnim();
 
     if (player.happens === C.STOPPED) {
@@ -623,7 +622,7 @@ Player.prototype.pause = function() {
 
     player.happens = C.PAUSED;
 
-    var anim_time = player.anim ? player.anim.pause : null;
+    var anim_time = player.anim ? player.anim.time : null;
     if (anim_time && anim_time.fits()) player.drawCurrent();
 
     player.fire(C.S_CHANGE_STATE, C.PAUSED);
@@ -1512,11 +1511,10 @@ Player.prototype.__beforeFrame = function(anim) {
             if (player.happens !== C.PLAYING) return false;
             if (player.anim && !player.anim.time.fits()) {
                 player.fire(C.S_COMPLETE);
-                state.time = 0;
                 player.stop();
                 if (player.repeat || anim.repeat) {
                    player.repeating = true;
-                   player.anim.jump(0);
+                   //player.anim.jump(0); // done in player.stop()
                    player.play();
                    player.fire(C.S_REPEAT);
                } else {
