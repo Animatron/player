@@ -13,13 +13,13 @@ C.L_ERROR = 8;
 // ### Player states
 /* ----------------- */
 
-C.NOTHING = -1;
-C.STOPPED = 0;
-C.PLAYING = 1;
-C.PAUSED = 2;
-C.LOADING = 3;
-C.RES_LOADING = 4;
-C.ERROR = 5;
+C.NOTHING = 'nothing';
+C.STOPPED = 'stopped';
+C.PLAYING = 'playing';
+C.PAUSED = 'paused';
+C.LOADING = 'loading';
+C.RES_LOADING = 'loadingresources';
+C.ERROR = 'error';
 
 // public constants below are also appended to C object, but with `X_`-like prefix
 // to indicate their scope, see through all file

@@ -650,6 +650,16 @@ Player.prototype.seek = function(time) {
     }
 };
 
+
+Player.prototype.getState = function() { return this.happens; };
+Player.prototype.isPaused = function() { return this.happens === C.PAUSED; };
+Player.prototype.isStopped = function() { return this.happens === C.STOPPED; };
+Player.prototype.isPlaying = function() { return this.happens === C.PLAYING; };
+Player.prototype.isLoading = function() { return this.happens === C.LOADING; };
+Player.prototype.isLoadingResources = function() { return this.happens === C.RES_LOADING; };
+Player.prototype.hasError = function() { return this.happens === C.ERROR; };
+//Player.prototype.isSomethingHappens = function() { return this.happens !== C.NOTHING; };
+
 Player.prototype.getTime = function() {
     return this.anim ? this.anim.getTime() : Player.NO_TIME;
 };
