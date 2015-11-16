@@ -208,8 +208,8 @@ Timeline.prototype.jumpAt = function(at, t) {
 };
 
 Timeline.prototype.jumpTo = function(child) {
-    var start = elm.time.start,
-        cursor = elm.parent;
+    var start = child.time.start,
+        cursor = child.parent;
     while (cursor && (cursor !== this.owner)) {
         start += cursor.time.start;
         cursor = cursor.parent;

@@ -342,7 +342,7 @@ Animation.prototype.jumpTo = function(selector) {
     //this.jump(elm.time.getGlobalStart());
     var prev_time = this.getTime();
     this.time.jumpTo(elm);
-    if (t !== prev_time) this.goToSceneAt(this.getTime());
+    if (this.getTime() !== prev_time) this.goToSceneAt(this.getTime());
 };
 
 Animation.prototype.jumpToStart = function() {
