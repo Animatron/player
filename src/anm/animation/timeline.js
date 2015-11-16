@@ -96,7 +96,7 @@ Timeline.prototype.tick = function(dt) {
         next = (this.easing ? this.easing(next) : next);
     }
 
-    this._performActionsUpTo(next);
+    this._performActionsUpTo(next, dt);
 
     if ((this.pos <= 0) && (next > 0) && (next <= this.duration) && !this.passedStart) {
         this.fire(C.X_START, next); this.passedStart = true;
@@ -245,7 +245,7 @@ Timeline.prototype.fireMessageAt = function(at, message) {
     this.addAction(at, function() { me.fireMessage(message); });
 };
 
-Timeline.prototype._performActionsUpTo = function(next) {
+Timeline.prototype._performActionsUpTo = function(next, dt) {
     if (!this.actions.length) return;
     var curAction = this.actions[this.actionsPos];
     // scroll to current time (this.time) first, if we're not there already
