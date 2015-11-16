@@ -96,7 +96,7 @@ Analytics.prototype.track = function (name, player, action) {
         };
     action = action || {};
     action.name = name;
-    action.time = utils.is.num(action.time) ? action.time : player.state.time;
+    action.time = utils.is.num(action.time) ? action.time : player.getTime();
     action.timestamp = new Date().getTime();
     this.queue[player.viewId].actions.push(action);
 };

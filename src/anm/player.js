@@ -532,7 +532,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
                                    player.__userAfterRender);
 
     player.fire(C.S_CHANGE_STATE, C.PLAYING);
-    player.fire(C.S_PLAY, anim.time.getLastPosition());
+    player.fire(C.S_PLAY, anim.getTime());
 
     return player;
 };
