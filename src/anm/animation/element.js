@@ -2343,7 +2343,7 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
         res_time = ltime - mod_band[0];
         res_duration = mod_duration;
         if (t_cmp(res_time, 0) < 0) return null;
-        if (t_cmp(res_time, res_duration) > 0) return null;
+        if (is.finite(res_duration) && (t_cmp(res_time, res_duration) > 0)) return null;
 
     // modifier is assigned to trigger at some specific time moment
     } else if (is.num(mod_time)) {
