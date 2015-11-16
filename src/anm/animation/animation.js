@@ -341,8 +341,12 @@ Animation.prototype.jumpTo = function(selector) {
     if (!elm) return;
     //this.jump(elm.time.getGlobalStart());
     var prev_time = this.getTime();
-    this.time.jumpTo(elm);
-    if (this.getTime() !== prev_time) this.goToSceneAt(this.getTime());
+    if (elm instanceof Scene) {
+        this.goToScene(elm);
+    } else {
+        this.time.jumpTo(elm);
+        if (this.getTime() !== prev_time) this.goToSceneAt(this.getTime());
+    }
 };
 
 Animation.prototype.jumpToStart = function() {
@@ -357,6 +361,16 @@ Animation.prototype.getTime = function() {
 
 Animation.prototype.setDuration = function(duration) {
     this.time.setDuration(duration);
+};
+
+Animation.prototype.goToScene = function(scene) {
+    for (var i = 0; i < this.scenes.length; i++) {
+        if (this.scenes[i].id === scene.id) {
+            this.setCurrentScene(i);
+            this.currentScene.jumpToStart();
+            break;
+        }
+    }
 };
 
 Animation.prototype.goToSceneAt = function(t) {

@@ -9,6 +9,8 @@ var Element = require('./element.js');
 var Timeline = require('./timeline.js');
 
 function Scene(anim, name, duration) {
+    this.id = utils.guid();
+
     this.anim = anim;
     this.name = name;
     this.time = new Timeline(this);
