@@ -650,8 +650,8 @@ Player.prototype.seek = function(time) {
     }
 };
 
-
 Player.prototype.getState = function() { return this.happens; };
+Player.prototype.isInState = function(state) { return this.happens === state; };
 Player.prototype.isPaused = function() { return this.happens === C.PAUSED; };
 Player.prototype.isStopped = function() { return this.happens === C.STOPPED; };
 Player.prototype.isPlaying = function() { return this.happens === C.PLAYING; };
