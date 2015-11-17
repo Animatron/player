@@ -13,7 +13,7 @@ var Analytics = function () {
     var sendAllToServer = function (e) {
         if (e && e.type === 'unload') {
             playerManager.instances.forEach(function (player) {
-                if (player && player.state && player.canvas) {
+                if (player && player.isPlaying()) {
                     self.track('playing_complete', player);
                 }
             })

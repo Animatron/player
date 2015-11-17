@@ -340,10 +340,10 @@ Animation.prototype.jumpTo = function(selector) {
     var elm = is.str(selector) ? this.find(selector) : selector;
     if (!elm) return;
     //this.jump(elm.time.getGlobalStart());
-    var prev_time = this.getTime();
     if (elm instanceof Scene) {
         this.goToScene(elm);
     } else {
+        var prev_time = this.getTime();
         this.time.jumpTo(elm);
         if (this.getTime() !== prev_time) this.goToSceneAt(this.getTime());
     }
