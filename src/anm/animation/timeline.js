@@ -207,7 +207,6 @@ Timeline.prototype.jump = function(t) {
     console.log(this.owner.name || 'Animation', 'jump', this.pos, '->', t);
     if (t !== this.pos) this._scrollActionsTo(t);
     this.pos = t; this.fire(C.X_JUMP, t);
-    console.log(this.owner.name || 'Animation', 'successful jump to ', this.pos);
 };
 
 Timeline.prototype.jumpAt = function(at, t) {

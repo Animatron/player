@@ -256,6 +256,15 @@ Render.p_drawName = new Painter(function(ctx, name) {
     ctx.restore();
 }, C.PNT_DEBUG);
 
+Render.p_drawTime = new Painter(function(ctx, time) {
+    if (!(time = time || this.time.getLastPosition())) return;
+    ctx.save();
+    ctx.fillStyle = '#600';
+    ctx.font = '10px sans-serif';
+    ctx.fillText(Math.round(time * 1000) / 1000, 0, 20);
+    ctx.restore();
+}, C.PNT_DEBUG);
+
 Render.p_drawMPath = new Painter(function(ctx, mPath) {
     if (!(mPath = mPath || this.$mpath)) return;
     ctx.save();

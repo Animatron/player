@@ -2646,6 +2646,7 @@ Element.prototype.addDebugRender = function() {
     this.paint(Render.p_drawBounds);
     this.paint(Render.p_drawReg);
     this.paint(Render.p_drawName);
+    this.paint(Render.p_drawTime);
     this.paint(Render.p_drawMPath);
 };
 
