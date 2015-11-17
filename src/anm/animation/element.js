@@ -1105,7 +1105,19 @@ Element.prototype.mode = function(mode, nrep) {
  * @return {anm.Element} itself
  */
 Element.prototype.jump = function(t) {
+    var delta = t - this.getTime();
     this.time.jump(t);
+    this.each(function(child) {
+        child.jumpDelta(delta);
+    });
+    return this;
+};
+
+Element.prototype.jumpDelta = function(dt) {
+    this.time.jumpDelta(dt);
+    this.each(function(child) {
+        child.jumpDelta(dt);
+    });
     return this;
 };
 
@@ -1126,6 +1138,7 @@ Element.prototype.jump = function(t) {
 Element.prototype.jumpTo = function(element) {
     var elm = is.str(selector) ? this.find(selector) : selector;
     if (!elm) return;
+    // var delta = this.time.getLastDelta (?)
     this.time.jumpTo(elm);
     return this;
 };
