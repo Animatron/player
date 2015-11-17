@@ -65,7 +65,6 @@ function Animation() {
     this.width = undefined;
     this.height = undefined;
     this.zoom = 1.0;
-    this.speed = 1.0;
     this.factor = 1.0;
     this.repeat = false;
     this.meta = {};
@@ -80,6 +79,8 @@ function Animation() {
     this.scenes.push(defaultScene);
     this.currentSceneIdx = 0;
     this.currentScene = this.scenes[this.currentSceneIdx];
+
+    this.endOnLastScene = false;
 }
 
 Animation.DEFAULT_DURATION = 10;
@@ -160,7 +161,10 @@ Animation.prototype.getScenes = function() {
 };
 
 Animation.prototype.toNextScene = function() {
-    if ((this.currentSceneIdx + 1) >= this.scenes.length) return null;
+    if ((this.currentSceneIdx + 1) >= this.scenes.length) {
+        if (this.endOnLastScene) this.time.endNow();
+        return null;
+    }
     this.currentSceneIdx++;
     this.currentScene = this.scenes[this.currentSceneIdx];
     this.currentScene.continue();
@@ -195,10 +199,6 @@ Animation.prototype.replaceScene = function(idx, scene) {
     }
     return this;
 };
-
-/* Animation.prototype.setDuration = function(duration) {
-    this.scene.setDuration(duration);
-} */
 
 /**
  * @method traverse
@@ -361,6 +361,10 @@ Animation.prototype.getTime = function() {
 
 Animation.prototype.setDuration = function(duration) {
     this.time.setDuration(duration);
+};
+
+Animation.prototype.setSpeed = function(speed) {
+    this.time.setSpeed(speed);
 };
 
 Animation.prototype.goToScene = function(scene) {

@@ -83,7 +83,16 @@ Import.project = function(prj) {
     root.fonts = Import.fonts(prj);
     Import.root = root;
     Import.anim(prj, root); // will inject all required properties directly in animation object
-    if (prj.meta.duration) root.setDuration(prj.meta.duration);
+
+    // some additional configuration
+    if (prj.meta.duration && !prj.anim.script) {
+        root.setDuration(prj.meta.duration);
+    }
+    if (prj.anim.script) {
+        root.actions = prj.anim.script;
+        root.setDuration(Infinity);
+        root.endOnLastScene = true;
+    }
 
     Import._paths = prj.anim.paths;
     Import._path_cache = new ValueCache();
@@ -141,9 +150,8 @@ Import.anim = function(prj, trg) {
     trg.height = a.dimension ? Math.floor(a.dimension[1]): undefined;
     trg.bgfill = a.background ? Import.fill(a.background) : undefined;
     trg.zoom = a.zoom || 1.0;
-    trg.speed = a.speed || 1.0;
+    trg.setSpeed(a.speed || 1.0);
     if (a.loop && ((a.loop === true) || (a.loop === 'true'))) trg.repeat = true;
-    if (prj.anim.script) trg.actions = prj.anim.script;
 };
 
 var TYPE_UNKNOWN =  0,

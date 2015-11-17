@@ -52,79 +52,80 @@ Timeline.prototype.addAction = function(t, f) {
 Timeline.prototype.tick = function(dt) {
     this.actualPos += dt;
 
-    if (this.paused) return this.pos; // FIXME: if less than 0, should return null
+    if (this.paused || !is.defined(this.pos)) return this.pos;
 
     var next = (this.pos + dt);
 
-    var toReturn;
     if (is.finite(this.duration) && (next > this.duration)) {
         if (this.mode === C.R_ONCE) {
             next = this.duration;
             this.passedEnd = true;
-            toReturn = null;
         } else if (this.mode === C.R_STAY) {
             var wasPaused = this.paused;
             this.paused = true;
             next = this.duration;
-            toReturn = next;
             if (!wasPaused) this.fire(C.X_PAUSE, next);
         } else if (this.mode === C.R_LOOP) {
             this.actionsPos = 0;
             var fits = Math.floor(next / this.duration);
-            if ((fits < 0) || (fits > this.nrep)) { toReturn = null; }
-            else { next = next - (fits * this.duration); toReturn = next; }
+            if ((fits < 0) || (fits > this.nrep)) { next = undefined; }
+            else { next = next - (fits * this.duration); }
             this.fire(C.X_JUMP, next); this.fire(C.X_ITER);
         } else if (this.mode === C.R_BOUNCE) {
             this.actionsPos = 0;
             var fits = Math.floor(next / this.duration);
-            if ((fits < 0) || (fits > this.nrep)) { toReturn = null; }
+            if ((fits < 0) || (fits > this.nrep)) { next = undefined; }
             else {
                 next = next - (fits * this.duration);
                 next = ((fits % 2) === 0) ? next : (this.duration - next);
-                toReturn = next;
             }
             this.fire(C.X_JUMP, next); this.fire(C.X_ITER);
         }
-    } else if (next < 0) {
-        toReturn = undefined;
-    } else {
-        toReturn = next;
     }
 
-    if (is.defined(toReturn)) {
-        toReturn = (this.easing ? this.easing(next) : next);
+    if (is.defined(next)) {
         next = (this.easing ? this.easing(next) : next);
     }
 
-    this._performActionsUpTo(next, dt);
-
-    if ((this.pos <= 0) && (next > 0) && (next <= this.duration) && !this.passedStart) {
-        this.fire(C.X_START, next); this.passedStart = true;
-    }
-
-    if ((this.pos >= 0) && (this.pos <= this.duration) && (next > this.duration) && !this.passedEnd) {
-        this.fire(C.X_END, next); this.passedEnd = true;
-    }
-
+    var prev = this.pos;
     this.pos = next;
 
-    return toReturn;
-}
+    if (is.defined(next)) {
+        this._performActionsUpTo(next, prev, dt); // actions could change this.pos;
+
+        if (this.pos === next) { // there were no jumps in time, so this.pos stayed
+            if ((prev <= 0) && (next > 0) && (next <= this.duration) && !this.passedStart) {
+                this.fire(C.X_START, next); this.passedStart = true;
+            }
+
+            if ((prev >= 0) && (prev <= this.duration) && (next > this.duration) && !this.passedEnd) {
+                this.fire(C.X_END, next); this.passedEnd = true;
+            }
+        }
+    }
+
+    return this.pos;
+};
 
 Timeline.prototype.tickParent = function(dt) {
     // this could be replaced with subscribing parent to children's
     // X_ITER and resetting their timeline
     if (!this.owner.parent) { return this.tick(dt); };
     var parent_time = this.owner.parent.time;
-    if (!parent_time) return;
+    if (!parent_time || !is.defined(parent_time.pos)) return undefined;
     this.pos = parent_time.pos - this.start - dt;
     this.actualPos = this.pos;
     // this._scrollActionsTo?
     return this.tick(dt);
-}
+};
+
+Timeline.prototype.endNow = function() {
+    this.fire(C.X_END, this.pos); this.passedEnd = true;
+    this.pos = undefined;
+};
 
 Timeline.prototype.fits = function() {
-    return (this.pos >= 0) && (this.pos <= this.duration);
+    return is.defined(this.pos) && (this.pos >= 0) && (this.pos <= this.duration);
 };
 
 Timeline.prototype.setEndAction = function(type, nrep) {
@@ -140,6 +141,10 @@ Timeline.prototype.changeBand = function(start, stop) {
 
 Timeline.prototype.getBand = function() {
     return [ this.start, this.start + this.duration ];
+};
+
+Timeline.prototype.setSpeed = function(speed) {
+    this.speed = speed;
 };
 
 Timeline.prototype.setDuration = function(duration) {
@@ -176,7 +181,7 @@ Timeline.prototype.getGlobalStart = function() {
 };
 
 Timeline.prototype.getGlobalTime = function() {
-    return this.getGlobalStart() + this.pos;
+    return is.defined(this.pos) ? (this.getGlobalStart() + this.pos) : undefined;
 };
 
 Timeline.prototype.pause = function() {
@@ -199,8 +204,10 @@ Timeline.prototype.countinueAt = function(at) {
 };
 
 Timeline.prototype.jump = function(t) {
+    console.log(this.owner.name || 'Animation', 'jump', this.pos, '->', t);
     if (t !== this.pos) this._scrollActionsTo(t);
     this.pos = t; this.fire(C.X_JUMP, t);
+    console.log(this.owner.name || 'Animation', 'successful jump to ', this.pos);
 };
 
 Timeline.prototype.jumpAt = function(at, t) {
@@ -245,21 +252,21 @@ Timeline.prototype.fireMessageAt = function(at, message) {
     this.addAction(at, function() { me.fireMessage(message); });
 };
 
-Timeline.prototype._performActionsUpTo = function(next, dt) {
+Timeline.prototype._performActionsUpTo = function(next, prev, dt) {
     if (!this.actions.length) return;
     var curAction = this.actions[this.actionsPos];
     // scroll to current time (this.time) first, if we're not there already
     while (curAction && (this.actionsPos < this.actions.length) &&
-           (curAction.time < this.pos)) {
+           (curAction.time < prev)) {
         this.actionsPos++;
         curAction = this.actions[this.actionsPos];
     }
     // then perform everything before `next` time
     while (curAction && (this.actionsPos < this.actions.length) &&
            (curAction.time <= next) &&
-           ((curAction.time > this.pos) ||
-            ((dt > 0) && (curAction.time == this.pos)))) {
-        curAction.func();
+           ((curAction.time > prev) ||
+            ((dt > 0) && (curAction.time == prev)))) {
+        curAction.func(next);
         this.actionsPos++;
         curAction = this.actions[this.actionsPos];
     }
