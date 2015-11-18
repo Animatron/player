@@ -722,9 +722,7 @@ Element.prototype.render = function(ctx, dt) {
 
     this.rendering = true;
 
-    var ltime = (this.parent && this.parent.affectsChildren) // check `affectsChildren` inside `tickParent`?
-                ? this.time.tickParent(dt)
-                : this.time.tick(dt);
+    var ltime = this.tick(dt);
     if (ltime === Element.NO_TIME) return;
 
     var drawMe = this.time.fits() &&
@@ -740,9 +738,7 @@ Element.prototype.render = function(ctx, dt) {
         var mask_ltime;
 
         if (mask) {
-            mask_ltime = (mask.parent && mask.parent.affectsChildren) // check `affectsChildren` inside `tickParent`?
-                         ? mask.time.tickParent(dt)
-                         : mask.time.tick(dt);
+            mask_ltime = mask.tick(dt);
 
             // FIXME: move this chain completely into one method, or,
             //        which is even better, make all these checks to be modifiers
@@ -841,6 +837,16 @@ Element.prototype.render = function(ctx, dt) {
     this.__postRender();
     this.rendering = false;
     return this;
+};
+
+Element.prototype.tick = function(dt) {
+    if (!this.parent && this.scene && this.scene.affectsChildren) {
+        return this.time.tickRelative(this.scene.time, dt);
+    } else if (this.parent && this.parent.affectsChildren) {
+        return this.time.tickRelative(this.parent.time, dt);
+    } else {
+        return this.time.tick(dt);
+    }
 };
 
 /**

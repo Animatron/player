@@ -23,7 +23,7 @@ function Timeline(owner) {
     this.pos = -this.start || 0;
     this.actualPos = -this.start || 0;
     this.easing = null;
-    this.actionsPos = 0;
+    this.actionsPos = 0; // -1?
     this.speed = 1;
 
     this.passedStart = false;
@@ -107,15 +107,11 @@ Timeline.prototype.tick = function(dt) {
     return this.pos;
 };
 
-Timeline.prototype.tickParent = function(dt) {
-    // this could be replaced with subscribing parent to children's
-    // X_ITER and resetting their timeline
-    if (!this.owner.parent) { return this.tick(dt); };
-    var parent_time = this.owner.parent.time;
-    if (!parent_time || !is.defined(parent_time.pos)) return undefined;
-    this.pos = parent_time.pos - this.start - dt;
+Timeline.prototype.tickRelative = function(other, dt) {
+    if (!other || !is.defined(other.pos)) { /*this.endNow();*/ return undefined; }
+    this.pos = other.pos - this.start - dt;
     this.actualPos = this.pos;
-    // this._scrollActionsTo?
+    // this._scrollActionsTo? // _performActionsUpTo?
     return this.tick(dt);
 };
 
@@ -254,7 +250,7 @@ Timeline.prototype.fireMessageAt = function(at, message) {
 Timeline.prototype._performActionsUpTo = function(next, prev, dt) {
     if (!this.actions.length) return;
     var curAction = this.actions[this.actionsPos];
-    // scroll to current time (this.time) first, if we're not there already
+    // scroll to current time (this.time) forward first, if we're not there already
     while (curAction && (this.actionsPos < this.actions.length) &&
            (curAction.time < prev)) {
         this.actionsPos++;
@@ -273,6 +269,7 @@ Timeline.prototype._performActionsUpTo = function(next, prev, dt) {
 }
 
 Timeline.prototype._scrollActionsTo = function(time) {
+    if (!this.actions.length) return;
     var curAction = this.actions[this.actionsPos];
     while (curAction && (this.actionsPos < this.actions.length) &&
            (curAction.time < time)) {
