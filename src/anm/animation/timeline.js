@@ -246,7 +246,7 @@ Timeline.prototype._performActionsBetween = function(prev, next, dt) {
     var actionsPos = 0;
     var curAction = this.actions[actionsPos];
     // scroll to current time (this.time) forward first, if we're not there already
-    while (curAction && (this.actionsPos < this.actions.length) &&
+    while (curAction && (actionsPos < this.actions.length) &&
            (curAction.time < prev)) {
         actionsPos++; curAction = this.actions[actionsPos];
     }

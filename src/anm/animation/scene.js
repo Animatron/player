@@ -24,9 +24,9 @@ function Scene(anim, name, duration) {
 
 Scene.prototype.render = function(ctx, dt) {
     if ((this.getTime() < 3) && ((this.getTime() + dt) > 3)) {
-        if (this.__times === 1) debugger;
-        if (!is.defined(this.__times)) this.__times = 0;
-        this.__times++;
+        /*if (this.__times === 1) *///debugger;
+        //if (!is.defined(this.__times))* this.__times = 0;
+        //this.__times++;
         console.log('HOP!');
     }
     this.time.tick(dt);
