@@ -156,44 +156,22 @@ Scene.prototype.pause = function() {
 Scene.prototype.stop = Scene.prototype.pause; // FIXME
 
 Scene.prototype.jump = function(t) {
-    var delta = t - this.getTime();
     this.time.jump(t);
-    this.each(function(child) {
-        child.jumpDelta(delta);
-    });
-    return this;
-};
-
-Scene.prototype.jumpDelta = function(dt) {
-    this.time.jumpDelta(dt);
-    this.each(function(child) {
-        child.jumpDelta(dt);
-    });
     return this;
 };
 
 Scene.prototype.jumpTo = function(elm) {
-    var before = this.getTime();
     this.time.jumpTo(elm);
-    var delta = this.getTime() - before;
-    this.each(function(child) {
-        child.jumpDelta(delta);
-    });
     return this;
 };
 
 Scene.prototype.jumpToStart = function() {
-    this.jump(0);
+    this.time.jumpToStart(0);
     return this;
 };
 
 Scene.prototype.jumpToEnd = function() {
-    var before = this.getTime();
     this.time.jumpToEnd();
-    var delta = this.getTime() - before;
-    this.each(function(child) {
-        child.jumpDelta(delta);
-    });
     return this;
 };
 

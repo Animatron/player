@@ -209,10 +209,6 @@ Timeline.prototype.jump = function(t) {
     this.pos = t; this.fire(C.X_JUMP, t);
 };
 
-Timeline.prototype.jumpDelta = function(t) {
-    this.jump(this.pos + t);
-};
-
 Timeline.prototype.jumpAt = function(at, t) {
     var me = this; this.addAction(at, function() { me.jump(t); });
 };
