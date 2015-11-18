@@ -23,7 +23,6 @@ function Timeline(owner) {
     this.pos = -this.start || 0;
     this.actualPos = -this.start || 0;
     this.easing = null;
-    this.actionsPos = 0; // -1?
     this.speed = 1;
 
     this.passedStart = false;
@@ -36,7 +35,6 @@ Timeline.prototype.reset = function() {
     this.paused = false;
     this.pos = -this.start;
     this.actualPos = -this.start;
-    this.actionsPos = 0;
     this.passedStart = false;
     this.passedEnd = false;
 };
@@ -45,7 +43,6 @@ Timeline.prototype.addAction = function(t, f) {
     var actions = this.actions;
     var i = 0;
     for (var il = this.actions.length; (i < il) && (actions[i].time < t); i++) { };
-    //this.actionsPos = 0;
     this.actions.splice(i, 0, { time: t, func: f });
 };
 
@@ -244,25 +241,23 @@ Timeline.prototype.fireMessageAt = function(at, message) {
 };
 
 Timeline.prototype._performActionsBetween = function(prev, next, dt) {
+    if ((prev <= 1) && (next >= 1)) console.log(this.owner.name, 'POOOP');
     if (!this.actions.length) return;
-    if (next < prev) { this.actionsPos = 0; }
-    var curAction = this.actions[this.actionsPos];
+    var actionsPos = 0;
+    var curAction = this.actions[actionsPos];
     // scroll to current time (this.time) forward first, if we're not there already
     while (curAction && (this.actionsPos < this.actions.length) &&
            (curAction.time < prev)) {
-        this.actionsPos++;
-        curAction = this.actions[this.actionsPos];
+        actionsPos++; curAction = this.actions[actionsPos];
     }
     // then perform everything before `next` time
-    while (curAction && (this.actionsPos < this.actions.length) &&
+    while (curAction && (actionsPos < this.actions.length) &&
            (curAction.time <= next) &&
            ((curAction.time > prev) ||
             ((dt > 0) && (curAction.time == prev)))) {
         curAction.func(next);
-        this.actionsPos++;
-        curAction = this.actions[this.actionsPos];
+        actionsPos++; curAction = this.actions[actionsPos];
     }
-    if (this.actionsPos === this.actions.length) { this.actionsPos = 0; }
 }
 
 Timeline.prototype.clone = function(owner) {
