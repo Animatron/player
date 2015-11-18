@@ -16,13 +16,14 @@ function Scene(anim, name, duration) {
     this.time = new Timeline(this);
     this.time.setDuration(is.num(duration) ? duration : Infinity);
 
+    this.affectsChildren = true;
+
     this.children = [];
     this.hash = {};
 }
 
 Scene.prototype.render = function(ctx, dt) {
     this.time.tick(dt);
-    //console.log('Scene', this.name, this.getTime());
     if (this.time.fits()) {
         this.each(function(child) {
             child.render(ctx, dt);
@@ -157,23 +158,22 @@ Scene.prototype.stop = Scene.prototype.pause; // FIXME
 
 Scene.prototype.jump = function(t) {
     this.time.jump(t);
-    this.each(function(child) {
-        child.time.jump(t); // all scenes start at t==0, so it's safe not to subtract start
-    });
     return this;
 };
 
 Scene.prototype.jumpTo = function(elm) {
     this.time.jumpTo(elm);
-    var new_t = this.time.pos;
-    this.each(function(child) {
-        child.time.jump(new_t); // all scenes start at t==0, so it's safe not to subtract start
-    });
     return this;
 };
 
 Scene.prototype.jumpToStart = function() {
-    this.jump(0);
+    this.time.jumpToStart(0);
+    return this;
+};
+
+Scene.prototype.jumpToEnd = function() {
+    this.time.jumpToEnd();
+    return this;
 };
 
 Scene.prototype.jumpAt = function(at, t) {

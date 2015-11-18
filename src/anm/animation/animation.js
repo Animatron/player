@@ -65,7 +65,6 @@ function Animation() {
     this.width = undefined;
     this.height = undefined;
     this.zoom = 1.0;
-    this.speed = 1.0;
     this.factor = 1.0;
     this.repeat = false;
     this.meta = {};
@@ -80,6 +79,8 @@ function Animation() {
     this.scenes.push(defaultScene);
     this.currentSceneIdx = 0;
     this.currentScene = this.scenes[this.currentSceneIdx];
+
+    this.endOnLastScene = false;
 }
 
 Animation.DEFAULT_DURATION = 10;
@@ -160,7 +161,10 @@ Animation.prototype.getScenes = function() {
 };
 
 Animation.prototype.toNextScene = function() {
-    if ((this.currentSceneIdx + 1) >= this.scenes.length) return null;
+    if ((this.currentSceneIdx + 1) >= this.scenes.length) {
+        if (this.endOnLastScene) this.time.endNow();
+        return null;
+    }
     this.currentSceneIdx++;
     this.currentScene = this.scenes[this.currentSceneIdx];
     this.currentScene.continue();
@@ -195,10 +199,6 @@ Animation.prototype.replaceScene = function(idx, scene) {
     }
     return this;
 };
-
-/* Animation.prototype.setDuration = function(duration) {
-    this.scene.setDuration(duration);
-} */
 
 /**
  * @method traverse
@@ -289,7 +289,6 @@ Animation.prototype.render = function(ctx, dt) {
     ctx.save();
     var zoom = this.zoom;
     this.time.tick(dt);
-    //console.log('Animation', this.getTime());
     if (zoom != 1) {
         ctx.scale(zoom, zoom);
     }
@@ -324,7 +323,7 @@ Animation.prototype.continue = function() {
 Animation.prototype.jump = function(t) {
     var prev_time = this.getTime();
     this.time.jump(t);
-    if (t !== prev_time) this.goToSceneAt(t);
+    this.goToSceneAt(t);
 };
 
 /**
@@ -343,9 +342,8 @@ Animation.prototype.jumpTo = function(selector) {
     if (elm instanceof Scene) {
         this.goToScene(elm);
     } else {
-        var prev_time = this.getTime();
         this.time.jumpTo(elm);
-        if (this.getTime() !== prev_time) this.goToSceneAt(this.getTime());
+        this.goToSceneAt(this.getTime());
     }
 };
 
@@ -361,6 +359,10 @@ Animation.prototype.getTime = function() {
 
 Animation.prototype.setDuration = function(duration) {
     this.time.setDuration(duration);
+};
+
+Animation.prototype.setSpeed = function(speed) {
+    this.time.setSpeed(speed);
 };
 
 Animation.prototype.goToScene = function(scene) {
@@ -387,11 +389,11 @@ Animation.prototype.goToSceneAt = function(t) {
             this.setCurrentScene(i);
         } else {
             this.setCurrentScene(0);
-            this.currentScene.jumpToStart();
+            this.currentScene.jump(t);
         }
     } else {
         this.setCurrentScene(this.scenes.length - 1);
-        this.currentScene.time.jumpToEnd();
+        this.currentScene.jumpToEnd();
     }
 };
 

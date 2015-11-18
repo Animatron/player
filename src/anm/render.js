@@ -48,12 +48,13 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
 
     var fps = 0;
     if (player.__rsec === 0) player.__rsec = msec;
+
     if ((msec - player.__rsec) >= 1000) {
         fps = player.__redraws;
+        player.fps = fps;
         player.__rsec = msec;
         player.__redraws = 0;
     }
-    player.fps = fps;
     player.__redraws++;
 
     r_next(dt, ctx, anim,
@@ -62,7 +63,7 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
 
     // show fps
     if (player.debug) {
-        r_fps(ctx, fps, time);
+        r_fps(ctx, player.fps, time);
     }
 
     if (after) {
@@ -253,6 +254,15 @@ Render.p_drawName = new Painter(function(ctx, name) {
     ctx.fillStyle = '#666';
     ctx.font = '12px sans-serif';
     ctx.fillText(name, 0, 10);
+    ctx.restore();
+}, C.PNT_DEBUG);
+
+Render.p_drawTime = new Painter(function(ctx, time) {
+    if (!(time = time || this.time.getLastPosition())) return;
+    ctx.save();
+    ctx.fillStyle = '#600';
+    ctx.font = '10px sans-serif';
+    ctx.fillText(Math.round(time * 1000) / 1000, 0, 20);
     ctx.restore();
 }, C.PNT_DEBUG);
 

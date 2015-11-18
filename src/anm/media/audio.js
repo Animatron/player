@@ -349,6 +349,10 @@ Audio.prototype.connect = function(element, anim) {
     element.on(C.X_END, function() {
         me.stopIfNotMaster();
     });
+    element.on(C.X_JUMP, function() {
+        me.stopIfNotMaster();
+        me.play.apply(me, arguments);
+    });
     var stop = function() {
         me.stop();
     };
