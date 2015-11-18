@@ -45,7 +45,7 @@ Timeline.prototype.addAction = function(t, f) {
     var actions = this.actions;
     var i = 0;
     for (var il = this.actions.length; (i < il) && (actions[i].time < t); i++) { };
-    this.actionsPos = 0;
+    //this.actionsPos = 0;
     this.actions.splice(i, 0, { time: t, func: f });
 };
 
@@ -66,13 +66,11 @@ Timeline.prototype.tick = function(dt) {
             next = this.duration;
             if (!wasPaused) this.fire(C.X_PAUSE, next);
         } else if (this.mode === C.R_LOOP) {
-            this.actionsPos = 0;
             var fits = Math.floor(next / this.duration);
             if ((fits < 0) || (fits > this.nrep)) { next = undefined; }
             else { next = next - (fits * this.duration); }
             this.fire(C.X_JUMP, next); this.fire(C.X_ITER);
         } else if (this.mode === C.R_BOUNCE) {
-            this.actionsPos = 0;
             var fits = Math.floor(next / this.duration);
             if ((fits < 0) || (fits > this.nrep)) { next = undefined; }
             else {
@@ -91,7 +89,7 @@ Timeline.prototype.tick = function(dt) {
     this.pos = next;
 
     if (is.defined(next)) {
-        this._performActionsUpTo(next, prev, dt); // actions could change this.pos;
+        this._performActionsBetween(prev, next, dt); // actions could change this.pos
 
         if (this.pos === next) { // there were no jumps in time, so this.pos stayed
             if ((prev <= 0) && (next > 0) && (next <= this.duration) && !this.passedStart) {
@@ -111,7 +109,6 @@ Timeline.prototype.tickRelative = function(other, dt) {
     if (!other || !is.defined(other.pos)) { /*this.endNow();*/ return undefined; }
     this.pos = other.pos - this.start - dt;
     this.actualPos = this.pos;
-    // this._scrollActionsTo? // _performActionsUpTo?
     return this.tick(dt);
 };
 
@@ -200,8 +197,7 @@ Timeline.prototype.countinueAt = function(at) {
 };
 
 Timeline.prototype.jump = function(t) {
-    //console.log(this.owner.name || 'Animation', 'jump', this.pos, '->', t);
-    if (t !== this.pos) this._scrollActionsTo(t);
+    console.log(new Date(), this.owner.name || 'Animation', 'jump', this.pos, '->', t);
     this.pos = t; this.fire(C.X_JUMP, t);
 };
 
@@ -220,12 +216,12 @@ Timeline.prototype.jumpTo = function(child) {
 };
 
 Timeline.prototype.jumpToStart = function() {
-    this.actionsPos = 0;
+    this.actualPos = this.duration;
     this.pos = 0; this.fire(C.X_JUMP, 0);
 };
 
 Timeline.prototype.jumpToEnd = function() {
-    this.actionsPos = this.duration;
+    this.actualPos = this.duration;
     this.pos = this.duration; this.fire(C.X_JUMP, this.pos);
 };
 
@@ -247,8 +243,9 @@ Timeline.prototype.fireMessageAt = function(at, message) {
     this.addAction(at, function() { me.fireMessage(message); });
 };
 
-Timeline.prototype._performActionsUpTo = function(next, prev, dt) {
+Timeline.prototype._performActionsBetween = function(prev, next, dt) {
     if (!this.actions.length) return;
+    if (next < prev) { this.actionsPos = 0; }
     var curAction = this.actions[this.actionsPos];
     // scroll to current time (this.time) forward first, if we're not there already
     while (curAction && (this.actionsPos < this.actions.length) &&
@@ -267,17 +264,6 @@ Timeline.prototype._performActionsUpTo = function(next, prev, dt) {
     }
     if (this.actionsPos === this.actions.length) { this.actionsPos = 0; }
 }
-
-Timeline.prototype._scrollActionsTo = function(time) {
-    if (!this.actions.length) return;
-    var curAction = this.actions[this.actionsPos];
-    while (curAction && (this.actionsPos < this.actions.length) &&
-           (curAction.time < time)) {
-        this.actionsPos++;
-        curAction = this.actions[this.actionsPos];
-    }
-    if (this.actionsPos === this.actions.length) { this.actionsPos = 0; }
-};
 
 Timeline.prototype.clone = function(owner) {
     var trg = new Timeline(owner || this.owner);
