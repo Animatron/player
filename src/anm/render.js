@@ -48,12 +48,17 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
 
     var fps = 0;
     if (player.__rsec === 0) player.__rsec = msec;
+
+    /*console.log('msec', msec, 'sec', sec,
+                '__rsec', player.__rsec,
+                'msec - __rsec', (msec - player.__rsec),
+                '__redraws', player.__redraws);*/
     if ((msec - player.__rsec) >= 1000) {
         fps = player.__redraws;
+        player.fps = fps;
         player.__rsec = msec;
         player.__redraws = 0;
     }
-    player.fps = fps;
     player.__redraws++;
 
     r_next(dt, ctx, anim,
@@ -62,7 +67,7 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
 
     // show fps
     if (player.debug) {
-        r_fps(ctx, fps, time);
+        r_fps(ctx, player.fps, time);
     }
 
     if (after) {

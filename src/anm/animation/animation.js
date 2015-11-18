@@ -324,7 +324,7 @@ Animation.prototype.continue = function() {
 Animation.prototype.jump = function(t) {
     var prev_time = this.getTime();
     this.time.jump(t);
-    if (t !== prev_time) this.goToSceneAt(t);
+    this.goToSceneAt(t);
 };
 
 /**
@@ -343,9 +343,8 @@ Animation.prototype.jumpTo = function(selector) {
     if (elm instanceof Scene) {
         this.goToScene(elm);
     } else {
-        var prev_time = this.getTime();
         this.time.jumpTo(elm);
-        if (this.getTime() !== prev_time) this.goToSceneAt(this.getTime());
+        this.goToSceneAt(this.getTime());
     }
 };
 
@@ -391,11 +390,11 @@ Animation.prototype.goToSceneAt = function(t) {
             this.setCurrentScene(i);
         } else {
             this.setCurrentScene(0);
-            this.currentScene.jumpToStart();
+            this.currentScene.jump(t);
         }
     } else {
         this.setCurrentScene(this.scenes.length - 1);
-        this.currentScene.time.jumpToEnd();
+        this.currentScene.jumpToEnd();
     }
 };
 
