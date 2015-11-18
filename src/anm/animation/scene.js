@@ -23,14 +23,7 @@ function Scene(anim, name, duration) {
 }
 
 Scene.prototype.render = function(ctx, dt) {
-    if ((this.getTime() < 3) && ((this.getTime() + dt) > 3)) {
-        /*if (this.__times === 1) *///debugger;
-        //if (!is.defined(this.__times))* this.__times = 0;
-        //this.__times++;
-        console.log('HOP!');
-    }
     this.time.tick(dt);
-    console.log('Scene', this.name, this.getTime());
     if (this.time.fits()) {
         this.each(function(child) {
             child.render(ctx, dt);

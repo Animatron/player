@@ -193,7 +193,6 @@ Timeline.prototype.countinueAt = function(at) {
 };
 
 Timeline.prototype.jump = function(t) {
-    console.log(new Date(), this.owner.name || 'Animation', 'jump', this.pos, '->', t);
     this.pos = t; this.fire(C.X_JUMP, t);
 };
 
@@ -240,7 +239,6 @@ Timeline.prototype.fireMessageAt = function(at, message) {
 };
 
 Timeline.prototype._performActionsBetween = function(prev, next, dt) {
-    if ((prev <= 1) && (next >= 1)) console.log(this.owner.name, 'POOOP');
     if (!this.actions.length) return;
     var actionsPos = 0;
     var curAction = this.actions[actionsPos];

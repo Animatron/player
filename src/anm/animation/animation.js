@@ -289,7 +289,6 @@ Animation.prototype.render = function(ctx, dt) {
     ctx.save();
     var zoom = this.zoom;
     this.time.tick(dt);
-    //console.log('Animation', this.getTime());
     if (zoom != 1) {
         ctx.scale(zoom, zoom);
     }

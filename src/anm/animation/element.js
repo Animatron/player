@@ -729,7 +729,6 @@ Element.prototype.render = function(ctx, dt) {
                  this.modifiers(ltime, dt) &&
                  this.visible; // modifiers should be applied even if element isn't visible
     if (drawMe) {
-        //console.log('Element', this.name, this.getTime());
         ctx.save();
 
         var mask = this.$mask,
