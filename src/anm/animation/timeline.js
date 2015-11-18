@@ -55,8 +55,7 @@ Timeline.prototype.tick = function(dt) {
 
     if (is.finite(this.duration) && (next > this.duration)) {
         if (this.mode === C.R_ONCE) {
-            next = this.duration;
-            this.passedEnd = true;
+            //next = undefined; let it be higher than duration
         } else if (this.mode === C.R_STAY) {
             var wasPaused = this.paused;
             this.paused = true;
