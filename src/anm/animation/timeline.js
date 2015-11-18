@@ -200,7 +200,7 @@ Timeline.prototype.countinueAt = function(at) {
 };
 
 Timeline.prototype.jump = function(t) {
-    console.log(this.owner.name || 'Animation', 'jump', this.pos, '->', t);
+    //console.log(this.owner.name || 'Animation', 'jump', this.pos, '->', t);
     if (t !== this.pos) this._scrollActionsTo(t);
     this.pos = t; this.fire(C.X_JUMP, t);
 };
