@@ -108,7 +108,7 @@ Player.PEFF = 0; // seconds to play more when reached end of movie
 Player.NO_TIME = -1;
 
 Player.DEFAULT_CONFIGURATION = { 'debug': false,
-                                 'repeat': false,
+                                 'repeat': undefined, // undefined means 'auto'
                                  'autoPlay': false,
                                  'mode': C.M_VIDEO,
                                  'zoom': 1.0,
@@ -159,7 +159,7 @@ Player.EMPTY_BG = 'rgba(0,0,0,.05)';
  *
  *     { debug: false,
  *       autoPlay: false,
- *       repeat: false,
+ *       repeat: undefined, // undefined means 'auto'
  *       mode: C.M_VIDEO,
  *       zoom: 1.0,
  *       speed: 1.0,
