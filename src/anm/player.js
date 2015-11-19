@@ -538,7 +538,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
 };
 
 Player.prototype.continuePlaying = function() {
-    if (this.anim) this.play(this.anim.time.getLastPosition());
+    if (this.anim) this.play(this.anim.getTime());
 };
 
 /**
@@ -1525,7 +1525,8 @@ Player.prototype.__beforeFrame = function(anim) {
                                 player.anim.time.isAfter(player.stopAfter))) {
                 player.fire(C.S_COMPLETE);
                 player.stop();
-                if (player.repeat || anim.repeat) {
+                if (player.repeat ||
+                    (!is.defined(player.repeat) && anim.repeat)) {
                    player.repeating = true;
                    //player.anim.jump(0); // done in player.stop()
                    player.play();
