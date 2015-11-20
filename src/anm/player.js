@@ -107,7 +107,7 @@ Player.PEFF = 0; // seconds to play more when reached end of movie
 Player.NO_TIME = -1;
 
 Player.DEFAULT_CONFIGURATION = { 'debug': false,
-                                 'repeat': false,
+                                 'repeat': undefined, // undefined means 'auto'
                                  'autoPlay': false,
                                  'mode': C.M_VIDEO,
                                  'zoom': 1.0,
@@ -158,7 +158,7 @@ Player.EMPTY_BG = 'rgba(0,0,0,.05)';
  *
  *     { debug: false,
  *       autoPlay: false,
- *       repeat: false,
+ *       repeat: undefined, // undefined means 'auto'
  *       mode: C.M_VIDEO,
  *       zoom: 1.0,
  *       speed: 1.0,
@@ -1530,7 +1530,8 @@ Player.prototype.__beforeFrame = function(anim) {
                 player.fire(C.S_COMPLETE);
                 state.time = 0;
                 player.stop();
-                if (player.repeat || anim.repeat) {
+                if (player.repeat ||
+                    (!is.defined(player.repeat) && anim.repeat)) {
                    player.repeating = true;
                    player.play();
                    player.fire(C.S_REPEAT);
