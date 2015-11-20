@@ -145,9 +145,6 @@ function Element(name, draw, onframe) {
      *
      * There's quite big list of possible events to subscribe, and it will be added here later. `TODO`
      *
-     * For example, `C.X_START` and `C.X_END` events are fired when this element's band
-     * starts and finishes in process of animation rendering.
-     *
      * @param {C.X*} type event type
      * @param {Function} handler event handler
      */
@@ -168,8 +165,7 @@ Element.NO_BAND = null;
 Element.DEFAULT_LEN = Infinity;
 Element._customImporters = [];
 provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
-                         C.X_MMOVE, C.X_MOVER, C.X_MOUT,
-                         C.X_START, C.X_END ]);
+                         C.X_MMOVE, C.X_MOVER, C.X_MOUT ]);
 /**
  * @method is
  *
@@ -2407,10 +2403,7 @@ Element.prototype.__checkSwitcher = function(gtime) {
     } else return Element.NO_TIME;
 }
 Element.prototype.filterEvent = function(type, evt) {
-    if ((type != C.X_START) &&
-        (type != C.X_END) && this.shown) {
-        this.__saveEvt(type, evt);
-    }
+    if (this.shown) this.__saveEvt(type, evt);
     return true;
 };
 
