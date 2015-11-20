@@ -33,13 +33,14 @@ function Video(url, formats, size) {
 /** @private @method connect */
 Video.prototype.connect = function(element, anim) {
     var me = this;
-    element.on(C.X_START, function() {
-        me.play.apply(me, arguments);
-    });
+    var startFrom = function() { me.play.apply(me, arguments); };
     var stop = function() { me.stop(); };
-    element.on(C.X_END, stop);
-    anim.on(C.A_STOP, stop);
-    anim.on(C.A_PAUSE, stop);
+    element.time.on(C.X_START, startFrom);
+    element.time.on(C.X_CONTINUE, startFrom);
+    element.time.on(C.X_PAUSE, stop);
+    element.time.on(C.X_END, stop);
+    anim.time.on(C.X_END, stop);
+    anim.time.on(C.X_PAUSE, stop);
 };
 /** @private @method load */
 Video.prototype.load = function(uid, player) {

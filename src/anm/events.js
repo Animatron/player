@@ -29,6 +29,10 @@ function provideEvents(subj, events) {
         // FIXME: make it chainable, use handler instance to unbind, instead of index
         return (this.handlers[event].length - 1);
     };
+    /* subj.prototype.onAny = function(handler) { there's this.filterEvent below
+        if (!this.receivers) this.receivers = [];
+        this.receivers.push(handler);
+    }; */
     subj.prototype.subscribedTo = function(event) {
         return this.handlers && this.handlers[event] && this.handlers[event].length;
     };
@@ -37,6 +41,7 @@ function provideEvents(subj, events) {
         if (!this.provides(event)) throw errors.system('Event \'' + event +
                                                  '\' is not provided by ' + this);
         if (this.filterEvent && !(this.filterEvent.apply(this, arguments))) return;
+        var _hdls = this.handlers ? this.handlers[event] : null;
         var _hdls = this.handlers ? this.handlers[event] : null;
         if (this['handle_'+event] || (_hdls && _hdls.length)) {
             var evt_args = new Array(arguments.length - 1);
@@ -67,6 +72,11 @@ function provideEvents(subj, events) {
     subj.prototype.disposeHandlers = function() {
         this.handlers = {};
     };
+    /* subj.prototype.passEventsTo = function(other) {
+        this.onAny(function() {
+            other.call(other, arguments);
+        });
+    }; */
 }
 
 registerEvent('S_NEW_PLAYER', 'new');
@@ -94,20 +104,15 @@ registerEvent('X_KUP', 'keyup');
 registerEvent('X_KDOWN', 'keydown');
 
 // * timeline
-registerEvent('X_START', 'bandstart');
-registerEvent('X_END', 'bandend');
+registerEvent('X_START', 'timestart');
+registerEvent('X_END', 'timeend');
 registerEvent('X_PAUSE', 'timepause');
 registerEvent('X_CONTINUE', 'timecontinue');
 registerEvent('X_JUMP', 'timejump');
-registerEvent('X_ITER', 'iteration');
+registerEvent('X_ITER', 'timeiteration');
 
 // * Animation or Element error
 registerEvent('X_ERROR', 'error');
-
-// * animation start/stop
-registerEvent('A_START', 'animationstart');
-registerEvent('A_STOP', 'animationstop');
-registerEvent('A_PAUSE', 'animationpause');
 
 // * playing (player state)
 

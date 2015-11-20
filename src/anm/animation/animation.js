@@ -85,8 +85,7 @@ function Animation() {
 
 Animation.DEFAULT_DURATION = 10;
 
-provideEvents(Animation, [ C.A_START, C.A_PAUSE, C.A_STOP,
-                           C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
+provideEvents(Animation, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                            C.X_MMOVE, C.X_MOVER, C.X_MOUT,
                            C.X_KPRESS, C.X_KUP, C.X_KDOWN, C.X_ERROR ]);
 /**
