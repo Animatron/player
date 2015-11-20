@@ -6,8 +6,11 @@ var is = utils.is;
 var events = require('../events.js'),
     provideEvents = events.provideEvents;
 
-var NO_TIME = undefined;
-function isKnownTime(t) { return is.defined(t); }
+var NO_TIME = [ 'UNKNOWN' ];
+function isKnownTime(t) { return !(t === NO_TIME); }
+
+//var NO_TIME = undefined;
+//function isKnownTime(t) { return is.defined(t); }
 
 /**
  * @class anm.Timeline
