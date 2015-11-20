@@ -719,7 +719,14 @@ Element.prototype.render = function(ctx, dt) {
     this.rendering = true;
 
     var ltime = this.tick(dt);
-    if (ltime === Element.NO_TIME) return;
+
+    var mask = this.$mask,
+        renderMasked = false,
+        mask_ltime;
+
+    if (mask) { mask_ltime = mask.tick(dt); };
+
+    if (!Timeline.isKnownTime(ltime)) return;
 
     var drawMe = this.time.fits() &&
                  this.modifiers(ltime, dt) &&
@@ -727,14 +734,7 @@ Element.prototype.render = function(ctx, dt) {
     if (drawMe) {
         ctx.save();
 
-        var mask = this.$mask,
-            renderMasked = false;
-
-        var mask_ltime;
-
         if (mask) {
-            mask_ltime = mask.tick(dt);
-
             // FIXME: move this chain completely into one method, or,
             //        which is even better, make all these checks to be modifiers
             // FIXME: call modifiers once for one moment of time. If there are several

@@ -6,6 +6,12 @@ var is = utils.is;
 var events = require('../events.js'),
     provideEvents = events.provideEvents;
 
+var NO_TIME = [ 'UNKNOWN' ];
+function isKnownTime(t) { return !(t === NO_TIME); }
+
+//var NO_TIME = undefined;
+//function isKnownTime(t) { return is.defined(t); }
+
 /**
  * @class anm.Timeline
  *
@@ -31,6 +37,9 @@ function Timeline(owner) {
 provideEvents(Timeline, [ /*C.X_TICK, */C.X_START, C.X_END, C.X_MESSAGE,
     C.X_JUMP, C.X_PAUSE, C.X_CONTINUE, C.X_ITER ]);
 
+Timeline.NO_TIME = NO_TIME;
+Timeline.isKnownTime = isKnownTime;
+
 Timeline.prototype.reset = function() {
     this.paused = false;
     this.pos = -this.start;
@@ -55,7 +64,7 @@ Timeline.prototype.tick = function(dt) {
 
     if (is.finite(this.duration) && (next > this.duration)) {
         if (this.mode === C.R_ONCE) {
-            //next = undefined; let it be higher than duration
+            //next = NO_TIME; let it be higher than duration
         } else if (this.mode === C.R_STAY) {
             var wasPaused = this.paused;
             this.paused = true;
@@ -63,12 +72,12 @@ Timeline.prototype.tick = function(dt) {
             if (!wasPaused) this.fire(C.X_PAUSE, next);
         } else if (this.mode === C.R_LOOP) {
             var fits = Math.floor(next / this.duration);
-            if ((fits < 0) || (fits > this.nrep)) { next = undefined; }
+            if ((fits < 0) || (fits > this.nrep)) { next = NO_TIME; }
             else { next = next - (fits * this.duration); }
             this.fire(C.X_JUMP, next); this.fire(C.X_ITER);
         } else if (this.mode === C.R_BOUNCE) {
             var fits = Math.floor(next / this.duration);
-            if ((fits < 0) || (fits > this.nrep)) { next = undefined; }
+            if ((fits < 0) || (fits > this.nrep)) { next = NO_TIME; }
             else {
                 next = next - (fits * this.duration);
                 next = ((fits % 2) === 0) ? next : (this.duration - next);
@@ -102,7 +111,7 @@ Timeline.prototype.tick = function(dt) {
 };
 
 Timeline.prototype.tickRelative = function(other, dt) {
-    if (!other || !is.defined(other.pos)) { /*this.endNow();*/ return undefined; }
+    if (!other || !is.defined(other.pos)) { /*this.endNow();*/ return NO_TIME; }
     this.pos = other.pos - this.start - dt;
     this.actualPos = this.pos;
     return this.tick(dt);
@@ -110,7 +119,7 @@ Timeline.prototype.tickRelative = function(other, dt) {
 
 Timeline.prototype.endNow = function() {
     this.fire(C.X_END, this.pos); this.passedEnd = true;
-    this.pos = undefined;
+    this.pos = NO_TIME;
 };
 
 Timeline.prototype.fits = function() {
@@ -170,7 +179,7 @@ Timeline.prototype.getGlobalStart = function() {
 };
 
 Timeline.prototype.getGlobalTime = function() {
-    return is.defined(this.pos) ? (this.getGlobalStart() + this.pos) : undefined;
+    return is.defined(this.pos) ? (this.getGlobalStart() + this.pos) : NO_TIME;
 };
 
 Timeline.prototype.pause = function() {
