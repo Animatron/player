@@ -185,6 +185,13 @@ Scene.prototype.getTime = function() {
     return this.time.getLastPosition();
 };
 
+Scene.prototype.reset = function() {
+    this.time.reset();
+    this.each(function(child) {
+        child.reset();
+    });
+};
+
 Scene._fromElement = function(elm) {
     var scene = new Scene(elm.anim, elm.name/*, elm.time.getDuration()*/);
     scene.time = elm.time.clone();

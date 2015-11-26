@@ -1550,8 +1550,8 @@ Element.prototype.reset = function() {
         if (modifier.__wasCalled) modifier.__wasCalled[elm.id] = false;
         if (is.defined(modifier.__wasCalledAt)) modifier.__wasCalledAt[elm.id] = -1;
     });
-    this.each(function(elm) {
-        elm.reset();
+    this.each(function(child) {
+        child.reset();
     });
 };
 

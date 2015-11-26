@@ -487,7 +487,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
     player._ensureHasAnim();
 
     var anim = player.anim;
-    if (player.happens === C.STOPPED) anim.reset();
+    anim.reset();
 
     // used to resume playing in some special cases
     player.__lastPlayConf = [ from, speed, stopAfter ];
@@ -610,7 +610,7 @@ Player.prototype.pause = function() {
     player._ensureHasAnim();
 
     if (player.happens === C.STOPPED) {
-        player.anim.reset();
+        if (player.anim) player.anim.reset();
         return player;
     }
 

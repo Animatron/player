@@ -76,7 +76,8 @@ function Animation() {
 
     var defaultScene = new Scene(this, '', 0);
     this.scenes = [];
-    this.scenes.push(defaultScene);
+    this.scenes.push(this._prepareScene(defaultScene));
+
     this.currentSceneIdx = 0;
     this.currentScene = this.scenes[this.currentSceneIdx];
 
@@ -131,14 +132,9 @@ Animation.prototype.addScene = function(name, duration) {
     if (!(name instanceof Scene)) {
         scene = new Scene(this, name, duration);
     } else {
-        scene = name; scene.anim = this;
+        scene = name;
     }
-    var lastScene = this.scenes[this.scenes.length - 1];
-    if (lastScene) {
-        lastScene.time.on(C.X_END, function() {
-            this.toNextScene();
-        }.bind(this));
-    }
+    scene = this._prepareScene(scene);
     this.scenes.push(scene);
     return scene;
 };
@@ -190,13 +186,23 @@ Animation.prototype.getCurrentScene = function() {
 };
 
 Animation.prototype.replaceScene = function(idx, scene) {
-    scene.anim = this;
+    scene = this._prepareScene(scene);
     this.scenes[idx] = scene;
     if (this.currentSceneIdx === idx) {
         this.currentScene = scene;
         this.currentScene.continue(); // ensure it's not paused
     }
     return this;
+};
+
+Animation.prototype._prepareScene = function(scene) {
+    scene.anim = this;
+    if (scene._hasEndHandler) return scene;
+    scene.time.on(C.X_END, function() {
+        this.toNextScene();
+    }.bind(this));
+    scene._hasEndHandler = true;
+    return scene;
 };
 
 /**
@@ -412,8 +418,8 @@ Animation.prototype.currentScene = function() {
  */
 Animation.prototype.reset = function() {
     this.time.reset();
-    this.each(function(child) {
-        child.reset();
+    this.eachScene(function(scene) {
+        scene.reset();
     });
     return this;
 };
