@@ -160,7 +160,6 @@ function Element(name, draw, onframe) {
     if (global_opts.liveDebug) this.addDebugRender();
 }
 Element._$ = function(name, draw, onframe) { return new Element(name, draw, onframe); };
-Element.NO_TIME = null;
 Element.NO_BAND = null;
 Element.DEFAULT_LEN = Infinity;
 Element._customImporters = [];
@@ -2392,16 +2391,6 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
 
 Element.prototype.__pbefore = function(ctx, type) { };
 Element.prototype.__pafter = function(ctx, type) { };
-Element.prototype.__checkSwitcher = function(gtime) {
-    if (!this.parent || !this.parent.switch) return gtime;
-    // FIXME: move switcher to Timeline class
-    var parent = this.parent;
-    if (parent.switch === C.SWITCH_OFF) return Element.NO_TIME;
-    if ((parent.switch === this.name) && parent.switch_band) {
-        if (gtime === Element.NO_TIME) return Element.NO_TIME;
-        return gtime - parent.switch_band[0];
-    } else return Element.NO_TIME;
-}
 Element.prototype.filterEvent = function(type, evt) {
     if (this.shown) this.__saveEvt(type, evt);
     return true;

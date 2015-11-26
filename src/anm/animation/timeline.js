@@ -58,42 +58,44 @@ Timeline.prototype.addAction = function(t, f) {
 Timeline.prototype.tick = function(dt) {
     this.actualPos += dt;
 
-    if (this.paused || !is.defined(this.pos)) return this.pos;
+    if (this.paused) return this.pos;
 
-    var next = (this.pos + dt);
+    var next = (this.pos !== NO_TIME) ? (this.pos + dt) : NO_TIME;
+    next = this._checkSwitcher(next);
 
-    if (is.finite(this.duration) && (next > this.duration)) {
-        if (this.mode === C.R_ONCE) {
-            //next = NO_TIME; let it be higher than duration
-        } else if (this.mode === C.R_STAY) {
-            var wasPaused = this.paused;
-            this.paused = true;
-            next = this.duration;
-            if (!wasPaused) this.fire(C.X_PAUSE, next);
-        } else if (this.mode === C.R_LOOP) {
-            var fits = Math.floor(next / this.duration);
-            if ((fits < 0) || (fits > this.nrep)) { next = NO_TIME; }
-            else { next = next - (fits * this.duration); }
-            this.fire(C.X_JUMP, next); this.fire(C.X_ITER);
-        } else if (this.mode === C.R_BOUNCE) {
-            var fits = Math.floor(next / this.duration);
-            if ((fits < 0) || (fits > this.nrep)) { next = NO_TIME; }
-            else {
-                next = next - (fits * this.duration);
-                next = ((fits % 2) === 0) ? next : (this.duration - next);
-            }
-            this.fire(C.X_JUMP, next); this.fire(C.X_ITER);
-        }
-    }
+    if (next !== NO_TIME) {
 
-    if (is.defined(next)) {
         next = (this.easing ? this.easing(next) : next);
+
+        if (is.finite(this.duration) && (next > this.duration)) {
+            if (this.mode === C.R_ONCE) {
+                //next = NO_TIME; let it be higher than duration
+            } else if (this.mode === C.R_STAY) {
+                var wasPaused = this.paused;
+                this.paused = true;
+                next = this.duration;
+                if (!wasPaused) this.fire(C.X_PAUSE, next);
+            } else if (this.mode === C.R_LOOP) {
+                var fits = Math.floor(next / this.duration);
+                if ((fits < 0) || (fits > this.nrep)) { next = NO_TIME; }
+                else { next = next - (fits * this.duration); }
+                this.fire(C.X_JUMP, next); this.fire(C.X_ITER);
+            } else if (this.mode === C.R_BOUNCE) {
+                var fits = Math.floor(next / this.duration);
+                if ((fits < 0) || (fits > this.nrep)) { next = NO_TIME; }
+                else {
+                    next = next - (fits * this.duration);
+                    next = ((fits % 2) === 0) ? next : (this.duration - next);
+                }
+                this.fire(C.X_JUMP, next); this.fire(C.X_ITER);
+            }
+        }
     }
 
     var prev = this.pos;
     this.pos = next;
 
-    if (is.defined(next)) {
+    if (next !== NO_TIME) {
         this._performActionsBetween(prev, next, dt); // actions could change this.pos
 
         if (this.pos === next) { // there were no jumps in time, so this.pos stayed
@@ -112,7 +114,7 @@ Timeline.prototype.tick = function(dt) {
 
 Timeline.prototype.tickRelative = function(other, dt) {
     if (!other || !is.defined(other.pos)) { /*this.endNow();*/ return NO_TIME; }
-    this.pos = other.pos - this.start - dt;
+    this.pos = other.pos - this.start - dt; // we subtract dt to add it later in this.tick
     this.actualPos = this.pos;
     return this.tick(dt);
 };
@@ -123,7 +125,7 @@ Timeline.prototype.endNow = function() {
 };
 
 Timeline.prototype.fits = function() {
-    return is.defined(this.pos) && (this.pos >= 0) && (this.pos <= this.duration);
+    return (this.pos !== NO_TIME) && (this.pos >= 0) && (this.pos <= this.duration);
 };
 
 Timeline.prototype.setEndAction = function(type, nrep) {
@@ -179,7 +181,7 @@ Timeline.prototype.getGlobalStart = function() {
 };
 
 Timeline.prototype.getGlobalTime = function() {
-    return is.defined(this.pos) ? (this.getGlobalStart() + this.pos) : NO_TIME;
+    return (this.pos !== NO_TIME) ? (this.getGlobalStart() + this.pos) : NO_TIME;
 };
 
 Timeline.prototype.pause = function() {
@@ -245,6 +247,16 @@ Timeline.prototype.onMessage = function(message, handler) {
 Timeline.prototype.fireMessageAt = function(at, message) {
     var me = this;
     this.addAction(at, function() { me.fireMessage(message); });
+};
+
+Timeline.prototype._checkSwitcher = function(next) {
+    var parent = this.owner.parent;
+    if (!parent || !parent.switch) return next;
+    if (parent.switch === C.SWITCH_OFF) return NO_TIME;
+    if ((parent.switch === this.owner.name) && parent.switch_band) {
+        if (next === NO_TIME) return NO_TIME;
+        return next - parent.switch_band[0];
+    } else return NO_TIME;
 };
 
 Timeline.prototype._performActionsBetween = function(prev, next, dt) {
