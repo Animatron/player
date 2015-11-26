@@ -46,6 +46,7 @@ var Animation = require('./animation/animation.js'),
     Render = require('./render.js'),
     Sheet = require('./graphics/sheet.js');
 
+var Timeline = require('./animation/timeline.js');
 
 // Player
 // -----------------------------------------------------------------------------
@@ -105,7 +106,6 @@ Player.__instances = 0;
 
 Player.PREVIEW_POS = 0; // was 1/3
 Player.PEFF = 0; // seconds to play more when reached end of movie
-Player.NO_TIME = -1;
 
 Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'repeat': undefined, // undefined means 'auto'
@@ -382,7 +382,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                 }
             ], function(url, factor, progress, errors) {
                 player.fire(C.S_LOADING_PROGRESS, factor);
-                if(player.controlsEnabled && player.controls){
+                if (player.controlsEnabled && player.controls) {
                     player.controls.loadingProgress = progress;
                     player.controls.loadingErrors = errors;
                 }
@@ -626,7 +626,7 @@ Player.prototype.pause = function() {
     if (anim_time && anim_time.fits()) player.drawCurrent();
 
     player.fire(C.S_CHANGE_STATE, C.PAUSED);
-    player.fire(C.S_PAUSE, anim_time ? anim_time.getLastPosition() : Player.NO_TIME);
+    player.fire(C.S_PAUSE, anim_time ? anim_time.getLastPosition() : Timeline.NO_TIME);
 
     return player;
 };
@@ -659,7 +659,7 @@ Player.prototype.hasError = function() { return this.happens === C.ERROR; };
 //Player.prototype.isSomethingHappens = function() { return this.happens !== C.NOTHING; };
 
 Player.prototype.getTime = function() {
-    return this.anim ? this.anim.getTime() : Player.NO_TIME;
+    return this.anim ? this.anim.getTime() : Timeline.NO_TIME;
 };
 
 /**
@@ -875,7 +875,7 @@ Player.prototype.forceRedraw = function() {
  * @param {Number} time
  */
 Player.prototype.drawAt = function(time) {
-    if (time === Player.NO_TIME) throw errors.player(ErrLoc.P.PASSED_TIME_VALUE_IS_NO_TIME, this);
+    if (time === Timeline.NO_TIME) throw errors.player(ErrLoc.P.PASSED_TIME_VALUE_IS_NO_TIME, this);
     if ((this.happens === C.RES_LOADING) &&
         (this.loadingMode === C.LM_ONREQUEST)) { this._postpone('drawAt', arguments);
                                                    return; } // if player loads remote resources just now,
