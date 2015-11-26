@@ -13,7 +13,7 @@ var adapter = {
     },
 
     getPaused: function() {
-        return this.state.happens === C.PAUSED;
+        return this.happens === C.PAUSED;
     },
 
     mute: function() {
