@@ -334,7 +334,7 @@ Tween.register(C.T_VOLUME, function(values) {
     var _from = values[0],
         to = values[1];
     return function(t) {
-        if (!this.$audio.ready) return;
+        if (!this.$audio || !this.$audio.ready) return;
         var volume = _from * (1.0 - t) + to * t;
         this.$audio.setVolume(volume);
     };
