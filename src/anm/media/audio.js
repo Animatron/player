@@ -59,12 +59,7 @@ Audio.prototype.load = function(uid, player) {
     var me = this;
     ResMan.loadOrGet(uid, me.url,
       function(notify_success, notify_error, notify_progress) { // loader
-          var url = me.url;
-          if (engine.isHttps) {
-              url = url.replace('http:', 'https:');
-          }
-          url = engine.fixLocalUrl(url);
-
+          var url = engine.checkMediaUrl(me.url);
 
           if (anm.conf.doNotLoadAudio) {
             notify_error('Loading audio is turned off');

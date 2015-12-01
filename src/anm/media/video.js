@@ -47,10 +47,8 @@ Video.prototype.load = function(uid, player) {
     var me = this;
     ResMan.loadOrGet(uid, me.url,
         function(notify_success, notify_error, notify_progress) { // loader
-            var url = me.url;
+            var url = engine.checkMediaUrl(me.url);
             var formats = me.formats;
-            if (engine.isHttps) { url = url.replace('http:', 'https:'); }
-            url = engine.fixLocalUrl(url);
 
             var el = engine.createVideo(me.size[0], me.size[1]);
             el.setAttribute("preload", "auto");
@@ -117,7 +115,7 @@ Video.prototype.load = function(uid, player) {
                 if (!formats) { addSource(el, url, 'video/mp4'); }
                 else if (formats.length) {
                     formats.forEach(function(pair) {
-                        addSource(el, pair[0], pair[1]);
+                        addSource(el, engine.checkMediaUrl(pair[0]), pair[1]);
                     });
                 }
                 engine.appendToBody(el);

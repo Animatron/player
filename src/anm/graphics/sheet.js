@@ -64,11 +64,7 @@ Sheet.prototype.load = function(uid, player, callback, errback) {
     }
     resMan.loadOrGet(uid, me.src,
         function(notify_success, notify_error, notify_progress) { // loader
-            var src = me.src;
-            if (https) {
-                src = src.replace('http:', 'https:');
-            }
-            src = engine.fixLocalUrl(src);
+            var src = engine.checkMediaUrl(me.src);
 
             if (!me._thumbnail && conf.doNotLoadImages) {
               notify_error('Loading images is turned off');
