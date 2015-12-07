@@ -76,12 +76,12 @@ function Animation() {
 
     var defaultScene = new Scene(this, '', 0);
     this.scenes = [];
-    this.scenes.push(this._prepareScene(defaultScene));
+    this.scenes.push(defaultScene);
 
     this.currentSceneIdx = 0;
     this.currentScene = this.scenes[this.currentSceneIdx];
 
-    this.endOnLastScene = false;
+    //this.endOnLastScene = false;
 }
 
 Animation.DEFAULT_DURATION = 10;
@@ -134,7 +134,6 @@ Animation.prototype.addScene = function(name, duration) {
     } else {
         scene = name;
     }
-    scene = this._prepareScene(scene);
     this.scenes.push(scene);
     return scene;
 };
@@ -155,25 +154,6 @@ Animation.prototype.getScenes = function() {
     return this.scenes;
 };
 
-Animation.prototype.toNextScene = function() {
-    if ((this.currentSceneIdx + 1) >= this.scenes.length) {
-        if (this.endOnLastScene) this.time.endNow();
-        return null;
-    }
-    this.currentSceneIdx++;
-    this.currentScene = this.scenes[this.currentSceneIdx];
-    this.currentScene.continue();
-    return this.currentScene;
-};
-
-Animation.prototype.toPrevScene = function() {
-    if ((this.currentSceneIdx - 1) < 0) return null;
-    this.currentSceneIdx--;
-    this.currentScene = this.scenes[this.currentSceneIdx];
-    this.currentScene.continue(); // ensure it's not paused
-    return this.currentScene;
-};
-
 Animation.prototype.setCurrentScene = function(idx) {
     this.currentSceneIdx = idx;
     this.currentScene = this.scenes[this.currentSceneIdx];
@@ -186,23 +166,12 @@ Animation.prototype.getCurrentScene = function() {
 };
 
 Animation.prototype.replaceScene = function(idx, scene) {
-    scene = this._prepareScene(scene);
     this.scenes[idx] = scene;
     if (this.currentSceneIdx === idx) {
         this.currentScene = scene;
         this.currentScene.continue(); // ensure it's not paused
     }
     return this;
-};
-
-Animation.prototype._prepareScene = function(scene) {
-    scene.anim = this;
-    if (scene._hasEndHandler) return scene;
-    scene.time.on(C.X_END, function() {
-        this.toNextScene();
-    }.bind(this));
-    scene._hasEndHandler = true;
-    return scene;
 };
 
 /**
