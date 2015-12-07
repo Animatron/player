@@ -1,6 +1,7 @@
 *.bak
 .idea
 .s3
+*.project.json
 BUILD
 VERSION_LOG
 node_modules
