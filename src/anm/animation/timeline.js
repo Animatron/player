@@ -228,7 +228,19 @@ Timeline.prototype.jumpToStart = function() {
 
 Timeline.prototype.jumpToEnd = function() {
     this.actualPos = this.duration;
-    this.pos = this.duration; this.fire(C.X_JUMP, this.pos);
+    this.pos = this.duration;
+    this.fire(C.X_JUMP, this.pos); this.fire(C.X_END);
+};
+
+Timeline.changeTrack = function(prevTimeline, nextTimeline, dt) { // FIXME: modifies both timelines!
+    var left = (prevTimeline.duration - prevTimeline.pos);
+    //if (dt < left) throw new Error('')
+    prevTimeline.actualPos = prevTimeline.duration;
+    prevTimeline.pos = prevTimeline.duration;
+    prevTimeline.fire(C.X_END, prevTimeline.pos);
+    nextTimeline.actualPos = (dt - left);
+    nextTimeline.pos = (dt - left);
+    nextTimeline.fire(C.X_START, nextTimeline.pos);
 };
 
 Timeline.prototype.easing = function(f) { this.easing = f; };
