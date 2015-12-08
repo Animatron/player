@@ -587,7 +587,13 @@ Animation.prototype._collectRemoteResources = function(player) {
         }
     });
     if (this.fonts && this.fonts.length) {
-        remotes = remotes.concat(this.fonts.map(function(f){return f.url;}));
+        remotes = remotes.concat(this.fonts.map(function(f){
+            if (!f.gf_name) {
+                return f.url;
+            } else {
+                return null;
+            }
+        }));
     }
     return remotes;
 };
@@ -721,6 +727,7 @@ var FONT_LOAD_TIMEOUT = 10000; //in ms
  * @method loadFonts
  * @private
  */
+var URL2FG = 'http://fonts.googleapis.com/css?family=';
 Animation.prototype.loadFonts = function(player) {
     if (!this.fonts || !this.fonts.length) {
         return;
@@ -731,7 +738,7 @@ Animation.prototype.loadFonts = function(player) {
         css = '',
         fontsToLoad = [],
         detector = new FontDetector();
-
+    var url2gf = '';
     for (var i = 0; i < fonts.length; i++) {
         var font = fonts[i];
         if (!font.url || !font.face) {
@@ -739,21 +746,30 @@ Animation.prototype.loadFonts = function(player) {
             continue;
         }
         var url = engine.checkMediaUrl(font.url),
-            woff = engine.checkMediaUrl(font.woff);
-        fontsToLoad.push(font);
-        css += '@font-face {\n' +
+            woff = engine.checkMediaUrl(font.woff), gf_name = font.gf_name;
+
+        if (!gf_name) {
+            fontsToLoad.push(font);
+            css += '@font-face {\n' +
             'font-family: "' + font.face + '";\n' +
-            'src:' +  (woff ? ' url("'+woff+'") format("woff"),\n' : '') +
-            ' url("'+url+'") format("truetype");\n' +
-            (font.style ? 'font-style: ' + font.style +';\n' : '') +
+            'src:' + (woff ? ' url("' + woff + '") format("woff"),\n' : '') +
+            ' url("' + url + '") format("truetype");\n' +
+            (font.style ? 'font-style: ' + font.style + ';\n' : '') +
             (font.weight ? 'font-weight: ' + font.weight + ';\n' : '') +
             '}\n';
+        } else {
+            url2gf += font.gf_name + "|";
+        }
+    }
+    if (url2gf != '') {
+        var link = URL2FG + url2gf.substring(0, url2gf.lastIndexOf('|'));
+        console.log("inserting link for google fonts: " + link);
+        engine.addFontLinkObject(link);
     }
 
     if (fontsToLoad.length === 0) {
         return;
     }
-
     style.innerHTML += css;
 
     var getLoader = function(i) {
@@ -780,6 +796,7 @@ Animation.prototype.loadFonts = function(player) {
     for (i = 0; i < fontsToLoad.length; i++) {
         ResMan.loadOrGet(player.id, fontsToLoad[i].url, getLoader(i));
     }
+
 
 };
 
