@@ -280,7 +280,7 @@ Animation.prototype.tick = function(dt) {
         this.time.tick(dt);
     } else {
         var nextScene = (this.currentSceneIdx < this.scenes.length)
-                        ? this.scenes[this.currentSceneIdx] : null;
+                        ? this.scenes[this.currentSceneIdx + 1] : null;
         if (nextScene) {
             curSceneTime.changeTrack(nextScene.time, dt); // should use scene.tick for both?
             this.currentSceneIdx++;
