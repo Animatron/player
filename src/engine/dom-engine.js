@@ -907,21 +907,21 @@ $DE.createStatImg = function() {
 };
 
 $DE.addFontLinkObject = function(url) {
-    var link = document.getElementById('anm-link');
+    var link = $doc.getElementById('anm-link');
     if (link) {
         return link;
     }
     link = $doc.createElement('link');
     link.type = 'text/css';
     link.id = 'anm-link';
-    link.rel = "stylesheet";
+    link.rel = 'stylesheet';
     link.href = url;
     document.body.appendChild(link);
     return link;
 };
 
 $DE.getWebfontStyleObject = function() {
-    var style = document.getElementById('anm-webfonts');
+    var style = $doc.getElementById('anm-webfonts');
     if (style) {
         return style;
     }

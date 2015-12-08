@@ -727,7 +727,7 @@ var FONT_LOAD_TIMEOUT = 10000; //in ms
  * @method loadFonts
  * @private
  */
-var URL2FG = 'http://fonts.googleapis.com/css?family=';
+var URL2GOOGLE_FONTS = 'http://fonts.googleapis.com/css?family=';
 Animation.prototype.loadFonts = function(player) {
     if (!this.fonts || !this.fonts.length) {
         return;
@@ -761,9 +761,8 @@ Animation.prototype.loadFonts = function(player) {
             url2gf += font.gf_name + "|";
         }
     }
-    if (url2gf != '') {
-        var link = URL2FG + url2gf.substring(0, url2gf.lastIndexOf('|'));
-        console.log("inserting link for google fonts: " + link);
+    if (url2gf.length) {
+        var link = URL2GOOGLE_FONTS + url2gf.substring(0, url2gf.lastIndexOf('|'));
         engine.addFontLinkObject(link);
     }
 
