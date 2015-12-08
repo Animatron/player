@@ -23,6 +23,7 @@ function Scene(anim, name, duration) {
 }
 
 Scene.prototype.tick = function(dt) {
+    this.time.tick(dt);
     if (this.time.fits()) {
         this.each(function(child) {
             child.tick(dt);
