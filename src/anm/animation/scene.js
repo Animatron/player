@@ -22,14 +22,21 @@ function Scene(anim, name, duration) {
     this.hash = {};
 }
 
-Scene.prototype.render = function(ctx, dt) {
-    this.time.tick(dt);
+Scene.prototype.tick = function(dt) {
     if (this.time.fits()) {
         this.each(function(child) {
-            child.render(ctx, dt);
+            child.tick(dt);
         });
     }
-}
+};
+
+Scene.prototype.render = function(ctx) {
+    if (this.time.fits()) {
+        this.each(function(child) {
+            child.render(ctx);
+        });
+    }
+};
 
 Scene.prototype.duration = function(value) {
     if (!is.defined(value)) return this.getDuration();

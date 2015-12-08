@@ -30,6 +30,7 @@ function Timeline(owner) {
     this.actualPos = -this.start || 0;
     this.easing = null;
     this.speed = 1;
+    this.lastDelta = 0;
 
     this.passedStart = false;
     this.passedEnd = false;
@@ -46,6 +47,7 @@ Timeline.prototype.reset = function() {
     this.actualPos = -this.start;
     this.passedStart = false;
     this.passedEnd = false;
+    this.lastDelta = 0;
 };
 
 Timeline.prototype.addAction = function(t, f) {
@@ -58,12 +60,14 @@ Timeline.prototype.addAction = function(t, f) {
 Timeline.prototype.tick = function(dt) {
     this.actualPos += dt;
 
-    if (this.paused) return this.pos;
+    if (this.paused) { this.lastDelta = 0; return this.pos; }
 
     var next = (this.pos !== NO_TIME) ? (this.pos + dt) : NO_TIME;
     next = this._checkSwitcher(next);
 
     if (next !== NO_TIME) {
+
+        this.lastDelta = dt;
 
         next = (this.easing ? this.easing(next) : next);
 
@@ -90,7 +94,7 @@ Timeline.prototype.tick = function(dt) {
                 this.fire(C.X_JUMP, next); this.fire(C.X_ITER);
             }
         }
-    }
+    } else { this.lastDelta = 0; }
 
     var prev = this.pos;
     this.pos = next;
@@ -170,6 +174,10 @@ Timeline.prototype.getLastPosition = function() {
     return this.pos;
 };
 
+Timeline.prototype.getLastDelta = function() {
+    return this.lastDelta;
+};
+
 Timeline.prototype.getGlobalStart = function() {
     var cursor = this.owner;
     var start = 0;
@@ -232,15 +240,11 @@ Timeline.prototype.jumpToEnd = function() {
     this.fire(C.X_JUMP, this.pos); this.fire(C.X_END);
 };
 
-Timeline.changeTrack = function(prevTimeline, nextTimeline, dt) { // FIXME: modifies both timelines!
-    var left = (prevTimeline.duration - prevTimeline.pos);
+Timeline.prototype.changeTrack = function(other, dt) {
+    var left = (this.duration - this.pos);
     //if (dt < left) throw new Error('')
-    prevTimeline.actualPos = prevTimeline.duration;
-    prevTimeline.pos = prevTimeline.duration;
-    prevTimeline.fire(C.X_END, prevTimeline.pos);
-    nextTimeline.actualPos = (dt - left);
-    nextTimeline.pos = (dt - left);
-    nextTimeline.fire(C.X_START, nextTimeline.pos);
+    this.tick(left);
+    other.tick(dt - left);
 };
 
 Timeline.prototype.easing = function(f) { this.easing = f; };

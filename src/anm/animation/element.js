@@ -1,5 +1,4 @@
-var log = require('../log.js'),
-    utils = require('../utils.js'),
+var utils = require('../utils.js'),
     global_opts = require('../global_opts.js');
 
 var iter = utils.iter,
@@ -712,12 +711,13 @@ Element.prototype.invTransform = function(ctx) {
  * @return {anm.Element} itself
  */
 // > Element.render % (ctx: Context, gtime: Float, dt: Float)
-Element.prototype.render = function(ctx, dt) {
+Element.prototype.render = function(ctx) {
     if (this.disabled) return;
 
     this.rendering = true;
 
-    var ltime = this.tick(dt);
+    var ltime = this.time.pos,
+        dt = this.time.getLastDelta();
 
     var mask = this.$mask,
         renderMasked = false,
@@ -748,7 +748,8 @@ Element.prototype.render = function(ctx, dt) {
             this.transform(ctx);
             this.painters(ctx);
             this.each(function(child) {
-                child.render(ctx, dt);
+                child.tick(dt);
+                child.render(ctx);
             });
         } else {
             // FIXME: the complete mask process should be a Painter.
@@ -804,13 +805,15 @@ Element.prototype.render = function(ctx, dt) {
             this.transform(bctx);
             this.painters(bctx);
             this.each(function(child) {
+                child.tick(dt);
                 child.render(bctx, dt);
             });
 
             mask.transform(mctx);
             mask.painters(mctx);
             mask.each(function(child) {
-                child.render(mctx, dt);
+                child.tick(dt);
+                child.render(mctx);
             });
 
             bctx.globalCompositeOperation = 'destination-in';

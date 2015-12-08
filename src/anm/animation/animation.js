@@ -81,7 +81,7 @@ function Animation() {
     this.currentSceneIdx = 0;
     this.currentScene = this.scenes[this.currentSceneIdx];
 
-    //this.endOnLastScene = false;
+    this.endOnLastScene = false;
 }
 
 Animation.DEFAULT_DURATION = 10;
@@ -254,15 +254,13 @@ Animation.prototype.eachScene = function(func) {
 /**
  * @method render
  *
- * Render the Animation for given context at given time.
+ * Render the Animation for given context at current time.
  *
  * @param {Canvas2DContext} context
- * @param {Number} dt The difference in time between current frame and previous one
  */
-Animation.prototype.render = function(ctx, dt) {
+Animation.prototype.render = function(ctx) {
     ctx.save();
     var zoom = this.zoom;
-    this.time.tick(dt);
     if (zoom != 1) {
         ctx.scale(zoom, zoom);
     }
@@ -271,9 +269,28 @@ Animation.prototype.render = function(ctx, dt) {
         this.bgfill.apply(ctx);
         ctx.fillRect(0, 0, this.width, this.height);
     }
-    this.currentScene.render(ctx, dt);
+    this.currentScene.render(ctx);
     ctx.restore();
 };
+
+Animation.prototype.tick = function(dt) {
+    var curSceneTime = this.currentScene.time;
+    if ((curSceneTime.pos + dt) < curSceneTime.duration) {
+        this.currentScene.tick(dt);
+        this.time.tick(dt);
+    } else {
+        var nextScene = (this.currentSceneIdx < this.scenes.length)
+                        ? this.scenes[this.currentSceneIdx] : null;
+        if (nextScene) {
+            curSceneTime.changeTrack(nextScene.time, dt); // should use scene.tick for both?
+            this.currentSceneIdx++;
+            this.currentScene = nextScene;
+        } else {
+            this.currentScene.tick(dt);
+            if (this.endOnLastScene) this.time.endNow();
+        }
+    }
+}
 
 Animation.prototype.pause = function() {
     this.time.pause();
@@ -370,14 +387,6 @@ Animation.prototype.goToSceneAt = function(t) {
         this.currentScene.jumpToEnd();
     }
 };
-
-/* Animation.prototype.nextScene = function() {
-
-};
-
-Animation.prototype.currentScene = function() {
-
-}; */
 
 /**
  * @method reset
