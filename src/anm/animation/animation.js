@@ -279,18 +279,25 @@ Animation.prototype.tick = function(dt) {
         this.currentScene.tick(dt);
         this.time.tick(dt);
     } else {
-        var nextScene = (this.currentSceneIdx < this.scenes.length)
-                        ? this.scenes[this.currentSceneIdx + 1] : null;
-        if (nextScene) {
-            curSceneTime.changeTrack(nextScene.time, dt); // should use scene.tick for both?
-            this.currentSceneIdx++;
-            this.currentScene = nextScene;
-        } else {
-            this.currentScene.tick(dt);
-            if (this.endOnLastScene) this.time.endNow();
-        }
+        this._changeToNextScene(dt);
     }
 }
+
+Animation.prototype._changeToNextScene = function(dt) {
+    var nextScene = (this.currentSceneIdx < this.scenes.length)
+                    ? this.scenes[this.currentSceneIdx + 1] : null;
+    if (nextScene) {
+        var currentSceneTime = this.currentScene.time;
+        var left = (currentSceneTime.duration - currentSceneTime.pos);
+        this.currentScene.tick(left);
+        this.currentSceneIdx++;
+        this.currentScene = nextScene;
+        this.currentScene.tick(dt - left); // tick the remainder in the next scene
+    } else {
+        this.currentScene.tick(dt);
+        if (this.endOnLastScene) this.time.endNow();
+    }
+};
 
 Animation.prototype.pause = function() {
     this.time.pause();
