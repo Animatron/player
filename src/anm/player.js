@@ -1495,24 +1495,28 @@ Player.prototype._ensureHasAnim = function() {
     if (!this.anim) throw errors.player(ErrLoc.P.NO_ANIMATION, this);
 };
 
+Player.prototype._complete = function() {
+    this.fire(C.S_COMPLETE);
+    this.stop();
+    if (this.repeat ||
+        (!is.defined(this.repeat) && this.anim.repeat)) {
+       this.repeating = true;
+       //this.anim.jump(0); // done in player.stop()
+       this.play();
+       this.fire(C.S_REPEAT);
+    } else {
+       this.drawCurrent();
+    }
+}
+
 Player.prototype.__beforeFrame = function(anim) {
     return (function(player, anim, callback) {
         return function(time) {
             anim.clearAllLaters();
             if (player.happens !== C.PLAYING) return false;
-            if (player.anim && (!player.anim.time.fits() ||
+            if (player.anim && (!player.anim.time.fits() || // FIXME: do using subscription anim.on(C.X_END, ...)
                                 player.anim.time.isAfter(player.stopAfter))) {
-                player.fire(C.S_COMPLETE);
-                player.stop();
-                if (player.repeat ||
-                    (!is.defined(player.repeat) && anim.repeat)) {
-                   player.repeating = true;
-                   //player.anim.jump(0); // done in player.stop()
-                   player.play();
-                   player.fire(C.S_REPEAT);
-               } else {
-                   player.drawCurrent();
-                }
+                player._complete();
                 return false;
             }
             if (callback) callback(time, player.ctx);

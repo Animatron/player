@@ -252,6 +252,10 @@ Timeline.prototype.changeTrack = function(other, dt) {
     other.tick(dt - left);
 };
 
+Timeline.prototype.isFinished = function() {
+    return this.passedEnd;
+};
+
 Timeline.prototype.easing = function(f) { this.easing = f; };
 
 Timeline.prototype.isBefore = function(t) { return (this.pos < t); };
