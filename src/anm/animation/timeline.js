@@ -195,7 +195,7 @@ Timeline.prototype.getGlobalTime = function() {
 };
 
 Timeline.prototype.pause = function() {
-    console.log('pause', this.owner.name, this.pos);
+    //console.log('pause', this.owner.name, this.pos);
     if (this.paused) return;
     this.paused = true; this.fire(C.X_PAUSE, this.pos);
 };
@@ -205,7 +205,7 @@ Timeline.prototype.pauseAt = function(at) {
 };
 
 Timeline.prototype.continue = function() {
-    console.log('continue', this.owner.name, this.pos);
+    //console.log('continue', this.owner.name, this.pos);
     if (!this.paused) return;
     this.fire(C.X_CONTINUE, this.pos);
     this.paused = false;
@@ -216,7 +216,7 @@ Timeline.prototype.countinueAt = function(at) {
 };
 
 Timeline.prototype.jump = function(t) {
-    console.log('jump', this.owner.name, this.pos, t);
+    //console.log('jump', this.owner.name, this.pos, t);
     this.pos = t; this.fire(C.X_JUMP, t);
 };
 
