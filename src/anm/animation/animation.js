@@ -81,7 +81,7 @@ function Animation() {
     this.currentSceneIdx = 0;
     this.currentScene = this.scenes[this.currentSceneIdx];
 
-    this.endOnLastScene = false;
+    this.endOnLastScene = true;
 }
 
 Animation.DEFAULT_DURATION = 10;
