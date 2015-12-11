@@ -860,7 +860,7 @@ Player.prototype.forceRedraw = function() {
     switch (this.happens) {
         case C.STOPPED: this.stop(); break;
         case C.PAUSED: if (this.anim) this.drawCurrent(); break;
-        case C.PLAYING: if (this.anim) { this._stopAndContinue(); } break;
+        case C.PLAYING: if (this.anim) { this._pauseAndContinue(); } break;
         case C.NOTHING: if (!this.controls) this._drawSplash(); break;
         //case C.LOADING: case C.RES_LOADING: this._drawSplash(); break;
         //case C.ERROR: this._drawErrorSplash(); break;
@@ -1385,10 +1385,10 @@ Player.prototype._reset = function() {
     /*this.stop();*/
 };
 
-Player.prototype._stopAndContinue = function() {
+Player.prototype._pauseAndContinue = function() {
     var last_conf = this.__lastPlayConf;
     var stoppedAt = this.anim ? this.anim.time.getLastPosition() : 0;
-    this.stop();
+    this.pause();
     this.play(stoppedAt, last_conf[1], last_conf[2]);
 };
 
