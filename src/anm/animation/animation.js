@@ -191,6 +191,49 @@ Animation.prototype.traverse = function(visitor, data) {
 };
 
 /**
+ * @method traverseVisible
+ * @chainable
+ *
+ * Visit every currently visible element in a tree.
+ *
+ * @param {Function} visitor
+ * @param {anm.Element} visitor.child
+ * @param {Boolean} visitor.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
+ * @param {Object} [data]
+ */
+Animation.prototype.traverseVisible = function(visitor, data) {
+    if (this.currentScene && this.currentScene.time.fits()) {
+        this.currentScene.traverse(function(child) {
+            return (child.time.fits() && (visitor(child, data) === false)) ? false : true;
+        });
+    }
+    return this;
+};
+
+/**
+ * @method reverseTraverseVisible
+ * @chainable
+ *
+ * Visit every currently visible element in a tree. The only difference
+ * with {@link anm.Animation#traverseVisible .traverseVisible} is that `.reverseTraverseVisible` literally iterates
+ * over the children in the order _reverse_ to the order of their addition—this
+ * could be helpful when you need elements with higher z-index to be visited before.
+ *
+ * @param {Function} visitor
+ * @param {anm.Element} visitor.child
+ * @param {Boolean} visitor.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
+ * @param {Object} [data]
+ */
+Animation.prototype.reverseTraverseVisible = function(visitor, data) {
+    if (this.currentScene && this.currentScene.time.fits()) {
+        this.currentScene.reverseTraverse(function(child) {
+            return (child.time.fits() && (visitor(child, data) === false)) ? false : true;
+        });
+    }
+    return this;
+};
+
+/**
  * @method each
  * @chainable
  *
@@ -366,8 +409,8 @@ Animation.prototype.setSpeed = function(speed) {
 Animation.prototype.goToScene = function(scene) {
     for (var i = 0; i < this.scenes.length; i++) {
         if (this.scenes[i].id === scene.id) {
+            this.scenes[i].jumpToStart();
             this.setCurrentScene(i);
-            this.currentScene.jumpToStart();
             break;
         }
     }
@@ -510,10 +553,8 @@ Animation.prototype.filterEvent = function(type, evt) {
     if (events.mouse(type)) {
         var pos = anim.adapt(evt.pos.x, evt.pos.y);
         var targetFound = false;
-        anim.reverseEach(function(child) {
-            child.inside(pos, function(elm) { // filter elements
-                return elm.time.fits();
-            }, function(elm, local_pos) { // point is inside
+        anim.reverseTraverseVisible(function(child) {
+            child.inside(pos, null, function(elm, local_pos) { // point is inside
                 targetFound = true;
                 if (type !== 'mousemove') {
                     var subscriber = firstSubscriber(elm, type);

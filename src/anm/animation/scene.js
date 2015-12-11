@@ -57,6 +57,12 @@ Scene.prototype.traverse = function(visitor, data) {
     utils.keys(this.hash, function(key, elm) { return visitor(elm, data); });
 };
 
+Scene.prototype.reverseTraverse = function(visitor, data) {
+    this.reverseEach(function(elm) {
+        elm.reverseTraverse(function(child) { return visitor(child, data); });
+    });
+};
+
 Scene.prototype.each = function(visitor, data) {
     for (var i = 0, clen = this.children.length; i < clen; i++) {
         if (visitor(this.children[i], data) === false) break;

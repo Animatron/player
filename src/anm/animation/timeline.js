@@ -97,7 +97,6 @@ Timeline.prototype.tick = function(dt) {
     } else { this.lastDelta = 0; }
 
     var prev = this.pos;
-    this.pos = next;
 
     if (next !== NO_TIME) {
         this._performActionsBetween(prev, next, dt); // actions could change this.pos
@@ -112,6 +111,9 @@ Timeline.prototype.tick = function(dt) {
             }
         }
     }
+
+    //console.log('tick', this.owner.name, this.pos, dt, next);
+    this.pos = next;
 
     return this.pos;
 };
@@ -193,6 +195,7 @@ Timeline.prototype.getGlobalTime = function() {
 };
 
 Timeline.prototype.pause = function() {
+    console.log('pause', this.owner.name, this.pos);
     if (this.paused) return;
     this.paused = true; this.fire(C.X_PAUSE, this.pos);
 };
@@ -202,6 +205,7 @@ Timeline.prototype.pauseAt = function(at) {
 };
 
 Timeline.prototype.continue = function() {
+    console.log('continue', this.owner.name, this.pos);
     if (!this.paused) return;
     this.fire(C.X_CONTINUE, this.pos);
     this.paused = false;
@@ -212,6 +216,7 @@ Timeline.prototype.countinueAt = function(at) {
 };
 
 Timeline.prototype.jump = function(t) {
+    console.log('jump', this.owner.name, this.pos, t);
     this.pos = t; this.fire(C.X_JUMP, t);
 };
 

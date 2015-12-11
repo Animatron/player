@@ -1654,6 +1654,33 @@ Element.prototype.traverse = function(func) {
 };
 
 /**
+ * @method traverse
+ * @chainable
+ *
+ * Iterate over element's children including all the levels of sub-children with
+ * given function (see {@link anm.Element#each .each} method to iterate over
+ * only element's own children).
+ *
+ * @param {Function} f function to call
+ * @param {Boolean} f.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
+ * @param {anm.Element} f.elm child element
+ *
+ * @return {anm.Element} itself
+ */
+Element.prototype.reverseTraverse = function(func) {
+    var children = this.children;
+    this.__unsafeToRemove = true;
+    var ei = children.length;
+    while (ei--) {
+        var elem = children[ei];
+        if (func(elem) === false) break;
+        elem.traverse(func);
+    }
+    this.__unsafeToRemove = false;
+    return this;
+};
+
+/**
  * @method iter
  * @chainable
  *
@@ -1999,7 +2026,7 @@ Element.prototype.myBounds = function() {
  */
 Element.prototype.inside = function(pt, filter, fn) {
     var passed_filter = !filter || filter(this);
-    if (!passed_filter) return; /* skip this element and its children, but not exit completely */;
+if (!passed_filter) return; /* skip this element and its children, but not exit completely */;
     var local_pt = this.adapt(pt.x, pt.y);
     if (this.myBounds().inside(local_pt)) {
         var subj = this.$path || this.$text || this.$image || this.$video;
