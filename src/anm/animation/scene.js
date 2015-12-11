@@ -59,7 +59,11 @@ Scene.prototype.traverse = function(visitor, data) {
 
 Scene.prototype.reverseTraverse = function(visitor, data) {
     this.reverseEach(function(elm) {
-        elm.reverseTraverse(function(child) { return visitor(child, data); });
+        var result = visitor(elm, data);
+        if (result !== false) {
+            elm.reverseTraverse(function(child) { return visitor(child, data); });
+        }
+        return result;
     });
 };
 

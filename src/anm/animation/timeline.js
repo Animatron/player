@@ -101,7 +101,7 @@ Timeline.prototype.tick = function(dt) {
     if (next !== NO_TIME) {
         this._performActionsBetween(prev, next, dt); // actions could change this.pos
 
-        if (this.pos === next) { // there were no jumps in time, so this.pos stayed
+        if (this.pos !== next) { // there were no jumps in time, so this.pos stayed
             if ((prev <= 0) && (next > 0) && (next <= this.duration) && !this.passedStart) {
                 this.fire(C.X_START, next); this.passedStart = true;
             }

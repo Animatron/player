@@ -233,6 +233,7 @@ $DE.CONTROLS_CLASS = 'anm-controls';
 $DE.CONTROLS_INSTANCE_CLASS_PREFIX = 'anm-controls-';
 $DE.INFO_CLASS = 'anm-controls';
 $DE.INFO_INSTANCE_CLASS_PREFIX = 'anm-controls-';
+$DE.DEBUG_CLASS = 'anm-debug';
 
 
 $DE.ensureGlobalStylesInjected = function() {
