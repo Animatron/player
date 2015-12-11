@@ -860,7 +860,7 @@ Player.prototype.forceRedraw = function() {
     switch (this.happens) {
         case C.STOPPED: this.stop(); break;
         case C.PAUSED: if (this.anim) this.drawCurrent(); break;
-        case C.PLAYING: if (this.anim) { this._pauseAndContinue(); } break;
+        case C.PLAYING: if (this.anim) { /*this._pauseAndContinue();*/ } break;
         case C.NOTHING: if (!this.controls) this._drawSplash(); break;
         //case C.LOADING: case C.RES_LOADING: this._drawSplash(); break;
         //case C.ERROR: this._drawErrorSplash(); break;
