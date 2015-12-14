@@ -2,6 +2,7 @@ var C = require('../constants.js');
 
 var conf = require('../conf.js'),
     utils = require('../utils.js'),
+    log = require('../log.js'),
     is = utils.is;
 
 var engine = require('engine');
