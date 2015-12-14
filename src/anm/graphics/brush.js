@@ -146,28 +146,28 @@ Brush.prototype.adapt = function(ctx) {
             r = src.r || [ 1.0, 1.0 ];
             bounds = src.bounds || [0, 0, 1, 1];
         var grad;
+        var x0 = bounds ? (bounds[0] + dir[0][0] * bounds[2]) : dir[0][0], // b.x + x0 * b.width
+            y0 = bounds ? (bounds[1] + dir[0][1] * bounds[3]) : dir[0][1], // b.y + y0 * b.height
+            x1 = bounds ? (bounds[0] + dir[1][0] * bounds[2]) : dir[1][0], // b.x + x1 * b.width
+            y1 = bounds ? (bounds[1] + dir[1][1] * bounds[3]) : dir[1][1]; // b.y + y1 * b.height
         if (is.defined(src.r)) {
-            grad = bounds ?
-                ctx.createRadialGradient(
-                                bounds[0] + dir[0][0] * bounds[2], // b.x + x0 * b.width
-                                bounds[1] + dir[0][1] * bounds[3], // b.y + y0 * b.height
-                                Math.max(bounds[2], bounds[3]) * r[0], // max(b.width, b.height) * r0
-                                bounds[0] + dir[1][0] * bounds[2], // b.x + x1 * b.width
-                                bounds[1] + dir[1][1] * bounds[3], // b.y + y1 * b.height
-                                Math.max(bounds[2], bounds[3]) * r[1]) // max(b.width, b.height) * r1
-                : ctx.createRadialGradient(
-                               dir[0][0], dir[0][1], r[0],  // x0, y0, r0
-                               dir[1][0], dir[1][1], r[1]); // x1, y1, r1
+            var r0 = bounds ? (Math.max(bounds[2], bounds[3]) * r[0]) : r[0], // max(b.width, b.height) * r0
+                r1 = bounds ? (Math.max(bounds[2], bounds[3]) * r[0]) : r[1]; // max(b.width, b.height) * r1
+            try {
+                grad = ctx.createRadialGradient(x0, y0, r0, x1, y1, r1);
+            } catch(e) {
+                log.error(e, 'Failed to create radial gradient', x0, y0, r0, x1, y1, r1);
+                grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 0);
+                return grad;
+            }
         } else {
-            grad = bounds ?
-                ctx.createLinearGradient(
-                                bounds[0] + dir[0][0] * bounds[2], // b.x + x0 * b.width
-                                bounds[1] + dir[0][1] * bounds[3], // b.y + y0 * b.height
-                                bounds[0] + dir[1][0] * bounds[2], // b.x + x1 * b.width
-                                bounds[1] + dir[1][1] * bounds[3]) // b.y + y1 * b.height
-                : ctx.createLinearGradient(
-                                dir[0][0], dir[0][1],  // x0, y0
-                                dir[1][0], dir[1][1]); // x1, y1
+            try {
+                grad = ctx.createLinearGradient(x0, y0, x1, y1);
+            } catch(e) {
+                log.error(e, 'Failed to create linear gradient', x0, y0, x1, y1);
+                grad = ctx.createLinearGradient(0, 0, 0, 0);
+                return grad;
+            }
         }
         for (var i = 0, slen = stops.length; i < slen; i++) {
             var stop = stops[i];
