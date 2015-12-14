@@ -820,8 +820,10 @@ Import.grad = function(src) {
     }
     var stops = [];
     for (var i = 0; i < offsets.length; i++) {
+        console.log(offsets[i], colors[i]);
         stops.push([ offsets[i], colors[i] ]);
     }
+    console.log(pts);
     if (pts.length == 4) {
         return {
             dir: [ [ pts[0], pts[1] ], [ pts[2], pts[3] ] ],

@@ -2403,10 +2403,12 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
     if (mod_relative || mod_is_tween) {
         // tweens and relative modifiers should receive relative time inside
         if (is.finite(res_duration)) {
-            res_time = t_adjust(res_time) / t_adjust(res_duration);
+            res_time = (t_adjust(res_duration) !== 0) ? (t_adjust(res_time) / t_adjust(res_duration)) : 0;
             res_duration = t_adjust(res_duration);
         } else {
             // if band duration is infinite, time value is left as it was
+            res_time = ltime;
+            res_duration = Infinity; //t_adjust(res_duration);
         }
     } else {
         res_time = t_adjust(res_time);
