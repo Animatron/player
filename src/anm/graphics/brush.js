@@ -153,7 +153,7 @@ Brush.prototype.adapt = function(ctx) {
             y1 = bounds ? (bounds[1] + dir[1][1] * bounds[3]) : dir[1][1]; // b.y + y1 * b.height
         if (is.defined(src.r)) {
             var r0 = bounds ? (Math.max(bounds[2], bounds[3]) * r[0]) : r[0], // max(b.width, b.height) * r0
-                r1 = bounds ? (Math.max(bounds[2], bounds[3]) * r[0]) : r[1]; // max(b.width, b.height) * r1
+                r1 = bounds ? (Math.max(bounds[2], bounds[3]) * r[1]) : r[1]; // max(b.width, b.height) * r1
             try {
                 grad = ctx.createRadialGradient(x0, y0, r0, x1, y1, r1);
             } catch(e) {
