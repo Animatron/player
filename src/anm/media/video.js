@@ -130,7 +130,7 @@ Video.prototype.load = function(uid, player) {
 
             if (!me.size) me.size = [video.width, video.height];
         },
-        function(err) { log.error(err ? (err.message || err) : 'Unknown error');
+        function(err) { log.error(errors.player(err ? err.message : 'Video Load Error: ' + me.url, player));
                         //throw errors.element(err ? err.message : 'Unknown', uid);
         });
 };

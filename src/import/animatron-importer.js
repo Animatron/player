@@ -30,16 +30,19 @@ var C = anm.constants,
     Tween = anm.Tween,
     MSeg = anm.MSeg,
     LSeg = anm.LSeg,
-    CSeg = anm.CSeg,
-    Audio = anm.Audio,
-    Video = anm.Video,
-    is = anm.utils.is,
+    CSeg = anm.CSeg;
+
+var Audio = anm.Audio,
+    Video = anm.Video;
+
+var is = anm.utils.is,
     roundTo = anm.utils.roundTo,
+    errors = anm.errors,
     $log = anm.log;
     //test = anm._valcheck
 
-function _reportError(e) {
-    $log.error(e);
+function _reportError(text) {
+    $log.error(errors.system(text));
     // throw e; // skip errors if they do not affect playing ability
 }
 
@@ -336,7 +339,7 @@ Import.branch = function(type, src, parent_src, parent_band, all, anim) {
                 targets_n = _layers_targets.length;
             if (togo > targets_n) {
                 _reportError('No layers collected to apply mask, expected ' +
-                            togo + ', got ' + targets_n);
+                             togo + ', got ' + targets_n);
                 togo = targets_n;
             }
             while (togo) {

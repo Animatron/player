@@ -1570,6 +1570,7 @@ Player.prototype.__onerror_f = function(err) {
   doMute = (this.__err_handler && this.__err_handler(err)) || doMute;
 
   if (!doMute) {
+      log.error(err);
       try { this._drawErrorSplash(err); } catch(e) { /* skip errors in splash */ }
       throw err;
   }

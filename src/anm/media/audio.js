@@ -201,7 +201,7 @@ Audio.prototype.load = function(uid, player) {
 
       },
       function(err) {
-          log.error(err ? (err.message || err) : 'Unknown error');
+          log.error(errors.player(err ? err.message : 'Audio Load Error: ' + me.url, player));
           //throw errors.element(err ? err.message : 'Unknown', uid);
       });
 };

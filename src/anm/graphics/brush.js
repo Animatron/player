@@ -157,7 +157,9 @@ Brush.prototype.adapt = function(ctx) {
             try {
                 grad = ctx.createRadialGradient(x0, y0, r0, x1, y1, r1);
             } catch(e) {
-                log.error(e, 'Failed to create radial gradient', x0, y0, r0, x1, y1, r1);
+                log.error(errors.system('Failed to create radial gradient from ' + x0 + ',' + y0 + ',' + r0 + ',' +
+                                                                                   x1 + ',' + y1 + ',' + r1 + '.' +
+                                                                            e ? (' ' + e.message) : ''));
                 grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 0);
                 return grad;
             }
@@ -165,7 +167,9 @@ Brush.prototype.adapt = function(ctx) {
             try {
                 grad = ctx.createLinearGradient(x0, y0, x1, y1);
             } catch(e) {
-                log.error(e, 'Failed to create linear gradient', x0, y0, x1, y1);
+                log.error(errors.system('Failed to create linear gradient from ' + x0 + ',' + y0 + ',' +
+                                                                                   x1 + ',' + y1 + '.' +
+                                                                            e ? (' ' + e.message) : ''));
                 grad = ctx.createLinearGradient(0, 0, 0, 0);
                 return grad;
             }

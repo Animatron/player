@@ -3,7 +3,7 @@ var C = require('./constants.js');
 function __errorAs(name) {
     return function (message) {
         if (Error.captureStackTrace) Error.captureStackTrace(this, this);
-        var err = new Error(message || '');
+        var err = new Error(name + ': ' + message || 'Unknown');
         err.name = name;
         return err;
     };
@@ -36,6 +36,9 @@ module.exports = {
             elm.anim.fire(C.X_ERROR, err);
         }
         return err;
+    },
+    wrap: function(other) {
+        return new SystemError(other.message || other);
     },
 
     SystemError: SystemError,
