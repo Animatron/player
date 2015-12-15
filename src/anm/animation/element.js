@@ -719,11 +719,11 @@ Element.prototype.render = function(ctx) {
     var ltime = this.time.pos,
         dt = this.time.getLastDelta();
 
-    var mask = this.$mask,
+    var mask = this.$mask, // FIXME: mask could tick and render several times
         renderMasked = false,
         mask_ltime;
 
-    if (mask) { mask_ltime = mask.tick(dt); };
+    if (mask) { mask_ltime = mask.tick(dt); }; // FIXME: move to element.tick
 
     if (!Timeline.isKnownTime(ltime)) return;
 
@@ -748,7 +748,7 @@ Element.prototype.render = function(ctx) {
             this.transform(ctx);
             this.painters(ctx);
             this.each(function(child) {
-                child.tick(dt);
+                child.tick(dt); // FIXME: move to element.tick
                 child.render(ctx);
             });
         } else {
@@ -809,6 +809,7 @@ Element.prototype.render = function(ctx) {
                 child.render(bctx, dt);
             });
 
+            // FIXME: this should be performed one time for all masked elements!
             mask.transform(mctx);
             mask.painters(mctx);
             mask.each(function(child) {

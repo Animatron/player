@@ -22,14 +22,14 @@ function Timeline(owner) {
 
     this.start = 0;
     this.duration = Infinity;
-    this.end = C.R_ONCE;
+    this.end = C.R_ONCE; // TODO: rename to endAction
     this.nrep = Infinity;
     this.actions = [];
     this.paused = false;
     this.pos = -this.start || 0;
     this.actualPos = -this.start || 0;
     this.easing = null;
-    this.speed = 1;
+    this.speed = 1; // TODO: use speed
     this.lastDelta = 0;
 
     this.passedStart = false;
@@ -63,7 +63,7 @@ Timeline.prototype.tick = function(dt) {
     if (this.paused) { this.lastDelta = 0; return this.pos; }
 
     var next = (this.pos !== NO_TIME) ? (this.pos + dt) : NO_TIME;
-    next = this._checkSwitcher(next);
+    next = this._checkSwitcher(next); // FIXME: move to Element.checkSwitcher
 
     if (next !== NO_TIME) {
 
@@ -113,7 +113,7 @@ Timeline.prototype.tick = function(dt) {
     }
 
     //console.log('tick', this.owner.name, this.pos, dt, next);
-    this.pos = next;
+    this.pos = next; // FIXME: if actions changed time, this OVERWRITES the position
 
     return this.pos;
 };

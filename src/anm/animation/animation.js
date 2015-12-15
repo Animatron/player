@@ -329,15 +329,14 @@ Animation.prototype.tick = function(dt) {
 Animation.prototype._changeToNextScene = function(dt) {
     var nextScene = (this.currentSceneIdx < this.scenes.length)
                     ? this.scenes[this.currentSceneIdx + 1] : null;
+    var currentSceneTime = this.currentScene.time;
+    var left = (currentSceneTime.duration - currentSceneTime.pos);
+    this.currentScene.tick(left);
     if (nextScene) {
-        var currentSceneTime = this.currentScene.time;
-        var left = (currentSceneTime.duration - currentSceneTime.pos);
-        this.currentScene.tick(left);
         this.currentSceneIdx++;
         this.currentScene = nextScene;
         this.currentScene.tick(dt - left); // tick the remainder in the next scene
     } else {
-        this.currentScene.tick(dt);
         if (this.endOnLastScene) this.time.endNow();
     }
 };
