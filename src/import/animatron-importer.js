@@ -103,7 +103,7 @@ Import.project = function(prj) {
         var node_src = Import._find(scenes_ids[i], elems);
         if (Import._type(node_src) != TYPE_SCENE) _reportError('Given Scene ID ' + scenes_ids[i] + ' points to something else');
         // FIXME: change to explicit Import.scene
-        scene = Scene._fromElement(Import.node(node_src, null, elems, null, root));
+        scene = Scene._fromElement(Import.node(node_src, null, null, elems, null, root));
         // there's always a default scene in Player, which is first one
         if (i === 0) { root.replaceScene(0, scene); } else { root.addScene(scene); };
     }
@@ -184,7 +184,7 @@ function isPath(type) {
  * } *element*;
  */
 // -> Element
-Import.node = function(src, lsrc, all, parent, anim) {
+Import.node = function(src, layer_src, layer_band, all, parent, anim) {
     var type = Import._type(src),
         trg = null;
     if ((type == TYPE_CLIP) ||
@@ -192,9 +192,9 @@ Import.node = function(src, lsrc, all, parent, anim) {
         (type == TYPE_GROUP) ||
         (type == TYPE_SKELETON) ||
         (type == TYPE_BONES)) {
-        trg = Import.branch(type, src, lsrc, all, anim);
+        trg = Import.branch(type, src, layer_src, layer_band, all, anim);
     } else if (type != TYPE_UNKNOWN) {
-        trg = Import.leaf(type, src, lsrc, parent, anim);
+        trg = Import.leaf(type, src, layer_src, layer_band, parent, anim);
     }
     if (trg) {
         trg._anm_type = type;
@@ -222,7 +222,7 @@ var L_ROT_TO_PATH = 1,
  * } *group_element*;
  */
 // -> Element
-Import.branch = function(type, src, psrc, all, anim) {
+Import.branch = function(type, src, parent_src, parent_band, all, anim) {
     var trg = new Element();
     trg.name = src[1];
     var _layers = (type == TYPE_SCENE) ? src[3] : src[2],
@@ -248,30 +248,35 @@ Import.branch = function(type, src, psrc, all, anim) {
          *     array [ *tween* ];          // 7, array of tweens
          * } *layer*;
          */
-        var lsrc = _layers[li];
+        var layer_src = _layers[li];
 
-        var nsrc = Import._find(lsrc[0], all);
-        if (!nsrc) continue;
+        var node_src = Import._find(layer_src[0], all);
+        if (!node_src) continue;
 
+        var band = Import.band(layer_src[2]);
         // if there is a branch under the node, it will be a wrapper
         // if it is a leaf, it will be the element itself
-        var ltrg = Import.node(nsrc, lsrc, all, trg, anim);
-        if (!ltrg) continue;
-        ltrg.name = lsrc[1];
+        var layer_trg = Import.node(node_src, layer_src, band, all, trg, anim);
+        if (!layer_trg) continue;
+        layer_trg.name = layer_src[1];
 
         // apply bands, pivot and registration point
-        var flags = lsrc[6];
-        ltrg.disabled = !(flags & L_VISIBLE);
-        var band = Import.band(lsrc[2]);
-        ltrg.band(band[0], band[1]);
-        ltrg.$pivot = [ 0, 0 ];
-        ltrg.$reg = lsrc[4] || [ 0, 0 ];
+        var flags = layer_src[6];
+        layer_trg.disabled = !(flags & L_VISIBLE);
+
+        if (type !== TYPE_GROUP) {
+            layer_trg.band(band[0], band[1]);
+        } else {
+            layer_trg.band(band[0] - parent_band[0], band[1] - parent_band[0]);
+        }
+        layer_trg.$pivot = [ 0, 0 ];
+        layer_trg.$reg = layer_src[4] || [ 0, 0 ];
 
         // apply tweens
-        if (lsrc[7]) {
+        if (layer_src[7]) {
             var rotate_tweens = 0;
             var first_rotate = Infinity, last_rotate = 0;
-            for (var tweens = lsrc[7], ti = 0, tl = tweens.length;
+            for (var tweens = layer_src[7], ti = 0, tl = tweens.length;
                  ti < tl; ti++) {
                 var t = Import.tween(tweens[ti]);
                 if (!t) continue;
@@ -282,22 +287,22 @@ Import.branch = function(type, src, psrc, all, anim) {
                         rotate_tweens++;
                     }
                 }
-                ltrg.tween(t);
+                layer_trg.tween(t);
             }
             if (flags & L_ROT_TO_PATH) {
                 if (rotate_tweens) {
                     if ((first_rotate > 0) && (first_rotate < Infinity)) {
-                        ltrg.tween(Tween.rotate().start(0).stop(first_rotate)
+                        layer_trg.tween(Tween.rotate().start(0).stop(first_rotate)
                                                  .from(0).to(0));
                     }
                     if ((last_rotate > 0) && (last_rotate < Infinity)) {
-                        ltrg.tween(Tween.rotate().start(last_rotate).stop(band[1] - band[0])
+                        layer_trg.tween(Tween.rotate().start(last_rotate).stop(band[1] - band[0])
                                                  .from(0).to(0));
                     }
                 } else {
-                    ltrg.tween(Tween.rotate().start(0).stop(Infinity).from(0).to(0));
+                    layer_trg.tween(Tween.rotate().start(0).stop(Infinity).from(0).to(0));
                 }
-                ltrg.tween(Tween.rotatetopath().start(0).stop(Infinity));
+                layer_trg.tween(Tween.rotatetopath().start(0).stop(Infinity));
             }
         }
 
@@ -309,25 +314,25 @@ Import.branch = function(type, src, psrc, all, anim) {
          * } *end-action*;
          */
         // transfer repetition data
-        if (lsrc[5]) {
-            ltrg.time.mode = Import.mode(lsrc[5][0]);
-            if (lsrc[5].length > 1) {
-                ltrg.time.nrep = lsrc[5][1] || Infinity;
+        if (layer_src[5]) {
+            layer_trg.time.mode = Import.mode(layer_src[5][0]);
+            if (layer_src[5].length > 1) {
+                layer_trg.time.nrep = layer_src[5][1] || Infinity;
             }
         } else {
-            ltrg.time.mode = Import.mode(null);
+            layer_trg.time.mode = Import.mode(null);
         }
 
         // if do not masks any layers, just add to target
         // if do masks, set it as a mask for them while not adding
-        if (!lsrc[3]) { // !masked
-            trg.add(ltrg);
-            _layers_targets.push(ltrg);
+        if (!layer_src[3]) { // !masked
+            trg.add(layer_trg);
+            _layers_targets.push(layer_trg);
         } else {
             // layer is a mask, apply it to the required number
             // of previously collected layers
-            var mask = ltrg,
-                togo = lsrc[3], // layers below to apply mask
+            var mask = layer_trg,
+                togo = layer_src[3], // layers below to apply mask
                 targets_n = _layers_targets.length;
             if (togo > targets_n) {
                 _reportError('No layers collected to apply mask, expected ' +
@@ -341,13 +346,13 @@ Import.branch = function(type, src, psrc, all, anim) {
             }
         }
 
-        Import.callCustom(ltrg, lsrc, TYPE_LAYER);
+        Import.callCustom(layer_trg, layer_src, TYPE_LAYER);
 
         // TODO temporary implementation, use custom renderer for that!
-        if (ltrg.$audio && ltrg.$audio.master) {
-            ltrg.band(band[0], Infinity);
-            trg.remove(ltrg);
-            anim.add(ltrg);
+        if (layer_trg.$audio && layer_trg.$audio.master) {
+            layer_trg.band(band[0], Infinity);
+            trg.remove(layer_trg);
+            anim.add(layer_trg);
         }
     }
 
@@ -364,7 +369,7 @@ Import.branch = function(type, src, psrc, all, anim) {
 
 /** leaf **/
 // -> Element
-Import.leaf = function(type, src, lsrc, parent, anim) {
+Import.leaf = function(type, src, layer_src, layer_band, parent, anim) {
     var trg = new Element();
     var hasUrl = !!src[1];
     if (!hasUrl &&
@@ -837,21 +842,22 @@ Import.grad = function(src) {
         _reportError('Unknown type of gradient with ' + pts.length + ' points');
     }
 };
+/** pattern **/
 /*
-array {          // pattern
-number;      // id of either shapeelement or image element
-number;      // 0 - no repeat, 1 - repeat xy, 2 - repeat x, 3 - repeat y
-number;      // width
-number;      // height
-array { number; number; number; number; }  // rectangle, inner bounds
-number;      // opacity
-}
-*/
+ * array {          // pattern
+ *     number;      // id of either shapeelement or image element
+ *     number;      // 0 - no repeat, 1 - repeat xy, 2 - repeat x, 3 - repeat y
+ *     number;      // width
+ *     number;      // height
+ *     array { number; number; number; number; }  // rectangle, inner bounds
+ *     number;      // opacity
+ * }
+ */
 var repeats = ['no-repeat', 'repeat', 'repeat-x', 'repeat-y'];
 
 Import.pattern = function(src) {
     var el = anm.lastImportedProject.anim.elements[src[0]],
-        elm = Import.leaf(Import._type(el), el/*, anim*/);
+        elm = Import.leaf(Import._type(el), el/*, layer, layer_band, parent, anim*/);
     if (elm) {
         elm.alpha = src[5];
         elm.disabled = true;
