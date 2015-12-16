@@ -98,10 +98,12 @@ Timeline.prototype.tick = function(dt) {
 
     var prev = this.pos;
 
+    var positionAdjusted = false; // this will be true if user manually changed time position with actions (i.e. with jump)
     if (next !== NO_TIME) {
         this._performActionsBetween(prev, next, dt); // actions could change this.pos
+        if (this.pos !=== prev) positionAdjusted = true;
 
-        if (this.pos === prev) { // there were no jumps in time, so this.pos stayed
+        if (!positionAdjusted) { // there were no jumps in time, so this.pos stayed
             if ((prev <= 0) && (next > 0) && (next <= this.duration) && !this.passedStart) {
                 this.fire(C.X_START, next); this.passedStart = true;
             }
@@ -113,7 +115,7 @@ Timeline.prototype.tick = function(dt) {
     }
 
     //console.log('tick', this.owner.name, this.pos, dt, next);
-    this.pos = next; // FIXME: if actions changed time, this OVERWRITES the position
+    if (!positionAdjusted) this.pos = next;
 
     return this.pos;
 };
