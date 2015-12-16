@@ -132,7 +132,7 @@ Timeline.prototype.endNow = function() {
     this.position = NO_TIME;
 };
 
-Timeline.prototype.fits = function() {
+Timeline.prototype.isActive = function() {
     return (this.position !== NO_TIME) && (this.position >= 0) && (this.position <= this.duration);
 };
 

@@ -695,6 +695,27 @@ Element.prototype.invTransform = function(ctx) {
     return inv_matrix;
 };
 
+Element.prototype.tick = function(dt) {
+    // TODO: check switcher
+    if (!this.parent && this.scene && this.scene.affectsChildren) {
+        return this.timeline.tickRelative(this.scene.timeline, dt);
+    } else if (this.parent && this.parent.affectsChildren) {
+        return this.timeline.tickRelative(this.parent.timeline, dt);
+    } else {
+        return this.timeline.tick(dt);
+    }
+};
+
+Element.prototype._checkSwitcher = function(next) {
+    var parent = this.parent;
+    if (!parent || !parent.switch) return next;
+    if (parent.switch === C.SWITCH_OFF) return NO_TIME;
+    if ((parent.switch === this.name) && parent.switch_band) {
+        if (next === NO_TIME) return NO_TIME;
+        return next - parent.switch_band[0];
+    } else return NO_TIME;
+};
+
 /**
  * @method render
  * @chainable
@@ -727,7 +748,7 @@ Element.prototype.render = function(ctx) {
 
     if (!Timeline.isKnownTime(ltime)) return;
 
-    var drawMe = this.timeline.fits() &&
+    var drawMe = this.timeline.isActive() &&
                  this.modifiers(ltime, dt) &&
                  this.visible; // modifiers should be applied even if element isn't visible
     if (drawMe) {
@@ -738,7 +759,7 @@ Element.prototype.render = function(ctx) {
             //        which is even better, make all these checks to be modifiers
             // FIXME: call modifiers once for one moment of time. If there are several
             //        masked elements, they will be called that number of times
-            renderMasked = mask.timeline.fits() &&
+            renderMasked = mask.timeline.isActive() &&
                            mask.modifiers(mask_ltime, dt) &&
                            mask.visible;
         }
@@ -835,27 +856,6 @@ Element.prototype.render = function(ctx) {
     this.__postRender();
     this.rendering = false;
     return this;
-};
-
-Element.prototype.tick = function(dt) {
-    // TODO: check switcher
-    if (!this.parent && this.scene && this.scene.affectsChildren) {
-        return this.timeline.tickRelative(this.scene.timeline, dt);
-    } else if (this.parent && this.parent.affectsChildren) {
-        return this.timeline.tickRelative(this.parent.timeline, dt);
-    } else {
-        return this.timeline.tick(dt);
-    }
-};
-
-Element.prototype._checkSwitcher = function(next) {
-    var parent = this.parent;
-    if (!parent || !parent.switch) return next;
-    if (parent.switch === C.SWITCH_OFF) return NO_TIME;
-    if ((parent.switch === this.name) && parent.switch_band) {
-        if (next === NO_TIME) return NO_TIME;
-        return next - parent.switch_band[0];
-    } else return NO_TIME;
 };
 
 /**

@@ -202,9 +202,9 @@ Animation.prototype.traverse = function(visitor, data) {
  * @param {Object} [data]
  */
 Animation.prototype.traverseVisible = function(visitor, data) {
-    if (this.currentScene && this.currentScene.timeline.fits()) {
+    if (this.currentScene && this.currentScene.timeline.isActive()) {
         this.currentScene.traverse(function(child) {
-            return (child.timeline.fits() && (visitor(child, data) === false)) ? false : true;
+            return (child.timeline.isActive() && (visitor(child, data) === false)) ? false : true;
         });
     }
     return this;
@@ -225,9 +225,9 @@ Animation.prototype.traverseVisible = function(visitor, data) {
  * @param {Object} [data]
  */
 Animation.prototype.reverseTraverseVisible = function(visitor, data) {
-    if (this.currentScene && this.currentScene.timeline.fits()) {
+    if (this.currentScene && this.currentScene.timeline.isActive()) {
         this.currentScene.reverseTraverse(function(child) {
-            return (child.timeline.fits() && (visitor(child, data) === false)) ? false : true;
+            return (child.timeline.isActive() && (visitor(child, data) === false)) ? false : true;
         });
     }
     return this;

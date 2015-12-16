@@ -623,7 +623,7 @@ Player.prototype.pause = function() {
     player.happens = C.PAUSED;
 
     var anim_time = player.anim ? player.anim.timeline : null;
-    if (anim_time && anim_time.fits()) player.drawCurrent();
+    if (anim_time && anim_time.isActive()) player.drawCurrent();
 
     player.fire(C.S_CHANGE_STATE, C.PAUSED);
     player.fire(C.S_PAUSE, anim_time ? anim_time.getLastPosition() : Timeline.NO_TIME);
@@ -1514,7 +1514,7 @@ Player.prototype.__beforeFrame = function(anim) {
         return function(time) {
             anim.clearAllLaters();
             if (player.happens !== C.PLAYING) return false;
-            if (player.anim && (!player.anim.timeline.fits() || // FIXME: do using subscription anim.on(C.X_END, ...)
+            if (player.anim && (!player.anim.timeline.isActive() || // FIXME: do using subscription anim.on(C.X_END, ...)
                                 player.anim.timeline.isAfter(player.stopAfter))) {
                 player._complete();
                 return false;

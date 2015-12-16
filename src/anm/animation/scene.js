@@ -24,7 +24,7 @@ function Scene(anim, name, duration) {
 
 Scene.prototype.tick = function(dt) {
     this.timeline.tick(dt);
-    if (this.timeline.fits()) {
+    if (this.timeline.isActive()) {
         this.each(function(child) {
             child.tick(dt);
         });
@@ -32,7 +32,7 @@ Scene.prototype.tick = function(dt) {
 };
 
 Scene.prototype.render = function(ctx) {
-    if (this.timeline.fits()) {
+    if (this.timeline.isActive()) {
         this.each(function(child) {
             child.render(ctx);
         });
