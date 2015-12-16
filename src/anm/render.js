@@ -98,7 +98,7 @@ function r_next(dt, ctx, anim, width, height, zoom, rib_color, before, after) {
         if (zoom != 1) { ctx.scale(zoom, zoom); }
         anim.tick(dt);
         anim.render(ctx);
-        if (after) after(anim.time.getLastPosition(), ctx);
+        if (after) after(anim.getTime(), ctx);
         ctx.restore();
     } else {
         r_with_ribbons(ctx, anim,
@@ -111,7 +111,7 @@ function r_next(dt, ctx, anim, width, height, zoom, rib_color, before, after) {
                 if (zoom != 1) { ctx.scale(zoom, zoom); }
                 anim.tick(dt);
                 anim.render(ctx);
-                if (after) after(anim.time.getLastPosition(), ctx);
+                if (after) after(anim.getTime(), ctx);
                 ctx.restore();
             });
     }
@@ -260,7 +260,7 @@ Render.p_drawName = new Painter(function(ctx, name) {
 }, C.PNT_DEBUG);
 
 Render.p_drawTime = new Painter(function(ctx, time) {
-    if (!(time = time || this.time.getLastPosition())) return;
+    if (!(time = time || this.getTime())) return;
     ctx.save();
     ctx.fillStyle = '#600';
     ctx.font = '10px sans-serif';

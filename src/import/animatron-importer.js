@@ -318,12 +318,9 @@ Import.branch = function(type, src, parent_src, parent_band, all, anim) {
          */
         // transfer repetition data
         if (layer_src[5]) {
-            layer_trg.time.mode = Import.mode(layer_src[5][0]);
-            if (layer_src[5].length > 1) {
-                layer_trg.time.nrep = layer_src[5][1] || Infinity;
-            }
+            layer_trg.time.setEndAction(Import.mode(layer_src[5][0], layer_src[5][1]));
         } else {
-            layer_trg.time.mode = Import.mode(null);
+            layer_trg.time.setEndAction(Import.mode(null));
         }
 
         // if do not masks any layers, just add to target
