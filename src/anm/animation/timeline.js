@@ -101,7 +101,7 @@ Timeline.prototype.tick = function(dt) {
     var positionAdjusted = false; // this will be true if user manually changed time position with actions (i.e. with jump)
     if (next !== NO_TIME) {
         this._performActionsBetween(previous, next, dt); // actions could change this.position
-        if (this.position !=== previous) positionAdjusted = true;
+        if (this.position !== previous) positionAdjusted = true;
 
         if (!positionAdjusted) { // there were no jumps in time, so this.position stayed
             if ((previous <= 0) && (next > 0) && (next <= this.duration) && !this.passedStart) {
