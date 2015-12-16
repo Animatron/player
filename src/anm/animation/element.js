@@ -109,8 +109,9 @@ function Element(name, draw, onframe) {
     this.level = 0;         /** @property {Number} level how deep this element is located in animation tree @readonly */
     this.anim = null;       /** @property {anm.Animation} anim the animation this element belongs to / registered in, if it really belongs to one @readonly */
     this.scene = null;      /** @property {anm.Scene} scene the scene this element belongs to / registered in, if it really belongs to one @readonly */
-    this.disabled = false;  /** @property {Boolean} visible Is this element visible or not (called, but not drawn) */
-    this.visible = true;    /** @property {Boolean} disabled Is this element disabled or not */
+    this.active = true;     /** @property {Boolean} active Is this element active or not (internal flag to control if this element is "alive") @readonly */
+    this.disabled = false;  /** @property {Boolean} disabled Is this element disabled or not (not transformed, not drawn) */
+    this.visible = true;    /** @property {Boolean} visible Is this element visible or not (transformed, but not drawn) */
     this.affectsChildren = true; /** @property {Boolean} affectsChildren Is this element local time affects children local time */
     this.$data = null;      /** @property {Any} $data user data */
 
@@ -696,6 +697,7 @@ Element.prototype.invTransform = function(ctx) {
 };
 
 Element.prototype.tick = function(dt) {
+    if (this.disabled) return;
     // TODO: check switcher
     var resultTime;
     if (!this.parent && this.scene && this.scene.affectsChildren) {
@@ -705,9 +707,13 @@ Element.prototype.tick = function(dt) {
     } else {
         resultTime = this.timeline.tick(dt);
     }
-    this.each(function(child) {
-        child.tick(dt);
-    });
+    var isActive = this.timeline.isActive() && this.modifiers(resultTime, dt);
+    if (isActive) {
+        this.each(function(child) {
+            child.tick(dt);
+        });
+    }
+    this.active = isActive;
     return resultTime;
 };
 
@@ -738,12 +744,9 @@ Element.prototype._checkSwitcher = function(next) {
  */
 // > Element.render % (ctx: Context, gtime: Float, dt: Float)
 Element.prototype.render = function(ctx) {
-    if (this.disabled) return;
+    if (this.disabled || !this.active) return;
 
     this.rendering = true;
-
-    var ltime = this.timeline.getLastPosition(),
-        dt = this.timeline.getLastDelta();
 
     var mask = this.$mask, // FIXME: mask could tick and render several times
         renderMasked = false,
@@ -751,12 +754,7 @@ Element.prototype.render = function(ctx) {
 
     if (mask) { mask_ltime = mask.tick(dt); }; // FIXME: move to element.tick
 
-    if (!Timeline.isKnownTime(ltime)) return;
-
-    var drawMe = this.timeline.isActive() &&
-                 this.modifiers(ltime, dt) &&
-                 this.visible; // modifiers should be applied even if element isn't visible
-    if (drawMe) {
+    if (this.visible) {
         ctx.save();
 
         if (mask) {
@@ -830,7 +828,6 @@ Element.prototype.render = function(ctx) {
             this.transform(bctx);
             this.painters(bctx);
             this.each(function(child) {
-                child.tick(dt);
                 child.render(bctx, dt);
             });
 
