@@ -697,13 +697,18 @@ Element.prototype.invTransform = function(ctx) {
 
 Element.prototype.tick = function(dt) {
     // TODO: check switcher
+    var resultTime;
     if (!this.parent && this.scene && this.scene.affectsChildren) {
-        return this.timeline.tickRelative(this.scene.timeline, dt);
+        resultTime = this.timeline.tickRelative(this.scene.timeline, dt);
     } else if (this.parent && this.parent.affectsChildren) {
-        return this.timeline.tickRelative(this.parent.timeline, dt);
+        resultTime = this.timeline.tickRelative(this.parent.timeline, dt);
     } else {
-        return this.timeline.tick(dt);
+        resultTime = this.timeline.tick(dt);
     }
+    this.each(function(child) {
+        child.tick(dt);
+    });
+    return resultTime;
 };
 
 Element.prototype._checkSwitcher = function(next) {
@@ -769,7 +774,6 @@ Element.prototype.render = function(ctx) {
             this.transform(ctx);
             this.painters(ctx);
             this.each(function(child) {
-                child.tick(dt); // FIXME: move to element.tick
                 child.render(ctx);
             });
         } else {
@@ -834,7 +838,6 @@ Element.prototype.render = function(ctx) {
             mask.transform(mctx);
             mask.painters(mctx);
             mask.each(function(child) {
-                child.tick(dt);
                 child.render(mctx);
             });
 
