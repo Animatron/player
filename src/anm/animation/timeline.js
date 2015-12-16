@@ -168,7 +168,7 @@ Timeline.prototype.getGlobalBand = function(parent) {
     var cursor = parent;
     var start = this.start;
     while (cursor) {
-        start += cursor.time.start;
+        start += cursor.timeline.start;
         cursor = cursor.parent || cursor.scene;
     }
     return [start, this.duration];
@@ -186,7 +186,7 @@ Timeline.prototype.getGlobalStart = function() {
     var cursor = this.owner;
     var start = 0;
     while (cursor) {
-        start += cursor.time ? cursor.time.start : 0;
+        start += cursor.timeline ? cursor.timeline.start : 0;
         cursor = cursor.parent || cursor.scene;
     }
     return start;
@@ -227,10 +227,10 @@ Timeline.prototype.jumpAt = function(at, t) {
 };
 
 Timeline.prototype.jumpTo = function(child) {
-    var start = child.time.start,
+    var start = child.timeline.start,
         cursor = child.parent;
     while (cursor && (cursor !== this.owner)) {
-        start += cursor.time.start;
+        start += cursor.timeline.start;
         cursor = cursor.parent;
     }
     this.jump(start);
