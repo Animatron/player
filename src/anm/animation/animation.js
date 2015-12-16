@@ -72,7 +72,7 @@ function Animation() {
     //this.fps = undefined;
     this.__lastOverElm = null;
     this._laters = [];
-    this.time = new Timeline(this);
+    this.timeline = new Timeline(this);
 
     var defaultScene = new Scene(this, '', 0);
     this.scenes = [];
@@ -139,7 +139,7 @@ Animation.prototype.addScene = function(name, duration) {
 };
 
 Animation.prototype.getDuration = function() {
-    return this.time.getDuration();
+    return this.timeline.getDuration();
 };
 
 /*Animation.prototype.getTotalDurationFromScenes = function() {
@@ -202,9 +202,9 @@ Animation.prototype.traverse = function(visitor, data) {
  * @param {Object} [data]
  */
 Animation.prototype.traverseVisible = function(visitor, data) {
-    if (this.currentScene && this.currentScene.time.fits()) {
+    if (this.currentScene && this.currentScene.timeline.fits()) {
         this.currentScene.traverse(function(child) {
-            return (child.time.fits() && (visitor(child, data) === false)) ? false : true;
+            return (child.timeline.fits() && (visitor(child, data) === false)) ? false : true;
         });
     }
     return this;
@@ -225,9 +225,9 @@ Animation.prototype.traverseVisible = function(visitor, data) {
  * @param {Object} [data]
  */
 Animation.prototype.reverseTraverseVisible = function(visitor, data) {
-    if (this.currentScene && this.currentScene.time.fits()) {
+    if (this.currentScene && this.currentScene.timeline.fits()) {
         this.currentScene.reverseTraverse(function(child) {
-            return (child.time.fits() && (visitor(child, data) === false)) ? false : true;
+            return (child.timeline.fits() && (visitor(child, data) === false)) ? false : true;
         });
     }
     return this;
@@ -317,10 +317,10 @@ Animation.prototype.render = function(ctx) {
 };
 
 Animation.prototype.tick = function(dt) {
-    var curSceneTime = this.currentScene.time;
+    var curSceneTime = this.currentScene.timeline;
     if ((curSceneTime.pos + dt) < curSceneTime.duration) {
         this.currentScene.tick(dt);
-        this.time.tick(dt);
+        this.timeline.tick(dt);
     } else {
         this._changeToNextScene(dt);
     }
@@ -329,7 +329,7 @@ Animation.prototype.tick = function(dt) {
 Animation.prototype._changeToNextScene = function(dt) {
     var nextScene = (this.currentSceneIdx < this.scenes.length)
                     ? this.scenes[this.currentSceneIdx + 1] : null;
-    var currentSceneTime = this.currentScene.time;
+    var currentSceneTime = this.currentScene.timeline;
     var left = (currentSceneTime.duration - currentSceneTime.pos);
     this.currentScene.tick(left);
     if (nextScene) {
@@ -337,17 +337,17 @@ Animation.prototype._changeToNextScene = function(dt) {
         this.currentScene = nextScene;
         this.currentScene.tick(dt - left); // tick the remainder in the next scene
     } else {
-        if (this.endOnLastScene) this.time.endNow();
+        if (this.endOnLastScene) this.timeline.endNow();
     }
 };
 
 Animation.prototype.pause = function() {
-    this.time.pause();
+    this.timeline.pause();
     this.currentScene.pause();
 };
 
 Animation.prototype.continue = function() {
-    this.time.continue();
+    this.timeline.continue();
     this.currentScene.continue();
 };
 
@@ -362,7 +362,7 @@ Animation.prototype.continue = function() {
  */
 Animation.prototype.jump = function(t) {
     var prev_time = this.getTime();
-    this.time.jump(t);
+    this.timeline.jump(t);
     this.goToSceneAt(t);
 };
 
@@ -378,31 +378,31 @@ Animation.prototype.jump = function(t) {
 Animation.prototype.jumpTo = function(selector) {
     var elm = is.str(selector) ? this.find(selector) : selector;
     if (!elm) return;
-    //this.jump(elm.time.getGlobalStart());
+    //this.jump(elm.timeline.getGlobalStart());
     if (elm instanceof Scene) {
         this.goToScene(elm);
     } else {
-        this.time.jumpTo(elm);
+        this.timeline.jumpTo(elm);
         this.goToSceneAt(this.getTime());
     }
 };
 
 Animation.prototype.jumpToStart = function() {
-    this.time.jumpToStart();
+    this.timeline.jumpToStart();
     this.setCurrentScene(0);
     this.currentScene.jumpToStart();
 };
 
 Animation.prototype.getTime = function() {
-    return this.time.getLastPosition();
+    return this.timeline.getLastPosition();
 };
 
 Animation.prototype.setDuration = function(duration) {
-    this.time.setDuration(duration);
+    this.timeline.setDuration(duration);
 };
 
 Animation.prototype.setSpeed = function(speed) {
-    this.time.setSpeed(speed);
+    this.timeline.setSpeed(speed);
 };
 
 Animation.prototype.goToScene = function(scene) {
@@ -420,8 +420,8 @@ Animation.prototype.goToSceneAt = function(t) {
         var loc_t = t;
         var i = 0,
             cursor = this.scenes[i];
-        while (/*(i < this.scenes.length) && */cursor && (loc_t > cursor.time.duration)) {
-            loc_t = loc_t - cursor.time.duration;
+        while (/*(i < this.scenes.length) && */cursor && (loc_t > cursor.timeline.getDuration())) {
+            loc_t = loc_t - cursor.timeline.getDuration();
             i++; cursor = this.scenes[i];
         }
         if (cursor) {
@@ -444,7 +444,7 @@ Animation.prototype.goToSceneAt = function(t) {
  * Reset all render-related data for itself, and the data of all the elements.
  */
 Animation.prototype.reset = function() {
-    this.time.reset();
+    this.timeline.reset();
     this.eachScene(function(scene) {
         scene.reset();
     });

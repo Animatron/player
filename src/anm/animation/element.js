@@ -287,7 +287,7 @@ Element.prototype.initTime = function() {
 
     /** @property {anm.Timeline} timeline instance @readonly */
 
-    this.time = new Timeline(this);
+    this.timeline = new Timeline(this);
 
     /** @property {String} switch (name of the child to render in current moment) */
 
@@ -297,7 +297,7 @@ Element.prototype.initTime = function() {
 };
 
 Element.prototype.resetTime = function() {
-    this.time.reset();
+    this.timeline.reset();
     this.switch = null;
 };
 
@@ -716,8 +716,8 @@ Element.prototype.render = function(ctx) {
 
     this.rendering = true;
 
-    var ltime = this.time.getLastPosition(),
-        dt = this.time.getLastDelta();
+    var ltime = this.timeline.getLastPosition(),
+        dt = this.timeline.getLastDelta();
 
     var mask = this.$mask, // FIXME: mask could tick and render several times
         renderMasked = false,
@@ -727,7 +727,7 @@ Element.prototype.render = function(ctx) {
 
     if (!Timeline.isKnownTime(ltime)) return;
 
-    var drawMe = this.time.fits() &&
+    var drawMe = this.timeline.fits() &&
                  this.modifiers(ltime, dt) &&
                  this.visible; // modifiers should be applied even if element isn't visible
     if (drawMe) {
@@ -738,7 +738,7 @@ Element.prototype.render = function(ctx) {
             //        which is even better, make all these checks to be modifiers
             // FIXME: call modifiers once for one moment of time. If there are several
             //        masked elements, they will be called that number of times
-            renderMasked = mask.time.fits() &&
+            renderMasked = mask.timeline.fits() &&
                            mask.modifiers(mask_ltime, dt) &&
                            mask.visible;
         }
@@ -838,13 +838,24 @@ Element.prototype.render = function(ctx) {
 };
 
 Element.prototype.tick = function(dt) {
+    // TODO: check switcher
     if (!this.parent && this.scene && this.scene.affectsChildren) {
-        return this.time.tickRelative(this.scene.time, dt);
+        return this.timeline.tickRelative(this.scene.timeline, dt);
     } else if (this.parent && this.parent.affectsChildren) {
-        return this.time.tickRelative(this.parent.time, dt);
+        return this.timeline.tickRelative(this.parent.timeline, dt);
     } else {
-        return this.time.tick(dt);
+        return this.timeline.tick(dt);
     }
+};
+
+Element.prototype._checkSwitcher = function(next) {
+    var parent = this.parent;
+    if (!parent || !parent.switch) return next;
+    if (parent.switch === C.SWITCH_OFF) return NO_TIME;
+    if ((parent.switch === this.name) && parent.switch_band) {
+        if (next === NO_TIME) return NO_TIME;
+        return next - parent.switch_band[0];
+    } else return NO_TIME;
 };
 
 /**
@@ -1015,7 +1026,7 @@ Element.prototype.skew = function(hx, hy) {
 * @return {anm.Element} itself
 */
 Element.prototype.repeat = function(mode, nrep) {
-    this.time.setEndAction(mode, nrep);
+    this.timeline.setEndAction(mode, nrep);
     return this;
 };
 
@@ -1033,7 +1044,7 @@ Element.prototype.repeat = function(mode, nrep) {
  * @return {anm.Element} itself
  */
 Element.prototype.once = function() {
-    this.time.setEndAction(C.R_ONCE, Infinity);
+    this.timeline.setEndAction(C.R_ONCE, Infinity);
     return this;
 };
 
@@ -1049,7 +1060,7 @@ Element.prototype.once = function() {
  * @return {anm.Element} itself
  */
 Element.prototype.stay = function() {
-    this.time.setEndAction(C.R_STAY, Infinity);
+    this.timeline.setEndAction(C.R_STAY, Infinity);
     return this;
 };
 
@@ -1067,7 +1078,7 @@ Element.prototype.stay = function() {
  * @return {anm.Element} itself
  */
 Element.prototype.loop = function(nrep) {
-    this.time.setEndAction(C.R_LOOP, nrep);
+    this.timeline.setEndAction(C.R_LOOP, nrep);
     return this;
 };
 
@@ -1086,12 +1097,12 @@ Element.prototype.loop = function(nrep) {
  * @return {anm.Element} itself
  */
 Element.prototype.bounce = function(nrep) {
-    this.time.setEndAction(C.R_BOUNCE, nrep);
+    this.timeline.setEndAction(C.R_BOUNCE, nrep);
     return this;
 };
 
 Element.prototype.mode = function(mode, nrep) {
-    this.time.setEndAction(mode, nrep);
+    this.timeline.setEndAction(mode, nrep);
 };
 
 /**
@@ -1109,7 +1120,7 @@ Element.prototype.mode = function(mode, nrep) {
  * @return {anm.Element} itself
  */
 Element.prototype.jump = function(t) {
-    this.time.jump(t);
+    this.timeline.jump(t);
     return this;
 };
 
@@ -1130,22 +1141,22 @@ Element.prototype.jump = function(t) {
 Element.prototype.jumpTo = function(element) {
     var elm = is.str(selector) ? this.find(selector) : selector;
     if (!elm) return;
-    // var delta = this.time.getLastDelta (?)
-    this.time.jumpTo(elm);
+    // var delta = this.timeline.getLastDelta (?)
+    this.timeline.jumpTo(elm);
     return this;
 };
 
 Element.prototype.jumpAt = function(at, t) {
-    this.time.jumpAt(at, t);
+    this.timeline.jumpAt(at, t);
     return this;
 };
 
 Element.prototype.jumpToStart = function() {
-    this.time.jumpToStart();
+    this.timeline.jumpToStart();
 };
 
 Element.prototype.getTime = function() {
-    return this.time.getLastPosition();
+    return this.timeline.getLastPosition();
 };
 
 /**
@@ -1159,7 +1170,7 @@ Element.prototype.getTime = function() {
   * @return {anm.Element} itself
   */
 Element.prototype.play = function() {
-    this.time.continue();
+    this.timeline.continue();
     return this;
 }
 Element.prototype.continue = Element.prototype.play; // FIXME
@@ -1178,7 +1189,7 @@ Element.prototype.continue = Element.prototype.play; // FIXME
  * @return {anm.Element} itself
  */
 Element.prototype.stop = function() {
-    this.time.pause();
+    this.timeline.pause();
     return this;
 }
 Element.prototype.pause = Element.prototype.stop; // FIXME
@@ -1201,7 +1212,7 @@ Element.prototype.pause = Element.prototype.stop; // FIXME
  * @return {anm.Element} itself
  */
 Element.prototype.at = function(t, f) {
-    return this.time.addAction(t, f);
+    return this.timeline.addAction(t, f);
 }
 
 /**
@@ -1441,7 +1452,7 @@ Element.prototype.detach = function() {
  * @return {Number} global time
  */
 Element.prototype.gtime = function(ltime) {
-    this.time.getGlobalTime();
+    this.timeline.getGlobalTime();
 };
 
 /**
@@ -1463,13 +1474,13 @@ Element.prototype.gtime = function(ltime) {
  * @return {anm.Element} itself
  */
 Element.prototype.band = function(start, stop) {
-    if (!is.defined(start)) return this.time.getBand();
-    this.time.changeBand(start, is.defined(stop) ? stop : Infinity);
+    if (!is.defined(start)) return this.timeline.getBand();
+    this.timeline.changeBand(start, is.defined(stop) ? stop : Infinity);
     return this;
 };
 
 Element.prototype.getGlobalBand = function() {
-    return this.time.getGlobalBand(this.parent);
+    return this.timeline.getGlobalBand(this.parent);
 };
 
 /**
@@ -1491,11 +1502,11 @@ Element.prototype.duration = function(value) {
 };
 
 Element.prototype.setDuration = function(duration) {
-    this.time.setDuration(duration);
+    this.timeline.setDuration(duration);
 };
 
 Element.prototype.getDuration = function() {
-    return this.time.getDuration();
+    return this.timeline.getDuration();
 };
 
 /**
@@ -2339,7 +2350,7 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
     // TODO: move to Modifier class?
 
     var elm = this,
-        elm_duration = elm.time.getDuration(), // duration of the element's local band
+        elm_duration = elm.timeline.getDuration(), // duration of the element's local band
         mod_easing = modifier.$easing, // modifier easing
         mod_time = modifier.$band || modifier.$time, // time (or band) of the modifier, if set
         mod_relative = modifier.$relative, // is modifier time or band relative to elm duration or not
@@ -2555,7 +2566,7 @@ Element.transferVisuals = function(src, trg) {
 };
 
 Element.transferTime = function(src, trg) {
-    trg.time = src.time.clone(trg);
+    trg.timeline = src.timeline.clone(trg);
 };
 
 // TODO: rename to matrixOf ?

@@ -276,16 +276,6 @@ Timeline.prototype.fireMessageAt = function(at, message) {
     this.addAction(at, function() { me.fireMessage(message); });
 };
 
-Timeline.prototype._checkSwitcher = function(next) {
-    var parent = this.owner.parent;
-    if (!parent || !parent.switch) return next;
-    if (parent.switch === C.SWITCH_OFF) return NO_TIME;
-    if ((parent.switch === this.owner.name) && parent.switch_band) {
-        if (next === NO_TIME) return NO_TIME;
-        return next - parent.switch_band[0];
-    } else return NO_TIME;
-};
-
 Timeline.prototype._performActionsBetween = function(previous, next, dt) {
     if (!this.actions.length) return;
     var actionsPos = 0;

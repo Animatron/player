@@ -503,7 +503,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     // FIXME: lines below should not modify animation time, but rather use some temporary time configuration
     //        living through one playthrough and dying after stop.
-    if (is.num(speed)) anim.time.setSpeed(speed || 1);
+    if (is.num(speed)) anim.setSpeed(speed || 1);
     if (is.num(stopAfter)) {
         player.stopAfter = stopAfter;
     } else {
@@ -622,7 +622,7 @@ Player.prototype.pause = function() {
 
     player.happens = C.PAUSED;
 
-    var anim_time = player.anim ? player.anim.time : null;
+    var anim_time = player.anim ? player.anim.timeline : null;
     if (anim_time && anim_time.fits()) player.drawCurrent();
 
     player.fire(C.S_CHANGE_STATE, C.PAUSED);
@@ -896,7 +896,7 @@ Player.prototype.drawAt = function(time) {
     var ctx_props = engine.getAnmProps(this.ctx);
     ctx_props.factor = this.factor();
 
-    var prev_pos = anim.time.getLastPosition();
+    var prev_pos = anim.getTime();
     anim.jump(time);
     Render.next(0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor, u_before, ext_after);
     anim.jump(prev_pos);
@@ -1387,7 +1387,7 @@ Player.prototype._reset = function() {
 
 Player.prototype._pauseAndContinue = function() {
     var last_conf = this.__lastPlayConf;
-    var stoppedAt = this.anim ? this.anim.time.getLastPosition() : 0;
+    var stoppedAt = this.anim ? this.anim.getTime() : 0;
     this.pause();
     this.play(stoppedAt, last_conf[1], last_conf[2]);
 };
@@ -1514,8 +1514,8 @@ Player.prototype.__beforeFrame = function(anim) {
         return function(time) {
             anim.clearAllLaters();
             if (player.happens !== C.PLAYING) return false;
-            if (player.anim && (!player.anim.time.fits() || // FIXME: do using subscription anim.on(C.X_END, ...)
-                                player.anim.time.isAfter(player.stopAfter))) {
+            if (player.anim && (!player.anim.timeline.fits() || // FIXME: do using subscription anim.on(C.X_END, ...)
+                                player.anim.timeline.isAfter(player.stopAfter))) {
                 player._complete();
                 return false;
             }
