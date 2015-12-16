@@ -716,7 +716,7 @@ Element.prototype.render = function(ctx) {
 
     this.rendering = true;
 
-    var ltime = this.time.pos,
+    var ltime = this.time.getLastPosition(),
         dt = this.time.getLastDelta();
 
     var mask = this.$mask, // FIXME: mask could tick and render several times
