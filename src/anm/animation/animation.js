@@ -202,9 +202,9 @@ Animation.prototype.traverse = function(visitor, data) {
  * @param {Object} [data]
  */
 Animation.prototype.traverseVisible = function(visitor, data) {
-    if (this.currentScene && this.currentScene.timeline.isActive()) {
+    if (this.currentScene && this.currentScene.isActive()) {
         this.currentScene.traverse(function(child) {
-            return (child.timeline.isActive() && (visitor(child, data) === false)) ? false : true;
+            return (child.isActive() && (visitor(child, data) === false)) ? false : true;
         });
     }
     return this;
@@ -317,9 +317,9 @@ Animation.prototype.render = function(ctx) {
 };
 
 Animation.prototype.tick = function(dt) {
-    var curSceneTime = this.currentScene.timeline;
-    if ((curSceneTime.pos + dt) < curSceneTime.duration) {
-        this.currentScene.tick(dt);
+    var currentScene = this.currentScene;
+    if ((currentScene.getTime() + dt) < currentScene.getDuration()) {
+        currentScene.tick(dt);
         this.timeline.tick(dt);
     } else {
         this._changeToNextScene(dt);
@@ -329,9 +329,9 @@ Animation.prototype.tick = function(dt) {
 Animation.prototype._changeToNextScene = function(dt) {
     var nextScene = (this.currentSceneIdx < this.scenes.length)
                     ? this.scenes[this.currentSceneIdx + 1] : null;
-    var currentSceneTime = this.currentScene.timeline;
-    var left = (currentSceneTime.duration - currentSceneTime.pos);
-    this.currentScene.tick(left);
+    var currentScene = this.currentScene;
+    var left = (currentScene.getDuration() - currentScene.getTime());
+    currentScene.tick(left);
     if (nextScene) {
         this.currentSceneIdx++;
         this.currentScene = nextScene;

@@ -203,6 +203,14 @@ Scene.prototype.getTime = function() {
     return this.timeline.getLastPosition();
 };
 
+Scene.prototype.getDuration = function() {
+    return this.timeline.getDuration();
+};
+
+Scene.prototype.isActive = function() {
+    return this.timeline.isActive();
+};
+
 Scene.prototype.reset = function() {
     this.timeline.reset();
     this.each(function(child) {

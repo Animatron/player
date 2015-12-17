@@ -116,7 +116,6 @@ function Element(name, draw, onframe) {
     this.affectsChildren = true; /** @property {Boolean} affectsChildren Is this element local time affects children local time */
     this.$data = null;      /** @property {Any} $data user data */
 
-    this.shown = false; // system flag, set by engine
     this.registered = false; // is registered in animation or not
     this.rendering = false; // in process of rendering or not
 
@@ -837,8 +836,6 @@ Element.prototype.render = function(ctx) {
         }
         ctx.restore();
     }
-    // immediately after being drawn, element is shown, it is reasonable
-    this.shown = drawMe;
     this.__postRender();
     this.rendering = false;
     return this;
@@ -1493,6 +1490,10 @@ Element.prototype.setDuration = function(duration) {
 
 Element.prototype.getDuration = function() {
     return this.timeline.getDuration();
+};
+
+Element.prototype.isActive = function() {
+    return !this.disabled && this.visible && !this.isMask && this.timeline.isActive();
 };
 
 /**
@@ -2429,7 +2430,8 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
 Element.prototype.__pbefore = function(ctx, type) { };
 Element.prototype.__pafter = function(ctx, type) { };
 Element.prototype.filterEvent = function(type, evt) {
-    if (this.shown) this.__saveEvt(type, evt);
+    /*if (this.visible && this.active)*/
+    this.__saveEvt(type, evt);
     return true;
 };
 
