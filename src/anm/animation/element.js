@@ -781,7 +781,7 @@ Element.prototype.render = function(ctx) {
     return this;
 };
 
-Element.prorotype._renderAsMask = function() {
+Element.prototype._renderAsMask = function() {
     this.ensureHasMaskCanvas();
 
     var mcvs = this.__maskCvs,
@@ -838,7 +838,7 @@ Element.prorotype._renderAsMask = function() {
     mctx.restore();
 };
 
-Element.prorotype._renderAsMasked = function(ctx) {
+Element.prototype._renderAsMasked = function(ctx) {
     // FIXME: the complete mask process should be a Painter.
     var mask = this.$mask;
 
