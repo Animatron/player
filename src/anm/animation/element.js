@@ -110,8 +110,9 @@ function Element(name, draw, onframe) {
     this.anim = null;       /** @property {anm.Animation} anim the animation this element belongs to / registered in, if it really belongs to one @readonly */
     this.scene = null;      /** @property {anm.Scene} scene the scene this element belongs to / registered in, if it really belongs to one @readonly */
     this.active = true;     /** @property {Boolean} active Is this element active or not (internal flag to control if this element is "alive") @readonly */
-    this.disabled = false;  /** @property {Boolean} disabled Is this element disabled or not (not transformed, not drawn) */
-    this.visible = true;    /** @property {Boolean} visible Is this element visible or not (transformed, but not drawn) */
+    this.disabled = false;  /** @property {Boolean} disabled Is this element disabled or not (if disabled—not transformed and not drawn) */
+    this.visible = true;    /** @property {Boolean} visible Is this element visible or not (if not—transformed, but not drawn) */
+    this.isMask = false;    /** @property {Boolean} isMask Is this element a mask, or not (if yes—transformed, but not drawn) */
     this.affectsChildren = true; /** @property {Boolean} affectsChildren Is this element local time affects children local time */
     this.$data = null;      /** @property {Any} $data user data */
 
@@ -744,30 +745,14 @@ Element.prototype._checkSwitcher = function(next) {
  */
 // > Element.render % (ctx: Context, gtime: Float, dt: Float)
 Element.prototype.render = function(ctx) {
-    if (this.disabled || !this.active) return;
+    if (this.disabled || !this.active || this.isMask) return;
 
     this.rendering = true;
-
-    var mask = this.$mask, // FIXME: mask could tick and render several times
-        renderMasked = false,
-        mask_ltime;
-
-    if (mask) { mask_ltime = mask.tick(dt); }; // FIXME: move to element.tick
 
     if (this.visible) {
         ctx.save();
 
-        if (mask) {
-            // FIXME: move this chain completely into one method, or,
-            //        which is even better, make all these checks to be modifiers
-            // FIXME: call modifiers once for one moment of time. If there are several
-            //        masked elements, they will be called that number of times
-            renderMasked = mask.timeline.isActive() &&
-                           mask.modifiers(mask_ltime, dt) &&
-                           mask.visible;
-        }
-
-        if (!renderMasked) {
+        if (!this.$mask) {
             // draw directly to context, if has no mask
             this.transform(ctx);
             this.painters(ctx);
@@ -776,6 +761,7 @@ Element.prototype.render = function(ctx) {
             });
         } else {
             // FIXME: the complete mask process should be a Painter.
+            var mask = this.$mask;
 
             mask.ensureHasMaskCanvas();
             var mcvs = mask.__maskCvs,
@@ -784,7 +770,7 @@ Element.prototype.render = function(ctx) {
                 bctx = mask.__backCtx;
 
             // FIXME: test if bounds are not empty
-            var bounds_pts = mask.bounds(mask_ltime).toPoints();
+            var bounds_pts = mask.bounds().toPoints();
 
             var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE,
                 maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
@@ -1976,6 +1962,8 @@ Element.prototype.invalidateVisuals = function() {
  * @return {Object} bounds
  */
 Element.prototype.bounds = function(ltime) {
+    var ltime = is.defined(ltime) ? ltime : this.getTime();
+
     if (is.defined(this.lastBoundsSavedAt) &&
         (t_cmp(this.lastBoundsSavedAt, ltime) == 0)) return this.$bounds;
 
@@ -2153,7 +2141,7 @@ Element.prototype.applyAComp = function(ctx) {
 };
 
 /**
- * @method mask
+ * @method maskWith
  *
  * Mask this element with another element. Literally, using this method way you
  * may produce animated masks and use masks with children and mask any elements with
@@ -2164,9 +2152,14 @@ Element.prototype.applyAComp = function(ctx) {
  *
  * @return {anm.Element} itself
  */
-Element.prototype.mask = function(elm) {
+Element.prototype.maskWith = function(elm) {
     if (!elm) return this.$mask;
     this.$mask = elm;
+    return this;
+};
+
+Element.prototype.markAsMask = function() {
+    this.isMask = true;
     return this;
 };
 

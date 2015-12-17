@@ -47,8 +47,6 @@ function Sheet(src, callback, start_region) {
     this._thumbnail = false; // internal flag, used to load a player thumbnail
 }
 
-var https = engine.isHttps;
-
 /**
 * @private @method load
 */
