@@ -750,124 +750,135 @@ Element.prototype.render = function(ctx) {
 
     if (this.visible) {
 
-        if (this.isMask) {
-
-            this.ensureHasMaskCanvas();
-
-            var mcvs = this.__maskCvs,
-                mctx = this.__maskCtx,
-                bcvs = this.__backCvs;
-
-            // FIXME: test if bounds are not empty
-            var bounds_pts = this.bounds().toPoints();
-
-            var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE,
-                maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
-
-            var pt;
-            for (var i = 0, il = bounds_pts.length; i < il; i++) {
-                pt = bounds_pts[i];
-                if (pt.x < minX) minX = pt.x;
-                if (pt.y < minY) minY = pt.y;
-                if (pt.x > maxX) maxX = pt.x;
-                if (pt.y > maxY) maxY = pt.y;
-            }
-
-            var ratio  = engine.PX_RATIO,
-                x = minX, y = minY,
-                width  = Math.round(maxX - minX),
-                height = Math.round(maxY - minY);
-
-            var last_cvs_size = this._maskCvsSize || engine.getCanvasSize(mcvs);
-
-            var scale = ratio;  // multiple by global scale when it's known
-
-            if ((last_cvs_size[0] < width) ||
-                (last_cvs_size[1] < height)) {
-                // mcvs/bcvs both always have the same size, so we save/check only one of them
-                this._maskCvsSize = engine.setCanvasSize(mcvs, width, height);
-                engine.setCanvasSize(bcvs, width, height);
-            } else {
-                this._maskCvsSize = last_cvs_size;
-            }
-
-            this._maskCvsPos = [ x, y ];
-
-            mctx.clearRect(0, 0, width*scale, height*scale);
-
-            mctx.save();
-            mctx.setTransform(scale, 0, 0, scale, -x*scale, -y*scale);
-
-            // FIXME: this should be performed one time for all masked elements!
-            this.transform(mctx);
-            this.painters(mctx);
-            this.each(function(child) {
-                child.render(mctx);
-            });
-
-            mctx.restore();
-
-        } else {
+        if (!this.isMask && !this.$mask) {
 
             ctx.save();
 
-            if (!this.$mask) {
-                // draw directly to context, if has no mask
-                this.transform(ctx);
-                this.painters(ctx);
-                this.each(function(child) {
-                    child.render(ctx);
-                });
-            } else { // this element is masked
-
-                // FIXME: the complete mask process should be a Painter.
-                var mask = this.$mask;
-
-                var ratio  = engine.PX_RATIO;
-
-                if (!mask.__maskCvs) throw new Error('Mask canvas is not ready!');
-
-                var mcvs = mask.__maskCvs,
-                    bcvs = mask.__backCvs,
-                    bctx = mask.__backCtx;
-
-                var maskSize = mask._maskCvsSize,
-                    maskPos = mask._maskCvsPos;
-
-                var width = maskSize[0],
-                    height = maskSize[1],
-                    x = maskPos[0], y = maskPos[1];
-
-                var scale = ratio;  // multiple by global scale when it's known
-
-                bctx.clearRect(0, 0, width*scale, height*scale);
-
-                bctx.save();
-                bctx.setTransform(scale, 0, 0, scale, -x*scale, -y*scale);
-
-                this.transform(bctx);
-                this.painters(bctx);
-                this.each(function(child) {
-                    child.render(bctx);
-                });
-
-                bctx.globalCompositeOperation = 'destination-in';
-                bctx.setTransform(1, 0, 0, 1, 0, 0);
-                bctx.drawImage(mcvs, 0, 0);
-
-                ctx.drawImage(bcvs,
-                    0, 0, Math.floor(width * scale), Math.floor(height * scale),
-                    x, y, width, height);
-
-                bctx.restore();
-            }
+            this.transform(ctx);
+            this.painters(ctx);
+            this.each(function(child) {
+                child.render(ctx);
+            });
 
             ctx.restore();
+
+        } else if (this.isMask) { // this element is a mask
+
+            this._renderAsMask();
+
+        } else if (this.$mask) { // this element is masked
+
+            ctx.save();
+            this._renderAsMasked(ctx);
+            ctx.restore();
+
         }
+
     }
+
     this.__postRender();
     this.rendering = false;
     return this;
+};
+
+Element.prorotype._renderAsMask = function() {
+    this.ensureHasMaskCanvas();
+
+    var mcvs = this.__maskCvs,
+        mctx = this.__maskCtx,
+        bcvs = this.__backCvs;
+
+    // FIXME: test if bounds are not empty
+    var bounds_pts = this.bounds().toPoints();
+
+    var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE,
+        maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
+
+    var pt;
+    for (var i = 0, il = bounds_pts.length; i < il; i++) {
+        pt = bounds_pts[i];
+        if (pt.x < minX) minX = pt.x;
+        if (pt.y < minY) minY = pt.y;
+        if (pt.x > maxX) maxX = pt.x;
+        if (pt.y > maxY) maxY = pt.y;
+    }
+
+    var ratio  = engine.PX_RATIO,
+        x = minX, y = minY,
+        width  = Math.round(maxX - minX),
+        height = Math.round(maxY - minY);
+
+    var last_cvs_size = this._maskCvsSize || engine.getCanvasSize(mcvs);
+
+    var scale = ratio;  // multiple by global scale when it's known
+
+    if ((last_cvs_size[0] < width) ||
+        (last_cvs_size[1] < height)) {
+        // mcvs/bcvs both always have the same size, so we save/check only one of them
+        this._maskCvsSize = engine.setCanvasSize(mcvs, width, height);
+        engine.setCanvasSize(bcvs, width, height);
+    } else {
+        this._maskCvsSize = last_cvs_size;
+    }
+
+    this._maskCvsPos = [ x, y ];
+
+    mctx.clearRect(0, 0, width*scale, height*scale);
+
+    mctx.save();
+    mctx.setTransform(scale, 0, 0, scale, -x*scale, -y*scale);
+
+    // FIXME: this should be performed one time for all masked elements!
+    this.transform(mctx);
+    this.painters(mctx);
+    this.each(function(child) {
+        child.render(mctx);
+    });
+
+    mctx.restore();
+};
+
+Element.prorotype._renderAsMasked = function(ctx) {
+    // FIXME: the complete mask process should be a Painter.
+    var mask = this.$mask;
+
+    var ratio  = engine.PX_RATIO;
+
+    if (!mask.__maskCvs) throw new Error('Mask canvas is not ready!');
+
+    var mcvs = mask.__maskCvs,
+        bcvs = mask.__backCvs,
+        bctx = mask.__backCtx;
+
+    var maskSize = mask._maskCvsSize,
+        maskPos = mask._maskCvsPos;
+
+    var width = maskSize[0],
+        height = maskSize[1],
+        x = maskPos[0], y = maskPos[1];
+
+    var scale = ratio;  // multiple by global scale when it's known
+
+    bctx.clearRect(0, 0, width*scale, height*scale);
+
+    bctx.save();
+    bctx.setTransform(scale, 0, 0, scale, -x*scale, -y*scale);
+
+    this.transform(bctx);
+    this.painters(bctx);
+    this.each(function(child) {
+        child.render(bctx);
+    });
+
+    bctx.globalCompositeOperation = 'destination-in';
+    bctx.setTransform(1, 0, 0, 1, 0, 0);
+    bctx.drawImage(mcvs, 0, 0);
+
+    ctx.drawImage(bcvs,
+        0, 0, Math.floor(width * scale), Math.floor(height * scale),
+        x, y, width, height);
+
+    bctx.restore();
 };
 
 /**
