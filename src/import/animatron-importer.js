@@ -85,6 +85,10 @@ Import.project = function(prj) {
     root.meta = Import.meta(prj);
     root.fonts = Import.fonts(prj);
     Import.root = root;
+
+    Import._paths = prj.anim.paths || [];
+    Import._path_cache = new ValueCache();
+
     Import.anim(prj, root); // will inject all required properties directly in animation object
 
     // some additional configuration
@@ -96,9 +100,6 @@ Import.project = function(prj) {
         root.setDuration(Infinity);
         root.endOnLastScene = true;
     }
-
-    Import._paths = prj.anim.paths;
-    Import._path_cache = new ValueCache();
 
     var scene;
 
@@ -451,7 +452,7 @@ Import._pathDecode = function(src) {
     if (!is.num(src) || (src == -1)) return null;
 
     var encoded = Import._paths[src];
-    if (!encoded) return;
+    if (!encoded) return null;
 
     var val = Import._path_cache.get(encoded);
     if (val) {
