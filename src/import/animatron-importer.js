@@ -319,18 +319,14 @@ Import.branch = function(type, src, parent_src, parent_band, all, anim) {
          */
         // transfer repetition data
         if (layer_src[5]) {
-            layer_trg.time.mode = Import.mode(layer_src[5][0]);
-            if (layer_src[5].length > 1) {
-                layer_trg.time.nrep = layer_src[5][1] || Infinity;
-            }
+            layer_trg.repeat(Import.mode(layer_src[5][0], layer_src[5][1]));
         } else {
-            layer_trg.time.mode = Import.mode(null);
+            layer_trg.repeat(Import.mode(null));
         }
 
-        // if do not masks any layers, just add to target
+        // if do not masks any layers, store it as a potential mask target
         // if do masks, set it as a mask for them while not adding
         if (!layer_src[3]) { // !masked
-            trg.add(layer_trg);
             _layers_targets.push(layer_trg);
         } else {
             // layer is a mask, apply it to the required number
@@ -338,6 +334,7 @@ Import.branch = function(type, src, parent_src, parent_band, all, anim) {
             var mask = layer_trg,
                 togo = layer_src[3], // layers below to apply mask
                 targets_n = _layers_targets.length;
+            layer_trg.markAsMask();
             if (togo > targets_n) {
                 _reportError('No layers collected to apply mask, expected ' +
                              togo + ', got ' + targets_n);
@@ -345,10 +342,11 @@ Import.branch = function(type, src, parent_src, parent_band, all, anim) {
             }
             while (togo) {
                 var masked = _layers_targets[targets_n-togo];
-                masked.mask(mask);
+                masked.maskWith(mask);
                 togo--;
             }
         }
+        trg.add(layer_trg);
 
         Import.callCustom(layer_trg, layer_src, TYPE_LAYER);
 

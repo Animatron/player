@@ -13,8 +13,8 @@ function Scene(anim, name, duration) {
 
     this.anim = anim;
     this.name = name;
-    this.time = new Timeline(this);
-    this.time.setDuration(is.num(duration) ? duration : Infinity);
+    this.timeline = new Timeline(this);
+    this.timeline.setDuration(is.num(duration) ? duration : Infinity);
 
     this.affectsChildren = true;
 
@@ -23,8 +23,8 @@ function Scene(anim, name, duration) {
 }
 
 Scene.prototype.tick = function(dt) {
-    this.time.tick(dt);
-    if (this.time.fits()) {
+    this.timeline.tick(dt);
+    if (this.timeline.isActive()) {
         this.each(function(child) {
             child.tick(dt);
         });
@@ -32,7 +32,7 @@ Scene.prototype.tick = function(dt) {
 };
 
 Scene.prototype.render = function(ctx) {
-    if (this.time.fits()) {
+    if (this.timeline.isActive()) {
         this.each(function(child) {
             child.render(ctx);
         });
@@ -46,11 +46,11 @@ Scene.prototype.duration = function(value) {
 };
 
 Scene.prototype.setDuration = function(duration) {
-    this.time.setDuration(duration);
+    this.timeline.setDuration(duration);
 };
 
 Scene.prototype.getDuration = function() {
-    return this.time.getDuration();
+    return this.timeline.getDuration();
 };
 
 Scene.prototype.traverse = function(visitor, data) {
@@ -159,60 +159,68 @@ Scene.prototype.getPath = function() {
 };
 
 Scene.prototype.at = function(t, f) {
-    return this.time.addAction(t, f);
+    return this.timeline.addAction(t, f);
 };
 
 Scene.prototype.continue = function() {
-    this.time.continue();
+    this.timeline.continue();
     return this;
 };
 Scene.prototype.play = Scene.prototype.continue; // FIXME
 
 Scene.prototype.pause = function() {
-    this.time.pause();
+    this.timeline.pause();
     return this;
 };
 Scene.prototype.stop = Scene.prototype.pause; // FIXME
 
 Scene.prototype.jump = function(t) {
-    this.time.jump(t);
+    this.timeline.jump(t);
     return this;
 };
 
 Scene.prototype.jumpTo = function(elm) {
-    this.time.jumpTo(elm);
+    this.timeline.jumpTo(elm);
     return this;
 };
 
 Scene.prototype.jumpToStart = function() {
-    this.time.jumpToStart(0);
+    this.timeline.jumpToStart(0);
     return this;
 };
 
 Scene.prototype.jumpToEnd = function() {
-    this.time.jumpToEnd();
+    this.timeline.jumpToEnd();
     return this;
 };
 
 Scene.prototype.jumpAt = function(at, t) {
-    this.time.jumpAt(at, t);
+    this.timeline.jumpAt(at, t);
     return this;
 };
 
 Scene.prototype.getTime = function() {
-    return this.time.getLastPosition();
+    return this.timeline.getLastPosition();
+};
+
+Scene.prototype.getDuration = function() {
+    return this.timeline.getDuration();
+};
+
+Scene.prototype.isActive = function() {
+    return this.timeline.isActive();
 };
 
 Scene.prototype.reset = function() {
-    this.time.reset();
+    this.timeline.reset();
     this.each(function(child) {
         child.reset();
     });
 };
 
 Scene._fromElement = function(elm) {
-    var scene = new Scene(elm.anim, elm.name/*, elm.time.getDuration()*/);
-    scene.time = elm.time.clone();
+    var scene = new Scene(elm.anim, elm.name/*, elm.timeline.getDuration()*/);
+    scene.timeline = elm.timeline.clone();
     elm.each(function(child) {
         scene.add(child);
     });
