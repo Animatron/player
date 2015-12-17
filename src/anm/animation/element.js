@@ -1084,10 +1084,6 @@ Element.prototype.bounce = function(nrep) {
     return this;
 };
 
-Element.prototype.mode = function(mode, nrep) {
-    this.timeline.setEndAction(mode, nrep);
-};
-
 /**
  * @method jump
  * @chainable

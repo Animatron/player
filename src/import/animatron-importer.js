@@ -318,9 +318,9 @@ Import.branch = function(type, src, parent_src, parent_band, all, anim) {
          */
         // transfer repetition data
         if (layer_src[5]) {
-            layer_trg.mode(Import.mode(layer_src[5][0], layer_src[5][1]));
+            layer_trg.repeat(Import.mode(layer_src[5][0], layer_src[5][1]));
         } else {
-            layer_trg.mode(Import.mode(null));
+            layer_trg.repeat(Import.mode(null));
         }
 
         // if do not masks any layers, store it as a potential mask target
