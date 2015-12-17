@@ -63,7 +63,6 @@ Timeline.prototype.tick = function(dt) {
     if (this.paused) { this.lastDelta = 0; return this.position; }
 
     var next = (this.position !== NO_TIME) ? (this.position + dt) : NO_TIME;
-    next = this._checkSwitcher(next); // FIXME: move to Element.checkSwitcher
 
     if (next !== NO_TIME) {
 

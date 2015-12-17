@@ -180,12 +180,12 @@ Scene.prototype.jump = function(t) {
 };
 
 Scene.prototype.jumpTo = function(elm) {
-    this.time.jumpTo(elm);
+    this.timeline.jumpTo(elm);
     return this;
 };
 
 Scene.prototype.jumpToStart = function() {
-    this.time.jumpToStart(0);
+    this.timeline.jumpToStart(0);
     return this;
 };
 

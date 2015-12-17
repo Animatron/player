@@ -32,7 +32,7 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
     }
     if (player.happens !== C.PLAYING) return;
 
-    var timeline = anim.time;
+    var timeline = anim.timeline;
 
     var msec = (Date.now() - player.__startTime);
     var sec = msec / 1000;
