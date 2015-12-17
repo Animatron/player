@@ -788,7 +788,7 @@ Animation.prototype.loadFonts = function(player) {
         }
     }
     if (url2gf.length) {
-        var link = URL2GOOGLE_FONTS + url2gf.substring(0, url2gf.lastIndexOf('|'));
+        var link = engine.checkMediaUrl(URL2GOOGLE_FONTS + url2gf.substring(0, url2gf.lastIndexOf('|')));
         engine.addFontLinkObject(link);
     }
 
