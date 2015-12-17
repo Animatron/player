@@ -2340,7 +2340,7 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
     // TODO: move to Modifier class?
 
     var elm = this,
-        elm_duration = elm.timeline.getDuration(), // duration of the element's local band
+        elm_duration = elm.getDuration(), // duration of the element's local band
         mod_easing = modifier.$easing, // modifier easing
         mod_time = modifier.$band || modifier.$time, // time (or band) of the modifier, if set
         mod_relative = modifier.$relative, // is modifier time or band relative to elm duration or not

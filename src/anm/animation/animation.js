@@ -225,9 +225,9 @@ Animation.prototype.traverseVisible = function(visitor, data) {
  * @param {Object} [data]
  */
 Animation.prototype.reverseTraverseVisible = function(visitor, data) {
-    if (this.currentScene && this.currentScene.timeline.isActive()) {
+    if (this.currentScene && this.currentScene.isActive()) {
         this.currentScene.reverseTraverse(function(child) {
-            return (child.timeline.isActive() && (visitor(child, data) === false)) ? false : true;
+            return (child.isActive() && (visitor(child, data) === false)) ? false : true;
         });
     }
     return this;
