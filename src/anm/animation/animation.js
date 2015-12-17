@@ -727,7 +727,7 @@ var FONT_LOAD_TIMEOUT = 10000; //in ms
  * @method loadFonts
  * @private
  */
-var URL2GOOGLE_FONTS = 'http://fonts.googleapis.com/css?family=';
+var URL2GOOGLE_FONTS = 'https://fonts.googleapis.com/css?family=';
 Animation.prototype.loadFonts = function(player) {
     if (!this.fonts || !this.fonts.length) {
         return;
