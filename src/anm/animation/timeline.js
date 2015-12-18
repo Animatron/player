@@ -120,8 +120,12 @@ Timeline.prototype.tick = function(dt) {
 };
 
 Timeline.prototype.tickRelative = function(other, dt) {
-    if (!other || !is.defined(other.position)) { /*this.endNow();*/ return NO_TIME; }
-    this.position = other.position - this.start - dt; // we subtract dt to add it later in this.tick
+    if (!other || !Timeline.isKnownTime(other.position)) { /*this.endNow();*/ return NO_TIME; }
+    this.tickRelativeToPosition(other.position, dt)
+};
+
+Timeline.prototype.tickRelativeToPosition = function(pos, dt) {
+    this.position = pos - this.start - dt; // we subtract dt to add it later with this.tick
     this.actualPosition = this.position;
     return this.tick(dt);
 };

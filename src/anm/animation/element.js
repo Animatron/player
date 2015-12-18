@@ -109,10 +109,11 @@ function Element(name, draw, onframe) {
     this.level = 0;         /** @property {Number} level how deep this element is located in animation tree @readonly */
     this.anim = null;       /** @property {anm.Animation} anim the animation this element belongs to / registered in, if it really belongs to one @readonly */
     this.scene = null;      /** @property {anm.Scene} scene the scene this element belongs to / registered in, if it really belongs to one @readonly */
-    this.active = true;     /** @property {Boolean} active Is this element active or not (internal flag to control if this element is "alive") @readonly */
     this.disabled = false;  /** @property {Boolean} disabled Is this element disabled or not (if disabled—not transformed and not drawn) */
     this.visible = true;    /** @property {Boolean} visible Is this element visible or not (if not—transformed, but not drawn) */
-    this.isMask = false;    /** @property {Boolean} isMask Is this element a mask, or not (if yes—transformed, but not drawn) */
+    this.active = true;     /** @property {Boolean} active Is this element active or not (internal flag to control if this element is "alive") @readonly */
+    this.isMask = false;    /** @property {Boolean} isMask Is this element a mask, or not (if yes—transformed, but not drawn) @readonly */
+    this.hasSwitch = false; /** @property {Boolean} hasSwitch Is this element has actual switch tween @readonly */
     this.affectsChildren = true; /** @property {Boolean} affectsChildren Is this element local time affects children local time */
     this.$data = null;      /** @property {Any} $data user data */
 
@@ -709,22 +710,28 @@ Element.prototype.tick = function(dt) {
     }
     var isActive = this.timeline.isActive() && this.modifiers(resultTime, dt);
     if (isActive) {
-        this.each(function(child) {
-            child.tick(dt);
-        });
+        if (this.hasSwitch) {
+            this.each(function(child) {
+                if (child.name == this.switch) {
+                    child.tickRelativeToPos(this.switch_band[0], dt);
+                }
+            }.bind(this));
+        } else {
+            this.each(function(child) {
+                child.tick(dt);
+            });
+        }
     }
     this.active = isActive;
     return resultTime;
 };
 
-Element.prototype._checkSwitcher = function(next) {
-    var parent = this.parent;
-    if (!parent || !parent.switch) return next;
-    if (parent.switch === C.SWITCH_OFF) return NO_TIME;
-    if ((parent.switch === this.name) && parent.switch_band) {
-        if (next === NO_TIME) return NO_TIME;
-        return next - parent.switch_band[0];
-    } else return NO_TIME;
+Element.prototype.tickRelative = function(timeline, dt) {
+    return this.timeline.tickRelative(timeline, dt);
+};
+
+Element.prototype.tickRelativeToPosition = function(pos, dt) {
+    return this.timeline.tickRelativeToPosition(pos, dt);
 };
 
 /**
@@ -745,6 +752,8 @@ Element.prototype._checkSwitcher = function(next) {
 // > Element.render % (ctx: Context, gtime: Float, dt: Float)
 Element.prototype.render = function(ctx) {
     if (this.disabled || !this.active || this.isMask) return;
+
+    if (this.parent.hasSwitch && (this.parent.switch !== this.name)) return;
 
     this.rendering = true;
 
