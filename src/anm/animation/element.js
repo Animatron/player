@@ -699,7 +699,6 @@ Element.prototype.invTransform = function(ctx) {
 
 Element.prototype.tick = function(dt) {
     if (this.disabled) return;
-    // TODO: check switcher
     var resultTime;
     if (!this.parent && this.scene && this.scene.affectsChildren) {
         resultTime = this.timeline.tickRelative(this.scene.timeline, dt);
@@ -713,7 +712,9 @@ Element.prototype.tick = function(dt) {
         if (this.hasSwitch) {
             this.each(function(child) {
                 if (child.name == this.switch) {
-                    child.tickRelativeToPos(this.switch_band[0], dt);
+                    console.log('before', this.switch_band, 'parent', this.name, this.getTime(), 'child', child.name, child.getTime(), 'dt', dt);
+                    child.tickRelativeToPosition(this.getTime() - this.switch_band[0], dt);
+                    console.log('after', this.switch_band, 'parent', this.name, this.getTime(), 'child', child.name, child.getTime(), 'dt', dt);
                 }
             }.bind(this));
         } else {
@@ -753,7 +754,7 @@ Element.prototype.tickRelativeToPosition = function(pos, dt) {
 Element.prototype.render = function(ctx) {
     if (this.disabled || !this.active || this.isMask) return;
 
-    if (this.parent.hasSwitch && (this.parent.switch !== this.name)) return;
+    if (this.parent && this.parent.hasSwitch && (this.parent.switch !== this.name)) return;
 
     this.rendering = true;
 

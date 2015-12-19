@@ -121,7 +121,7 @@ Timeline.prototype.tick = function(dt) {
 
 Timeline.prototype.tickRelative = function(other, dt) {
     if (!other || !Timeline.isKnownTime(other.position)) { /*this.endNow();*/ return NO_TIME; }
-    this.tickRelativeToPosition(other.position, dt)
+    return this.tickRelativeToPosition(other.position, dt)
 };
 
 Timeline.prototype.tickRelativeToPosition = function(pos, dt) {
