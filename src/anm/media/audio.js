@@ -231,7 +231,7 @@ Audio.prototype.play = function(ltime, duration) {
 
       this._source = audioContext.createBufferSource();
       this._source.buffer = this.audio;
-      this._gain = audioContext.createGain();
+      this._gain = audioContext.createGainNode ? audioContext.createGainNode() : audioContext.createGain();
       this._source.connect(this._gain);
       this._gain.connect(audioContext.destination);
       this._gain.gain.value = this.volume;
