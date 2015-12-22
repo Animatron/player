@@ -2023,13 +2023,15 @@ Element.prototype.myBounds = function() {
  */
 Element.prototype.inside = function(pt, filter, fn) {
     var passed_filter = !filter || filter(this);
-if (!passed_filter) return; /* skip this element and its children, but not exit completely */;
+    if (!passed_filter) return; /* skip this element and its children, but not exit completely */;
     var local_pt = this.adapt(pt.x, pt.y);
     if (this.myBounds().inside(local_pt)) {
+        // FIXME: FFFF
+        // FIXME: if we're inside one of the children, we should stop
         var subj = this.$path || this.$text || this.$image || this.$video;
         if (subj && subj.inside(local_pt)) return fn(this, local_pt);
     }
-    this.reverseEach(function(elm) {
+    this.reverseEach(function(elm) { // FIXME: move to FFFF
         return elm.inside(local_pt, filter, fn);
     });
 };

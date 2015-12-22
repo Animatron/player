@@ -556,6 +556,7 @@ Animation.prototype.filterEvent = function(type, evt) {
             child.inside(pos, null, function(elm, local_pos) { // point is inside
                 targetFound = true;
                 if (type !== 'mousemove') {
+                    // FIXME: ensure it fires event to all subscribers above, unless we fired it to someone
                     var subscriber = firstSubscriber(elm, type);
                     if (subscriber) subscriber.fire(type, evt);
                 } else { // type === 'mousemove'

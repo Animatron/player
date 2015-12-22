@@ -1454,7 +1454,7 @@ Player.prototype.__subscribeDynamicEvents = function(anim) {
     }
     if (anim) {
         var subscribed = false;
-        if (!this.__boundTo) {
+        if (!this.__boundTo) { // FIXME: remember what __boundTo is
             this.__boundTo = [];
         } else {
             for (var i = 0, ix = this.__boundTo, il = ix.length; i < il; i++) {
@@ -1477,7 +1477,7 @@ Player.prototype.__unsubscribeDynamicEvents = function(anim) {
         engine.setTabIndex(this.canvas, undefined);
     }
     if (anim) {
-        if (!this.__boundTo) return;
+        if (!this.__boundTo) return;// FIXME: remember what __boundTo is
         var toRemove = -1;
         for (var i = 0, ix = this.__boundTo, il = ix.length; i < il; i++) {
             if (anim.id === ix[i][0]) {
