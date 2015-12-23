@@ -823,7 +823,7 @@ Element.prototype.render = function(ctx) {
             this.transform(bctx);
             this.painters(bctx);
             this.each(function(child) {
-                child.render(bctx, dt);
+                child.render(bctx);
             });
 
             // FIXME: this should be performed one time for all masked elements!

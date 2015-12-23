@@ -231,7 +231,7 @@ Audio.prototype.play = function(ltime, duration) {
 
       this._source = audioContext.createBufferSource();
       this._source.buffer = this.audio;
-      this._gain = audioContext.createGain();
+      this._gain = audioContext.createGainNode ? audioContext.createGainNode() : audioContext.createGain();
       this._source.connect(this._gain);
       this._gain.connect(audioContext.destination);
       this._gain.gain.value = this.volume;
@@ -338,24 +338,24 @@ Audio.prototype.toggleMute = function() {
 /** @private @method connect */
 Audio.prototype.connect = function(element, anim) {
     var me = this;
-    element.time.on(C.X_START, function() {
+    element.timeline.on(C.X_START, function() {
         me.play.apply(me, arguments);
     });
-    element.time.on(C.X_CONTINUE, function() {
+    element.timeline.on(C.X_CONTINUE, function() {
         me.play.apply(me, arguments);
     });
-    element.time.on(C.X_END, function() {
+    element.timeline.on(C.X_END, function() {
         me.stopIfNotMaster();
     });
-    element.time.on(C.X_JUMP, function() {
+    element.timeline.on(C.X_JUMP, function() {
         me.stopIfNotMaster();
         me.play.apply(me, arguments);
     });
     var stop = function() {
         me.stop();
     };
-    anim.time.on(C.X_END, stop);
-    anim.time.on(C.X_PAUSE, stop);
+    anim.timeline.on(C.X_END, stop);
+    anim.timeline.on(C.X_PAUSE, stop);
 };
 /**
  * @method clone

@@ -487,16 +487,17 @@ Player.prototype.play = function(from, speed, stopAfter) {
     player._ensureHasAnim();
 
     var anim = player.anim;
+    var prevAnimPos = anim.getTime();
     anim.reset();
 
-    // used to resume playing in some special cases
+    from = is.defined(from) ? from : prevAnimPos;
     player.__lastPlayConf = [ from, speed, stopAfter ];
 
     anim.continue();
-    anim.jump(from || 0);
+    anim.jump(from);
 
     player.__startTime = Date.now();
-    player.__startFrom = from || 0;
+    player.__startFrom = from;
     player.__redraws = 0;
     player.__rsec = 0;
     player.__prevt = anim.getTime();

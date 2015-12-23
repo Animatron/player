@@ -94,7 +94,7 @@ function r_next(dt, ctx, anim, width, height, zoom, rib_color, before, after) {
     if (!size_differs) {
         ctx.clearRect(0, 0, anim.width,
                             anim.height);
-        if (before) before(anim.time.pos, ctx);
+        if (before) before(anim.getTime(), ctx);
         if (zoom != 1) { ctx.scale(zoom, zoom); }
         anim.tick(dt);
         anim.render(ctx);
@@ -107,7 +107,7 @@ function r_next(dt, ctx, anim, width, height, zoom, rib_color, before, after) {
                        rib_color,
             function(_scale) {
                 ctx.clearRect(0, 0, anim.width, anim.height);
-                if (before) before(anim.time.pos, ctx);
+                if (before) before(anim.getTime(), ctx);
                 if (zoom != 1) { ctx.scale(zoom, zoom); }
                 anim.tick(dt);
                 anim.render(ctx);

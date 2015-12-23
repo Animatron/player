@@ -35,12 +35,12 @@ Video.prototype.connect = function(element, anim) {
     var me = this;
     var startFrom = function() { me.play.apply(me, arguments); };
     var stop = function() { me.stop(); };
-    element.time.on(C.X_START, startFrom);
-    element.time.on(C.X_CONTINUE, startFrom);
-    element.time.on(C.X_PAUSE, stop);
-    element.time.on(C.X_END, stop);
-    anim.time.on(C.X_END, stop);
-    anim.time.on(C.X_PAUSE, stop);
+    element.timeline.on(C.X_START, startFrom);
+    element.timeline.on(C.X_CONTINUE, startFrom);
+    element.timeline.on(C.X_PAUSE, stop);
+    element.timeline.on(C.X_END, stop);
+    anim.timeline.on(C.X_END, stop);
+    anim.timeline.on(C.X_PAUSE, stop);
 };
 /** @private @method load */
 Video.prototype.load = function(uid, player) {

@@ -71,19 +71,19 @@ Timeline.prototype.tick = function(dt) {
         next = (this.easing ? this.easing(next) : next);
 
         if (is.finite(this.duration) && (next > this.duration)) {
-            if (this.mode === C.R_ONCE) {
+            if (this.endAction === C.R_ONCE) {
                 //next = NO_TIME; let it be higher than duration
-            } else if (this.mode === C.R_STAY) {
+            } else if (this.endAction === C.R_STAY) {
                 var wasPaused = this.paused;
                 this.paused = true;
                 next = this.duration;
                 if (!wasPaused) this.fire(C.X_PAUSE, next);
-            } else if (this.mode === C.R_LOOP) {
+            } else if (this.endAction === C.R_LOOP) {
                 var fits = Math.floor(next / this.duration);
                 if ((fits < 0) || (fits > this.repetitionCount)) { next = NO_TIME; }
                 else { next = next - (fits * this.duration); }
                 this.fire(C.X_JUMP, next); this.fire(C.X_ITER);
-            } else if (this.mode === C.R_BOUNCE) {
+            } else if (this.endAction === C.R_BOUNCE) {
                 var fits = Math.floor(next / this.duration);
                 if ((fits < 0) || (fits > this.repetitionCount)) { next = NO_TIME; }
                 else {
