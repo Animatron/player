@@ -713,7 +713,8 @@ Element.prototype.tick = function(dt) {
             this.each(function(child) {
                 if (child.name == this.switch) {
                     console.log('before', this.switch_band, 'parent', this.name, this.getTime(), 'child', child.name, child.getTime(), 'dt', dt);
-                    child.tickRelativeToPosition(this.getTime() - this.switch_band[0], dt);
+                    var childTime = child.timeline.tickRelativeToPosition(this.getTime() - this.switch_band[0], dt);
+                    if (child.timeline.isActive()) child.modifiers(childTime, dt);
                     console.log('after', this.switch_band, 'parent', this.name, this.getTime(), 'child', child.name, child.getTime(), 'dt', dt);
                 }
             }.bind(this));
@@ -725,14 +726,6 @@ Element.prototype.tick = function(dt) {
     }
     this.active = isActive;
     return resultTime;
-};
-
-Element.prototype.tickRelative = function(timeline, dt) {
-    return this.timeline.tickRelative(timeline, dt);
-};
-
-Element.prototype.tickRelativeToPosition = function(pos, dt) {
-    return this.timeline.tickRelativeToPosition(pos, dt);
 };
 
 /**
