@@ -712,10 +712,11 @@ Element.prototype.tick = function(dt) {
         if (this.hasSwitch) {
             this.each(function(child) {
                 if (child.name == this.switch) {
-                    console.log('before', this.switch_band, 'parent', this.name, this.getTime(), 'child', child.name, child.getTime(), 'dt', dt);
-                    var childTime = child.timeline.tickRelativeToPosition(this.getTime() - this.switch_band[0], dt);
+                    if (this.justSwitched) child.timeline.reset();
+                    console.log('before', this.switchBand, 'parent', this.name, this.getTime(), 'child', child.name, child.getTime(), 'dt', dt);
+                    var childTime = child.timeline.tickRelativeToPosition(this.getTime() - this.switchBand[0], dt);
                     if (child.timeline.isActive()) child.modifiers(childTime, dt);
-                    console.log('after', this.switch_band, 'parent', this.name, this.getTime(), 'child', child.name, child.getTime(), 'dt', dt);
+                    console.log('after', this.switchBand, 'parent', this.name, this.getTime(), 'child', child.name, child.getTime(), 'dt', dt);
                 }
             }.bind(this));
         } else {
