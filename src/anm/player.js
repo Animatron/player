@@ -649,6 +649,18 @@ Player.prototype.seek = function(time) {
     }
 };
 
+/**
+ * @method hasAnimation
+ *
+ * Is there some animation loaded into player
+ *
+ * @return {Boolean} `true`, if some animation already loaded into player, `false` otherwise
+ *
+ **/
+Player.prototype.hasAnimation = function() {
+    return is.defined(this.anim);
+};
+
 Player.prototype.getState = function() { return this.happens; };
 Player.prototype.isInState = function(state) { return this.happens === state; };
 Player.prototype.isPaused = function() { return this.happens === C.PAUSED; };
