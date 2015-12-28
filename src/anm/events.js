@@ -154,6 +154,10 @@ EventState.prototype.reset = function() { this.state = 0; }
 EventState.prototype.save = function(type) { this.state = this.state | m_and_k[type]; }
 EventState.prototype.check = function(type) { return this.state & m_and_k[type]; }
 
+function MouseTracker(element) {
+
+}
+
 module.exports = {
     mouse: isMouseEvent,
     keyboard: isKeyboardEvent,
