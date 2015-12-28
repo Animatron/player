@@ -350,7 +350,9 @@ Tween.register(C.T_DISPLAY, {
 
 Tween.register(C.T_SWITCH, {
     func: function(value, tween) {
-        return function(t) { this.switch_band = tween.$band;
+        return function(t) { this.hasSwitch = (value !== C.SWITCH_OFF);
+                             this.switchBand = tween.$band;
+                             this.justSwitched = this.switch && (this.switch !== value);
                              this.switch = value; } // value is the name of the sub-child to switch to
     },
     from: nop, to: nop
