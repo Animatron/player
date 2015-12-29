@@ -59,25 +59,26 @@ describe('handling mouse', function() {
         documentReady = true;
     });
 
-    function stringifyMouseEvent(evt) {
-        return evt.type + ':' + evt.target.getPath() + '@' + evt.x + ';' + evt.y;
+    var customMatchers = {
+        toBeHandledAs: function() {
+            return {
+                compare: function(expected, actual) {
+                    var toFire = expected,
+                        toTest = actual;
+
+                    var eventSpy = jasmine.createSpy((toTest.target.name || 'unknown') + '-' + toTest.type).and.callFake(function(evt) {
+                        expect(evt).toEqual(jasmine.objectContaining(actual));
+                    });
+
+                    fireCanvasEvent(toFire.type, toFire.x, toFire.y);
+
+                    expect(eventSpy).toHaveBeenCalled();
+
+                    return { pass: true }
+                }
+            }
+        }
     }
-
-    var ANM_TO_CVS_EVT = {
-        'mouseclick': 'click'
-    };
-
-    function expectToHandle(target, type, x, y, definition) {
-        var eventSpy = jasmine.createSpy(target.name + '-' + type).and.callFake(function(evt) {
-            expect(stringifyMouseEvent(evt)).toBe('mouseclick:anim@10,10');
-        });
-
-        target.on(type, eventSpy);
-
-        fireCanvasEvent(ANM_TO_CVS_EVT[type], x, y);
-
-        expect(eventSpy).toHaveBeenCalled();
-    };
 
     function setupPlayer() {
         if (!canvas) {
@@ -104,6 +105,8 @@ describe('handling mouse', function() {
 
     beforeEach(function(done) {
 
+        jasmine.addMatchers(customMatchers);
+
         if (documentReady) {
             setupPlayer();
             done();
@@ -118,15 +121,19 @@ describe('handling mouse', function() {
 
     it('animation handles clicks', function() {
 
-        expectToHandle(anim, 'mouseclick', 10, 10,
-                       'mouseclick:anim@10,10');
+        expect({ type: 'click', x: 10, y: 10 })
+           .toBeHandledAs({ type: 'mouseclick',
+                            target: anim,
+                            x: 10, y: 10 });
 
     });
 
     it('root handles clicks', function() {
 
-        expectToHandle(root, 'mouseclick', 10, 10,
-                       'mouseclick:root@10,10');
+        expect({ type: 'click', x: 10, y: 10 })
+           .toBeHandledAs({ type: 'mouseclick',
+                            target: root,
+                            x: 10, y: 10 });
 
 
     });
