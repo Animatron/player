@@ -40,7 +40,9 @@ describe('handling mouse', function() {
 
     anim.setDuration(10);
 
-    var canvas;
+    var player;
+
+    var canvas, wrapper;
 
     // function to fire canvas event
 
@@ -58,14 +60,25 @@ describe('handling mouse', function() {
     });
 
     function setupPlayer() {
-        var canvas = document.createElement('canvas');
-        document.body.appendChild(canvas);
+        if (!canvas) {
+            wrapper = document.createElement('div');
+            document.body.appendChild(wrapper);
+        } else {
+            player.detach();
+        }
 
-        var player = new anm.Player(canvas, {
+        player = new anm.Player();
+
+        player.init(wrapper, {
                         controlsEnabled: false,
                         infiniteDuration: true,
-                        handleEvents: true
-                     });
+                        handleEvents: true,
+                        width: 200,
+                        height: 200
+                    });
+
+        canvas = wrapper.getElementsByTagName('canvas')[0];
+
         player.load(anim);
 
         canvas.addEventListener('click', function() { console.log(arguments); });
@@ -88,5 +101,7 @@ describe('handling mouse', function() {
     });
 
     it('works', function() { expect(true).toBeTruthy(); });
+
+    it('works twice', function() { expect(true).toBeTruthy(); });
 
 });

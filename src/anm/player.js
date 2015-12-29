@@ -1416,7 +1416,7 @@ Player.prototype._resize = function(width, height) {
         cur_size = engine.getCanvasParameters(cvs);
     if (cur_size && (cur_size[0] === new_size[0]) && (cur_size[1] === new_size[1])) return;
     if (!new_size[0] || !new_size[1]) {
-        new_size = cur_size;
+        new_size = cur_size || [0, 0];
     }
     engine.setWrapperSize(this.wrapper, new_size[0], new_size[1]);
     engine.setCanvasSize(cvs, new_size[0], new_size[1]);
