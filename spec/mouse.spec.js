@@ -59,6 +59,26 @@ describe('handling mouse', function() {
         documentReady = true;
     });
 
+    function stringifyMouseEvent(evt) {
+        return evt.type + ':' + evt.target.getPath() + '@' + evt.x + ';' + evt.y;
+    }
+
+    var ANM_TO_CVS_EVT = {
+        'mouseclick': 'click'
+    };
+
+    function expectToHandle(target, type, x, y, definition) {
+        var eventSpy = jasmine.createSpy(target.name + '-' + type).and.callFake(function(evt) {
+            expect(stringifyMouseEvent(evt)).toBe('mouseclick:anim@10,10');
+        });
+
+        target.on(type, eventSpy);
+
+        fireCanvasEvent(ANM_TO_CVS_EVT[type], x, y);
+
+        expect(eventSpy).toHaveBeenCalled();
+    };
+
     function setupPlayer() {
         if (!canvas) {
             wrapper = document.createElement('div');
@@ -80,10 +100,6 @@ describe('handling mouse', function() {
         canvas = wrapper.getElementsByTagName('canvas')[0];
 
         player.load(anim);
-
-        canvas.addEventListener('click', function() { console.log(arguments); });
-
-        fireCanvasEvent('click', 50, 75);
     }
 
     beforeEach(function(done) {
@@ -100,8 +116,19 @@ describe('handling mouse', function() {
 
     });
 
-    it('works', function() { expect(true).toBeTruthy(); });
+    it('animation handles clicks', function() {
 
-    it('works twice', function() { expect(true).toBeTruthy(); });
+        expectToHandle(anim, 'mouseclick', 10, 10,
+                       'mouseclick:anim@10,10');
+
+    });
+
+    it('root handles clicks', function() {
+
+        expectToHandle(root, 'mouseclick', 10, 10,
+                       'mouseclick:root@10,10');
+
+
+    });
 
 });
