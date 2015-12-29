@@ -158,6 +158,10 @@ function MouseTracker(element) {
 
 }
 
+MouseTracker.prototype.dispatch = function(event) {
+
+}
+
 module.exports = {
     mouse: isMouseEvent,
     keyboard: isKeyboardEvent,
