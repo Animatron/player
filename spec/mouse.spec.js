@@ -22,7 +22,7 @@
     +--------------------------------------------------------+
  */
 
-describe('handling mouse', function() {
+describe('handling mouse in static objects', function() {
 
     // build scene
 
@@ -33,10 +33,22 @@ describe('handling mouse', function() {
     var e11 = new anm.Element('e11');
     var e12 = new anm.Element('e12');
 
-    root.add(e1)
-    root.add(e2);
+    function rectangle(x, y, width, height) {
+        return new anm.Path().move(x,y)
+                             .line(width,0).line(width,height)
+                             .line(0,height).line(0,0);
+    }
+
+    root.path(rectangle(0, 0, 100, 100));
+    e1.path(rectangle(0, 0, 100, 50));
+    e11.path(rectangle(0, 0, 50, 50));
+    e12.path(rectangle(75, 5, 5, 5));
+    e2.path(rectangle(0, 45, 100, 55));
+
     e1.add(e11);
     e1.add(e12);
+    root.add(e1)
+    root.add(e2);
 
     anim.setDuration(10);
 
@@ -94,6 +106,7 @@ describe('handling mouse', function() {
                         controlsEnabled: false,
                         infiniteDuration: true,
                         handleEvents: true,
+                        autoPlay: true,
                         width: 200,
                         height: 200
                     });
@@ -119,23 +132,45 @@ describe('handling mouse', function() {
 
     });
 
-    it('animation handles clicks', function() {
+    it('handles clicks properly', function() {
 
         expect({ type: 'click', x: 10, y: 10 })
            .toBeHandledAs({ type: 'mouseclick',
                             target: anim,
                             x: 10, y: 10 });
 
-    });
-
-    it('root handles clicks', function() {
-
         expect({ type: 'click', x: 10, y: 10 })
            .toBeHandledAs({ type: 'mouseclick',
                             target: root,
                             x: 10, y: 10 });
 
+        expect({ type: 'click', x: 25, y: 25 })
+           .toBeHandledAs({ type: 'mouseclick',
+                            target: e11,
+                            x: 25, y: 25 });
+
+        expect({ type: 'click', x: 75, y: 25 })
+           .toBeHandledAs({ type: 'mouseclick',
+                            target: e1,
+                            x: 75, y: 25 });
+
+        expect({ type: 'click', x: 76, y: 7 })
+           .toBeHandledAs({ type: 'mouseclick',
+                            target: e12,
+                            x: 1, y: 2 });
+
+        expect({ type: 'click', x: 25, y: 47 })
+           .toBeHandledAs({ type: 'mouseclick',
+                            target: e2,
+                            x: 25, y: 2 });
+
+        expect({ type: 'click', x: 75, y: 47 })
+           .toBeHandledAs({ type: 'mouseclick',
+                            target: e2,
+                            x: 75, y: 2 });
 
     });
+
+
 
 });
