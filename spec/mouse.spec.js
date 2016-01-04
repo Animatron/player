@@ -10,11 +10,11 @@
     | | |          50            |                         | |
     | | +------------------------+                         | |
     | +----------------------------------------------------+ |  100
-    | +-e2-------------------------------------------------+ |
+    | +-e2 (0, 45) overlaps with e1------------------------+ |
     | |                                                    | |
     | |                                                    | |
     | |                                                    | |
-    | |                                                 50 | |
+    | |                                                 55 | |
     | |                                                    | |
     | |                                                    | |
     | |                                                    | |
@@ -75,6 +75,8 @@ describe('handling mouse in static objects', function() {
         toBeHandledAs: function() {
             return {
                 compare: function(expected, actual) {
+                    console.log(arguments);
+
                     var toFire = Array.isArray(expected) ? expected : [ expected ],
                         toTest = Array.isArray(actual) ? actual : [ actual ];
 
@@ -161,6 +163,8 @@ describe('handling mouse in static objects', function() {
 
     it('handles clicks properly', function() {
 
+        // TODO: split into subtests
+
         expect({ type: 'click', x: 10, y: 10 })
            .toBeHandledAs({ type: 'mouseclick', target: anim, x: 10, y: 10 });
 
@@ -200,37 +204,40 @@ describe('handling mouse in static objects', function() {
 
     it('handles moves properly', function() {
 
-        /*
-        assertDispatchMove(25, 75,
-                "root: in\n" +
-                "e2: in");
+        // TODO: split into subtests
 
-        expect({ type: 'mouseover', x: 25, y: 75 })
-           .toBeHandledAs([ { type: 'mouseover', target: root, x: 25, y: 75 },
-                            { type: 'mouseclick', target: e2, x: 25, y: 2 } ]);
+        expect({ type: 'mousemove', x: 50, y: 50 })
+           toBeHandledAs({ type: 'mouseover', target: root });
 
-        assertDispatchMove(25, 75,
-                "");
+        expect({ type: 'mousemove', x: 101, y: 101 })
+           not.toBeHandledAs({ type: 'mouseover', target: root });
 
-        assertDispatchMove(26, 76,
-                "");
+        fireCanvasEvent('mousemove', 50, 50); // just move, do not expect anything
 
-        assertDispatchMove(25, 25,
-                "e2: out\n" +
-                "e1: in\n" +
-                "e11: in");
+        expect({ type: 'mousemove', x: 101, y: 101 })
+           toBeHandledAs({ type: 'mouseout', target: root, x: 101, y: 101 });
 
-        assertDispatchMove(76, 6,
-                "e11: out\n" +
-                "e12: in");
+        fireCanvasEvent('mousemove', 50, 50); // just move, do not expect anything
 
-        assertDispatchMove(25, 75,
-                "e12: out\n" +
-                "e1: out\n" +
-                "e2: in");
-        */
+        expect({ type: 'mousemove', x: 25, y: 75 })
+           not.toBeHandledAs({ type: 'mouseover', target: root });
 
+        expect({ type: 'mousemove', x: 26, y: 76 })
+           not.toBeHandledAs({ type: 'mouseover', target: root });
 
+        expect({ type: 'mousemove', x: 25, y: 25 })
+           toBeHandledAs([ { target: e2, type: 'mouseout' },
+                           { target: e1, type: 'mouseover' },
+                           { target: e11, type: 'mouseover' } ]);
+
+        expect({ type: 'mousemove', x: 76, y: 6 })
+           toBeHandledAs([ { target: e11, type: 'mouseout' },
+                           { target: e12, type: 'mousein' } ]);
+
+        expect({ type: 'mousemove', x: 25, y: 75 })
+           toBeHandledAs([ { target: e12, type: 'mouseout' },
+                           { target: e1, type: 'mouseout' },
+                           { target: e2, type: 'mousein' } ]);
 
     });
 
