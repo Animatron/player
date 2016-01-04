@@ -75,7 +75,7 @@ describe('handling mouse in static objects', function() {
         toBeHandledAs: function() {
             return {
                 compare: function(expected, actual) {
-                    console.log(arguments);
+                    //console.log(arguments);
 
                     var toFire = Array.isArray(expected) ? expected : [ expected ],
                         toTest = Array.isArray(actual) ? actual : [ actual ];
@@ -87,7 +87,8 @@ describe('handling mouse in static objects', function() {
                     var eventSpy;
                     for (var i = 0; i < toTest.length; i++) {
                         var expectation = toTest[i];
-                        eventSpy = jasmine.createSpy((expectation.target.name || 'unknown') + '-' + expectation.type)
+                        var targetName = (expectation.target instanceof anm.Animation ? 'animation' : expectation.target.name);
+                        eventSpy = jasmine.createSpy(targetName + '-' + expectation.type)
                                           .and.callFake(function(evt) {
                                               handledEvents.push(evt);
                                           });
@@ -111,7 +112,7 @@ describe('handling mouse in static objects', function() {
                     // ensure all spice have been called
                     for (i = 0; i < eventSpies.length; i++) {
                         expect(eventSpies[i]).toHaveBeenCalled();
-                        eventSpies[i].reset();
+                        eventSpies[i].calls.reset();
                         //expect(eventSpies[i]).toHaveBeenCalledOnce(); ?
                     }
 
@@ -178,7 +179,7 @@ describe('handling mouse in static objects', function() {
 
         expect({ type: 'click', x: 75, y: 25 })
            .toBeHandledAs([ { type: 'mouseclick', target: e1, x: 75, y: 25 },
-                            { type: 'mouseclick', target: root, x: 75, y: 25 } );
+                            { type: 'mouseclick', target: root, x: 75, y: 25 } ]);
 
         expect({ type: 'click', x: 76, y: 7 })
            .toBeHandledAs([ { type: 'mouseclick', target: e12, x: 1, y: 2 },
@@ -196,7 +197,7 @@ describe('handling mouse in static objects', function() {
                             { type: 'mouseclick', target: root, x: 75, y: 47 } ]);
 
         expect({ type: 'click', x: 75, y: 57 })
-           .toBeHandledAs([ { type: 'mouseclick', target: e2, x: 25, y: 12 } },
+           .toBeHandledAs([ { type: 'mouseclick', target: e2, x: 25, y: 12 },
                             { type: 'mouseclick', target: root, x: 25, y: 57 } ]);
 
 
@@ -207,42 +208,44 @@ describe('handling mouse in static objects', function() {
         // TODO: split into subtests
 
         expect({ type: 'mousemove', x: 50, y: 50 })
-           toBeHandledAs({ type: 'mouseover', target: root });
+           .toBeHandledAs({ type: 'mouseover', target: root });
 
         expect({ type: 'mousemove', x: 101, y: 101 })
-           not.toBeHandledAs({ type: 'mouseover', target: root });
+           .not.toBeHandledAs({ type: 'mouseover', target: root });
 
         fireCanvasEvent('mousemove', 50, 50); // just move, do not expect anything
 
         expect({ type: 'mousemove', x: 101, y: 101 })
-           toBeHandledAs({ type: 'mouseout', target: root, x: 101, y: 101 });
+           .toBeHandledAs({ type: 'mouseout', target: root, x: 101, y: 101 });
 
         fireCanvasEvent('mousemove', 50, 50); // just move, do not expect anything
 
         expect({ type: 'mousemove', x: 25, y: 75 })
-           not.toBeHandledAs({ type: 'mouseover', target: root });
+           .not.toBeHandledAs({ type: 'mouseover', target: root });
 
         expect({ type: 'mousemove', x: 26, y: 76 })
-           not.toBeHandledAs({ type: 'mouseover', target: root });
+           .not.toBeHandledAs({ type: 'mouseover', target: root });
 
         expect({ type: 'mousemove', x: 25, y: 25 })
-           toBeHandledAs([ { target: e2, type: 'mouseout' },
-                           { target: e1, type: 'mouseover' },
-                           { target: e11, type: 'mouseover' } ]);
+           .toBeHandledAs([ { target: e2, type: 'mouseout' },
+                            { target: e1, type: 'mouseover' },
+                            { target: e11, type: 'mouseover' } ]);
 
         expect({ type: 'mousemove', x: 76, y: 6 })
-           toBeHandledAs([ { target: e11, type: 'mouseout' },
-                           { target: e12, type: 'mousein' } ]);
+           .toBeHandledAs([ { target: e11, type: 'mouseout' },
+                            { target: e12, type: 'mousein' } ]);
 
         expect({ type: 'mousemove', x: 25, y: 75 })
-           toBeHandledAs([ { target: e12, type: 'mouseout' },
-                           { target: e1, type: 'mouseout' },
-                           { target: e2, type: 'mousein' } ]);
+           .toBeHandledAs([ { target: e12, type: 'mouseout' },
+                            { target: e1, type: 'mouseout' },
+                            { target: e2, type: 'mousein' } ]);
 
     });
 
-    xit('handles clicks properly if element was transformed') {
+});
 
-    });
+xdescribe('handling mouse in transformed objects', function() {
+});
 
+xdescribe('handling mouse in animated objects', function() {
 });
