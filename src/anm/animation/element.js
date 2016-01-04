@@ -137,24 +137,7 @@ function Element(name, draw, onframe) {
     this.__detachQueue = [];
 
     // FIXME: add all of the `provideEvents` method to docs for all elements who provide them
-    var me = this,
-        default_on = this.on;
-    /**
-     * @method on
-     *
-     * Subscribe for an element-related event with a handler.
-     *
-     * There's quite big list of possible events to subscribe, and it will be added here later. `TODO`
-     *
-     * @param {C.X*} type event type
-     * @param {Function} handler event handler
-     */
-    this.on = function(type, handler) {
-        /* if (events.mouseOrKeyboard(type)) {
-            return this.m_on.call(me, type, handler);
-        } else */ return default_on.call(me, type, handler);
-        // return this; // FIXME: make chainable
-    };
+    var me = this;
 
     this.addSysModifiers();
     this.addSysPainters();
@@ -304,10 +287,7 @@ Element.prototype.resetTime = function() {
 };
 
 Element.prototype.initEvents = function() {
-    this.evts = {}; // events cache
-    this.__evt_st = new EventState(); // event state
-    this.__evtCache = [];
-    return this;
+
 };
 
 Element.prototype.resetEvents = Element.prototype.initEvents;
@@ -1497,24 +1477,6 @@ Element.prototype.isActive = function() {
 };
 
 /**
- * @private @method m_on
- *
- * Subscribe for mouse or keyboard event over this element (these events are
- * separated from a flow)
- */
-Element.prototype.m_on = function(type, handler) {
-    return this.modify(new Modifier(
-        function(t) { /* FIXME: handlers must have priority? */
-            if (this.__evt_st.check(type)) {
-                var evts = this.evts[type];
-                for (var i = 0, el = evts.length; i < el; i++) {
-                    if (handler.call(this, evts[i], t) === false) return false;
-                }
-            }
-        }, C.MOD_EVENT));
-};
-
-/**
  * @private @method dispose
  *
  * Dispose the memory-consuming objects, called authomatically on animation end
@@ -2429,33 +2391,6 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
 
 Element.prototype.__pbefore = function(ctx, type) { };
 Element.prototype.__pafter = function(ctx, type) { };
-Element.prototype.filterEvent = function(type, evt) {
-    /*if (this.visible && this.active)*/
-    this.__saveEvt(type, evt);
-    return true;
-};
-
-Element.prototype.__saveEvt = function(type, evt) {
-    this.__evtCache.push([type, evt]);
-};
-
-Element.prototype.__loadEvents = function() {
-    var cache = this.__evtCache;
-    var cache_len = cache.length;
-    this.resetEvents();
-    if (cache_len > 0) {
-        var edata, type, evts;
-        for (var ei = 0; ei < cache_len; ei++) {
-            edata = cache[ei];
-            type = edata[0];
-            this.__evt_st.save(type);
-            evts = this.evts;
-            if (!evts[type]) evts[type] = [];
-            evts[type].push(edata[1]);
-        }
-        this.__evtCache = [];
-    }
-};
 
 Element.prototype.__safeDetach = function(what, _cnt) {
     var pos = -1, found = _cnt || 0;
