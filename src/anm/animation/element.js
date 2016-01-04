@@ -1503,7 +1503,7 @@ Element.prototype.isActive = function() {
  * separated from a flow)
  */
 Element.prototype.m_on = function(type, handler) {
-    this.modify(new Modifier(
+    return this.modify(new Modifier(
         function(t) { /* FIXME: handlers must have priority? */
             if (this.__evt_st.check(type)) {
                 var evts = this.evts[type];
