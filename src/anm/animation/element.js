@@ -9,8 +9,7 @@ var engine = require('engine');
 var C = require('../constants.js');
 
 var events = require('../events.js'),
-    provideEvents = events.provideEvents,
-    EventState = events.EventState;
+    provideEvents = events.provideEvents;
 
 var Transform = require('../../vendor/transform.js');
 
@@ -291,6 +290,7 @@ Element.prototype.initEvents = function() {
 };
 
 Element.prototype.resetEvents = Element.prototype.initEvents;
+
 /**
  * @method path
  * @chainable

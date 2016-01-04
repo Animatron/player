@@ -29,10 +29,6 @@ function provideEvents(subj, events) {
         // FIXME: make it chainable, use handler instance to unbind, instead of index
         return (this.handlers[event].length - 1);
     };
-    /* subj.prototype.onAny = function(handler) { there's this.filterEvent below
-        if (!this.receivers) this.receivers = [];
-        this.receivers.push(handler);
-    }; */
     subj.prototype.subscribedTo = function(event) {
         return this.handlers && this.handlers[event] && this.handlers[event].length;
     };
@@ -40,7 +36,7 @@ function provideEvents(subj, events) {
         if (this.disabled) return;
         if (!this.provides(event)) throw errors.system('Event \'' + event +
                                                  '\' is not provided by ' + this);
-        if (this.filterEvent && !(this.filterEvent.apply(this, arguments))) return;
+        if (this.dispatch && (this.dispatch.apply(this, arguments) === false)) return;
         var _hdls = this.handlers ? this.handlers[event] : null;
         var _hdls = this.handlers ? this.handlers[event] : null;
         if (this['handle_'+event] || (_hdls && _hdls.length)) {
@@ -136,30 +132,27 @@ function isMouseEvent(type) { return (type.indexOf('mouse') === 0); }
 function isKeyboardEvent(type) { return (type.indexOf('key') === 0); }
 function isMouseOrKeyboardEvent(type) { return isMouseEvent(type) || isKeyboardEvent(type); }
 
-var m_and_k = {
-    'mouseclick': 1,
-    'mousedoubleclick': 2,
-    'mouseup': 4,
-    'mousedown': 8,
-    'mousemove': 16,
-    'mouseover': 32,
-    'mouseout': 64,
-    'keypress': 128,
-    'keyup': 256,
-    'keydown': 512
-};
-
-function EventState() { this.reset(); }
-EventState.prototype.reset = function() { this.state = 0; }
-EventState.prototype.save = function(type) { this.state = this.state | m_and_k[type]; }
-EventState.prototype.check = function(type) { return this.state & m_and_k[type]; }
-
-function MouseTracker(element) {
-
+function MouseEventsState() {
+    this.lastHoveredNode = null;
 }
 
-MouseTracker.prototype.dispatch = function(event) {
+function MouseEventsSupport(owner, state) {
+    this.state = state;
+    this.owner = owner;
+    this.hoverEvent = null;
 
+    var prevDispatch = owner.dispatch;
+    owner.dispatch = function() {
+        if (this.dispatch.apply(this, arguments) !== false) {
+            prevDispatch.apply(owner, arguments);
+        };
+    }.bind(this);
+}
+MouseEventsSupport.markAsHoveredTree = function(hoverEvent) {
+    this.hoverEvent = hoverEvent;
+    if (this.owner.parent) {
+        this.owner.parent.getMouseSupport().markAsHoveredTree(hoverEvent);
+    }
 }
 
 module.exports = {
@@ -168,5 +161,6 @@ module.exports = {
     mouseOrKeyboard: isMouseOrKeyboardEvent,
     registerEvent: registerEvent,
     provideEvents: provideEvents,
-    EventState: EventState
+    MouseEventsState: MouseEventsState,
+    MouseEventsSupport: MouseEventsSupport
 };
