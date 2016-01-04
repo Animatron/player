@@ -142,9 +142,10 @@ function MouseEventsSupport(owner, state) {
     this.hoverEvent = null;
 
     var prevDispatch = owner.dispatch;
-    owner.dispatch = function() {
+    owner.dispatch = function(evt) {
+        if (!isMouseEvent(evt)) return prevDispatch.apply(owner, arguments);
         if (this.dispatch.apply(this, arguments) !== false) {
-            prevDispatch.apply(owner, arguments);
+            return prevDispatch.apply(owner, arguments);
         };
     }.bind(this);
 }
@@ -153,6 +154,9 @@ MouseEventsSupport.markAsHoveredTree = function(hoverEvent) {
     if (this.owner.parent) {
         this.owner.parent.getMouseSupport().markAsHoveredTree(hoverEvent);
     }
+}
+MouseEventsSupport.dispatch = function(evt) {
+    if (owner.contains(evt.x, ))
 }
 
 module.exports = {

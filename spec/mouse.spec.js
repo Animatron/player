@@ -134,32 +134,22 @@ describe('handling mouse in static objects', function() {
         it('properly bubbles and passes click events to corresponding handlers, according to overlaps', function() {
 
             expect({ type: 'click', x: 25, y: 25 })
-               .toBeHandledAs([ { type: 'mouseclick', target: e11, x: 25, y: 25 },
-                                { type: 'mouseclick', target: e1, x: 25, y: 25 },
-                                { type: 'mouseclick', target: root, x: 25, y: 25 } ]);
+               .toBeHandledAs({ type: 'mouseclick', target: e11, x: 25, y: 25 });
 
             expect({ type: 'click', x: 75, y: 25 })
-               .toBeHandledAs([ { type: 'mouseclick', target: e1, x: 75, y: 25 },
-                                { type: 'mouseclick', target: root, x: 75, y: 25 } ]);
+               .toBeHandledAs({ type: 'mouseclick', target: e1, x: 75, y: 25 });
 
             expect({ type: 'click', x: 76, y: 7 })
-               .toBeHandledAs([ { type: 'mouseclick', target: e12, x: 1, y: 2 },
-                                { type: 'mouseclick', target: e1, x: 76, y: 7 },
-                                { type: 'mouseclick', target: root, x: 76, y: 7 } ]);
+               .toBeHandledAs({ type: 'mouseclick', target: e12, x: 1, y: 2 });
 
             expect({ type: 'click', x: 25, y: 47 })
-               .toBeHandledAs([ { type: 'mouseclick', target: e2, x: 25, y: 2 },
-                                { type: 'mouseclick', target: e1, x: 25, y: 47 },
-                                { type: 'mouseclick', target: root, x: 25, y: 47 } ]);
+               .toBeHandledAs({ type: 'mouseclick', target: e2, x: 25, y: 2 });
 
             expect({ type: 'click', x: 75, y: 47 })
-               .toBeHandledAs([ { type: 'mouseclick', target: e2, x: 75, y: 2 },
-                                { type: 'mouseclick', target: e1, x: 75, y: 47 },
-                                { type: 'mouseclick', target: root, x: 75, y: 47 } ]);
+               .toBeHandledAs({ type: 'mouseclick', target: e2, x: 75, y: 2 });
 
             expect({ type: 'click', x: 75, y: 57 })
-               .toBeHandledAs([ { type: 'mouseclick', target: e2, x: 25, y: 12 },
-                                { type: 'mouseclick', target: root, x: 25, y: 57 } ]);
+               .toBeHandledAs({ type: 'mouseclick', target: e2, x: 25, y: 12 }]);
 
         });
 
