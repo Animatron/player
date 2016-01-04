@@ -71,7 +71,171 @@ describe('handling mouse in static objects', function() {
         documentReady = true;
     });
 
-    var customMatchers = {
+    var customMatchers = createCustomMatchers(fireCanvasEvent);
+
+    function setupPlayer() {
+        if (!canvas) {
+            wrapper = document.createElement('div');
+            document.body.appendChild(wrapper);
+        } else {
+            player.detach();
+        }
+
+        player = new anm.Player();
+
+        player.init(wrapper, {
+                        controlsEnabled: false,
+                        infiniteDuration: true,
+                        handleEvents: true,
+                        autoPlay: true,
+                        width: 200,
+                        height: 200
+                    });
+
+        canvas = wrapper.getElementsByTagName('canvas')[0];
+
+        player.load(anim).play();
+    }
+
+    beforeEach(function(done) {
+
+        jasmine.addMatchers(customMatchers);
+
+        if (documentReady) {
+            setupPlayer();
+            done();
+        } else {
+            document.addEventListener('DOMContentLoaded', function() {
+                setupPlayer();
+                done();
+            });
+        }
+
+    });
+
+    describe('handles clicks properly', function() {
+
+        // TODO: split into subtests
+
+        it('passes click event to the Animation', function() {
+
+            expect({ type: 'click', x: 10, y: 10 })
+               .toBeHandledAs({ type: 'mouseclick', target: anim, x: 10, y: 10 });
+
+        });
+
+        it('passes click event to the root element', function() {
+
+            expect({ type: 'click', x: 10, y: 10 })
+               .toBeHandledAs({ type: 'mouseclick', target: root, x: 10, y: 10 });
+
+        });
+
+        it('properly bubbles and passes click events to corresponding handlers, according to overlaps', function() {
+
+            expect({ type: 'click', x: 25, y: 25 })
+               .toBeHandledAs([ { type: 'mouseclick', target: e11, x: 25, y: 25 },
+                                { type: 'mouseclick', target: e1, x: 25, y: 25 },
+                                { type: 'mouseclick', target: root, x: 25, y: 25 } ]);
+
+            expect({ type: 'click', x: 75, y: 25 })
+               .toBeHandledAs([ { type: 'mouseclick', target: e1, x: 75, y: 25 },
+                                { type: 'mouseclick', target: root, x: 75, y: 25 } ]);
+
+            expect({ type: 'click', x: 76, y: 7 })
+               .toBeHandledAs([ { type: 'mouseclick', target: e12, x: 1, y: 2 },
+                                { type: 'mouseclick', target: e1, x: 76, y: 7 },
+                                { type: 'mouseclick', target: root, x: 76, y: 7 } ]);
+
+            expect({ type: 'click', x: 25, y: 47 })
+               .toBeHandledAs([ { type: 'mouseclick', target: e2, x: 25, y: 2 },
+                                { type: 'mouseclick', target: e1, x: 25, y: 47 },
+                                { type: 'mouseclick', target: root, x: 25, y: 47 } ]);
+
+            expect({ type: 'click', x: 75, y: 47 })
+               .toBeHandledAs([ { type: 'mouseclick', target: e2, x: 75, y: 2 },
+                                { type: 'mouseclick', target: e1, x: 75, y: 47 },
+                                { type: 'mouseclick', target: root, x: 75, y: 47 } ]);
+
+            expect({ type: 'click', x: 75, y: 57 })
+               .toBeHandledAs([ { type: 'mouseclick', target: e2, x: 25, y: 12 },
+                                { type: 'mouseclick', target: root, x: 25, y: 57 } ]);
+
+        });
+
+    });
+
+    describe('handles moves and in/outs properly', function() {
+
+        // TODO: split into subtests
+
+        it('mouse move is catched by the root element', function() {
+
+            expect({ type: 'mousemove', x: 50, y: 50 })
+               .toBeHandledAs({ type: 'mousemove', target: root, x: 50, y: 50 });
+
+        });
+
+        it('catches moving mouse over the root element once', function() {
+
+            expect({ type: 'mousemove', x: 101, y: 101 }); // just move, do not expect anything
+
+            expect({ type: 'mousemove', x: 50, y: 50 })
+               .toBeHandledAs({ type: 'mouseover', target: root });
+
+            expect({ type: 'mousemove', x: 51, y: 51 })
+               .not.toBeHandledAs({ type: 'mouseover', target: root });
+
+            expect({ type: 'mousemove', x: 52, y: 52 })
+               .not.toBeHandledAs({ type: 'mouseover', target: root });
+
+            expect({ type: 'mousemove', x: 101, y: 101 })
+               .not.toBeHandledAs({ type: 'mouseover', target: root });
+
+        });
+
+        it('catches moving mouse out of the root element once', function() {
+
+            expect({ type: 'mousemove', x: 50, y: 50 }); // just move, do not expect anything
+
+            expect({ type: 'mousemove', x: 101, y: 101 })
+                .toBeHandledAs({ type: 'mouseout', target: root, x: 101, y: 101 });
+
+            expect({ type: 'mousemove', x: 102, y: 102 })
+                .not.toBeHandledAs({ type: 'mouseout', target: root });
+
+        });
+
+        it('bubbles and transfers in/out events to the corresponding receivers', function() {
+
+            expect({ type: 'mousemove', x: 25, y: 25 })
+                .toBeHandledAs([ { target: e2, type: 'mouseout' },
+                                 { target: e1, type: 'mouseover' },
+                                 { target: e11, type: 'mouseover' } ]);
+
+            expect({ type: 'mousemove', x: 76, y: 6 })
+                .toBeHandledAs([ { target: e11, type: 'mouseout' },
+                                 { target: e12, type: 'mousein' } ]);
+
+            expect({ type: 'mousemove', x: 25, y: 75 })
+                .toBeHandledAs([ { target: e12, type: 'mouseout' },
+                                 { target: e1, type: 'mouseout' },
+                                 { target: e2, type: 'mousein' } ]);
+
+        });
+
+    });
+
+});
+
+xdescribe('handling mouse in transformed objects', function() {
+});
+
+xdescribe('handling mouse in animated objects', function() {
+});
+
+function prepareCustomMatchers = function(fireCanvasEvent) {
+    return {
         toBeHandledAs: function() {
             return {
                 compare: function(expected, actual) {
@@ -121,131 +285,4 @@ describe('handling mouse in static objects', function() {
             }
         }
     }
-
-    function setupPlayer() {
-        if (!canvas) {
-            wrapper = document.createElement('div');
-            document.body.appendChild(wrapper);
-        } else {
-            player.detach();
-        }
-
-        player = new anm.Player();
-
-        player.init(wrapper, {
-                        controlsEnabled: false,
-                        infiniteDuration: true,
-                        handleEvents: true,
-                        autoPlay: true,
-                        width: 200,
-                        height: 200
-                    });
-
-        canvas = wrapper.getElementsByTagName('canvas')[0];
-
-        player.load(anim).play();
-    }
-
-    beforeEach(function(done) {
-
-        jasmine.addMatchers(customMatchers);
-
-        if (documentReady) {
-            setupPlayer();
-            done();
-        } else {
-            document.addEventListener('DOMContentLoaded', function() {
-                setupPlayer();
-                done();
-            });
-        }
-
-    });
-
-    it('handles clicks properly', function() {
-
-        // TODO: split into subtests
-
-        expect({ type: 'click', x: 10, y: 10 })
-           .toBeHandledAs({ type: 'mouseclick', target: anim, x: 10, y: 10 });
-
-        expect({ type: 'click', x: 10, y: 10 })
-           .toBeHandledAs({ type: 'mouseclick', target: root, x: 10, y: 10 });
-
-        expect({ type: 'click', x: 25, y: 25 })
-           .toBeHandledAs([ { type: 'mouseclick', target: e11, x: 25, y: 25 },
-                            { type: 'mouseclick', target: e1, x: 25, y: 25 },
-                            { type: 'mouseclick', target: root, x: 25, y: 25 } ]);
-
-        expect({ type: 'click', x: 75, y: 25 })
-           .toBeHandledAs([ { type: 'mouseclick', target: e1, x: 75, y: 25 },
-                            { type: 'mouseclick', target: root, x: 75, y: 25 } ]);
-
-        expect({ type: 'click', x: 76, y: 7 })
-           .toBeHandledAs([ { type: 'mouseclick', target: e12, x: 1, y: 2 },
-                            { type: 'mouseclick', target: e1, x: 76, y: 7 },
-                            { type: 'mouseclick', target: root, x: 76, y: 7 } ]);
-
-        expect({ type: 'click', x: 25, y: 47 })
-           .toBeHandledAs([ { type: 'mouseclick', target: e2, x: 25, y: 2 },
-                            { type: 'mouseclick', target: e1, x: 25, y: 47 },
-                            { type: 'mouseclick', target: root, x: 25, y: 47 } ]);
-
-        expect({ type: 'click', x: 75, y: 47 })
-           .toBeHandledAs([ { type: 'mouseclick', target: e2, x: 75, y: 2 },
-                            { type: 'mouseclick', target: e1, x: 75, y: 47 },
-                            { type: 'mouseclick', target: root, x: 75, y: 47 } ]);
-
-        expect({ type: 'click', x: 75, y: 57 })
-           .toBeHandledAs([ { type: 'mouseclick', target: e2, x: 25, y: 12 },
-                            { type: 'mouseclick', target: root, x: 25, y: 57 } ]);
-
-
-    });
-
-    it('handles moves properly', function() {
-
-        // TODO: split into subtests
-
-        expect({ type: 'mousemove', x: 50, y: 50 })
-           .toBeHandledAs({ type: 'mouseover', target: root });
-
-        expect({ type: 'mousemove', x: 101, y: 101 })
-           .not.toBeHandledAs({ type: 'mouseover', target: root });
-
-        fireCanvasEvent('mousemove', 50, 50); // just move, do not expect anything
-
-        expect({ type: 'mousemove', x: 101, y: 101 })
-           .toBeHandledAs({ type: 'mouseout', target: root, x: 101, y: 101 });
-
-        fireCanvasEvent('mousemove', 50, 50); // just move, do not expect anything
-
-        expect({ type: 'mousemove', x: 25, y: 75 })
-           .not.toBeHandledAs({ type: 'mouseover', target: root });
-
-        expect({ type: 'mousemove', x: 26, y: 76 })
-           .not.toBeHandledAs({ type: 'mouseover', target: root });
-
-        expect({ type: 'mousemove', x: 25, y: 25 })
-           .toBeHandledAs([ { target: e2, type: 'mouseout' },
-                            { target: e1, type: 'mouseover' },
-                            { target: e11, type: 'mouseover' } ]);
-
-        expect({ type: 'mousemove', x: 76, y: 6 })
-           .toBeHandledAs([ { target: e11, type: 'mouseout' },
-                            { target: e12, type: 'mousein' } ]);
-
-        expect({ type: 'mousemove', x: 25, y: 75 })
-           .toBeHandledAs([ { target: e12, type: 'mouseout' },
-                            { target: e1, type: 'mouseout' },
-                            { target: e2, type: 'mousein' } ]);
-
-    });
-
-});
-
-xdescribe('handling mouse in transformed objects', function() {
-});
-
-xdescribe('handling mouse in animated objects', function() {
-});
+}
