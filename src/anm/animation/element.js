@@ -1961,43 +1961,20 @@ Element.prototype.myBounds = function() {
 /**
  * @method inside
  *
- * Test if a point given in global coordinate space is located inside the element's bounds
- * or one of its children/sub-children and calls given function for found elements. If function
- * explicitly returns `false`, stops the iteration and exits.
- *
- * Also, visits the children in reverse order, so function is called first for the elements
- * with higher z-index (it means they are "closer" to the one who watches the animation)
- * than the ones found later: it's safe to assume first found element is the top one
- * (_not_ considering the time band, which could be filtered or not in a corresponding function).
- *
- * If filter returned `false` for some element, it's children won't be checked. If point is
- * inside of some element, it's children also won't be checked.
- *
- * NB: `.inside(...)` is NOT returning the result of a test. It only calls an `fn` callback if
- * test passed.
+ * Test if a point given in local coordinate space is located inside the element's bounds.
+ * For paths, also checks if point
  *
  * @param {Object} pt point to check
  * @param {Number} pt.x
  * @param {Number} pt.y
- * @param {Function} filter function to filter elements before checking bounds, since it's quite a slow operation
- * @param {anm.Element} filter.elm element to check
- * @param {Boolean} filter.return return `true` if this element should be checked, `false` if not
- * @param {Function} fn function to call for matched elements
- * @param {anm.Element} fn.elm element matched with the point
- * @param {Number} fn.pt point adapted to child coordinate space
- * @param {Boolean} fn.return return nothing or `true`, if iteration should keep going, return `false` if it should exit
+ * @return {Boolean} is point inside of the bounds
  */
-Element.prototype.inside = function(pt, filter, fn) {
-    var passed_filter = !filter || filter(this);
-if (!passed_filter) return; /* skip this element and its children, but not exit completely */;
-    var local_pt = this.adapt(pt.x, pt.y);
+Element.prototype.inside = function(local_pt) {
     if (this.myBounds().inside(local_pt)) {
         var subj = this.$path || this.$text || this.$image || this.$video;
-        if (subj && subj.inside(local_pt)) return fn(this, local_pt);
+        return subj && subj.inside(local_pt));
     }
-    this.reverseEach(function(elm) {
-        return elm.inside(local_pt, filter, fn);
-    });
+    return false;
 };
 
 /**

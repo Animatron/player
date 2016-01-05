@@ -149,14 +149,88 @@ function MouseEventsSupport(owner, state) {
         };
     }.bind(this);
 }
-MouseEventsSupport.markAsHoveredTree = function(hoverEvent) {
+MouseEventsSupport.prototype.markAsHoveredTree = function(hoverEvent) {
     this.hoverEvent = hoverEvent;
     if (this.owner.parent) {
         this.owner.parent.getMouseSupport().markAsHoveredTree(hoverEvent);
     }
 }
-MouseEventsSupport.dispatch = function(evt) {
-    if (owner.contains(evt.x, ))
+MouseEventsSupport.prototype.adaptEvent = function(evt) {
+    var local = this.adapt(evt.x, evt.y);
+    return {
+        type: evt.type,
+        x: local.x,
+        y: local.y,
+        source: evt
+    };
+}
+MouseEventsSupport.prototype.dispatch = function(evt) {
+    var owner = this.owner;
+    var localEvent = adaptEvent(evt);
+    var found = false; // found the matching child inside
+    if (owner.inside(local.x, local.y)) {
+        owner.reverseEach(function(child) {
+            if (child.dispatch(localEvent)) {
+                found = true;
+                return false; // stop iteration
+            }
+        });
+
+        if (!found) return false;
+
+        if (event.type === 'mouseclick') {
+            this.owner.fire('mouseclick', localEvent);
+            return true;
+        } else if (event.type === 'mousemove') {
+            this.processMove(localEvent);
+            return true;
+        }
+    }
+    return false;
+}
+MouseEventsSupport.prototype.processOver = function(commonChild, evt) {
+    var inPath = [];
+    var next = this.owner;
+    while (next && (next !== commonChild)) {
+        inPath.push(next);
+        next = next.parent;
+    }
+
+    for (var i = (inPath.length - 1); i >= 0; i--) {
+        inPath[i].fire('mouseover', evt);
+    }
+}
+MouseEventsSupport.prototype.processOut = function(evt) {
+    var processParent = false;
+    if (this.hoverEvent && (this.hoverEvent !== evt)) {
+        this.hoverEvent = null;
+        this.fire('mouseout', evt);
+        processParent = true;
+    }
+
+    if (processParent && this.owner.parent) {
+        return this.owner.parent.processOut(evt);
+    }
+
+    return this;
+}
+MouseEventsSupport.prototype.processMove = function(evt) {
+    this.markAsHoveredTree(evt);
+
+    this.hoverEvent = event.id;
+
+    var lastHoveredNode = this.state.lastHoveredNode;
+
+    if (lastHoveredNode === this.owner) return;
+
+    var commonChild = null;
+    if (lastHoveredNode) {
+        commonChild = lastHoveredNode.processOut(evt);
+    }
+
+    this.state.lastHoveredNode = this.owner;
+
+    processOver(commonChild, evt);
 }
 
 module.exports = {
