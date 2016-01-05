@@ -224,8 +224,8 @@ Element.prototype.initState = function() {
 
     return this;
 };
-
 Element.prototype.resetState = Element.prototype.initState;
+
 Element.prototype.initVisuals = function() {
 
     // since properties below will conflict with getters/setters having same names,
@@ -265,8 +265,8 @@ Element.prototype.initVisuals = function() {
 
     return this;
 };
-
 Element.prototype.resetVisuals = Element.prototype.initVisuals;
+
 Element.prototype.initTime = function() {
 
     /** @property {anm.Timeline} timeline instance @readonly */
@@ -279,21 +279,22 @@ Element.prototype.initTime = function() {
 
     return this;
 };
-
 Element.prototype.resetTime = function() {
     this.timeline.reset();
     this.switch = null;
 };
 
-Element.prototype.initEvents = function() {
-    this.mouseSupport = new events.MouseEventsSupport(this, this.anim.state);
-};
-
+Element.prototype.initEvents = function() {};
 Element.prototype.resetEvents = Element.prototype.initEvents;
+
+Element.prototype.ensureListensForMouseEvents = function(mouseState) {
+    if (this.mouseSupport && (this.mouseSupport.state === mouseState)) return;
+    this.mouseSupport = new events.MouseEventsSupport(this, mouseState); // state === this.anim.mouseState
+};
 
 Element.prototype.getMouseSupport = function() {
     return this.mouseSupport;
-}
+};
 
 /**
  * @method path
@@ -1976,7 +1977,7 @@ Element.prototype.myBounds = function() {
 Element.prototype.inside = function(local_pt) {
     if (this.myBounds().inside(local_pt)) {
         var subj = this.$path || this.$text || this.$image || this.$video;
-        return subj && subj.inside(local_pt));
+        return subj && subj.inside(local_pt);
     }
     return false;
 };

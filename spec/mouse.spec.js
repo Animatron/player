@@ -71,7 +71,7 @@ describe('handling mouse in static objects', function() {
         documentReady = true;
     });
 
-    var customMatchers = createCustomMatchers(fireCanvasEvent);
+    var customMatchers = prepareCustomMatchers(fireCanvasEvent);
 
     function setupPlayer() {
         if (!canvas) {
@@ -149,7 +149,7 @@ describe('handling mouse in static objects', function() {
                .toBeHandledAs({ type: 'mouseclick', target: e2, x: 75, y: 2 });
 
             expect({ type: 'click', x: 75, y: 57 })
-               .toBeHandledAs({ type: 'mouseclick', target: e2, x: 25, y: 12 }]);
+               .toBeHandledAs({ type: 'mouseclick', target: e2, x: 25, y: 12 });
 
         });
 
@@ -224,7 +224,7 @@ xdescribe('handling mouse in transformed objects', function() {
 xdescribe('handling mouse in animated objects', function() {
 });
 
-function prepareCustomMatchers = function(fireCanvasEvent) {
+function prepareCustomMatchers(fireCanvasEvent) {
     return {
         toBeHandledAs: function() {
             return {

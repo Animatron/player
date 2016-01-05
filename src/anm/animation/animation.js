@@ -82,8 +82,7 @@ function Animation() {
     this.currentScene = this.scenes[this.currentSceneIdx];
 
     this.endOnLastScene = true;
-
-    this.mouseState = new events.MouseEventsState();
+    this.listensMouse = false;
 }
 
 Animation.DEFAULT_DURATION = 10;
@@ -135,9 +134,20 @@ Animation.prototype.addScene = function(name, duration) {
         scene = new Scene(this, name, duration);
     } else {
         scene = name;
+        scene.anim = this;
     }
+    this.notifyAdd(scene);
     this.scenes.push(scene);
     return scene;
+};
+
+Animation.prototype.notifyAdd = function(subject) { // use an event for this?
+    if (this.listensForMouse) {
+        var mouseState = this.mouseState;
+        subject.traverse(function(child) {
+            child.ensureListensForMouseEvents(mouseState);
+        });
+    }
 };
 
 Animation.prototype.getDuration = function() {
@@ -252,6 +262,26 @@ Animation.prototype.each = function(visitor, data) {
 };
 
 /**
+ * @method eachVisible
+ * @chainable
+ *
+ * Visit every visible root element (direct child of a current scene) in a tree.
+ *
+ * @param {Function} visitor
+ * @param {anm.Element} visitor.child
+ * @param {Boolean} visitor.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
+ * @param {Object} [data]
+ */
+Animation.prototype.eachVisible = function(visitor, data) {
+    if (this.currentScene && this.currentScene.isActive()) {
+        this.currentScene.each(function(child) {
+            return (child.isActive() && (visitor(child, data) === false)) ? false : true;
+        });
+    }
+    return this;
+};
+
+/**
  * @method reverseEach
  * @chainable
  *
@@ -267,6 +297,29 @@ Animation.prototype.each = function(visitor, data) {
  */
 Animation.prototype.reverseEach = function(visitor, data) {
     this.eachScene(function(scene) { scene.reverseEach(visitor, data); });
+    return this;
+};
+
+/**
+ * @method reverseTraverseVisible
+ * @chainable
+ *
+ * Visit every visible root element of the scene in a tree. The only difference
+ * with {@link anm.Animation#eachVisible .eachVisible} is that `.reverseEachVisible` literally iterates
+ * over the children in the order _reverse_ to the order of their addition—this
+ * could be helpful when you need elements with higher z-index to be visited before.
+ *
+ * @param {Function} visitor
+ * @param {anm.Element} visitor.child
+ * @param {Boolean} visitor.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
+ * @param {Object} [data]
+ */
+Animation.prototype.reverseEachVisible = function(visitor, data) {
+    if (this.currentScene && this.currentScene.isActive()) {
+        this.currentScene.reverseEach(function(child) {
+            return (child.isActive() && (visitor(child, data) === false)) ? false : true;
+        });
+    }
     return this;
 };
 
@@ -296,9 +349,13 @@ Animation.prototype.eachScene = function(func) {
     return this;
 };
 
+// TODO: stop listening mouse events
+
 Animation.prototype.dispatch = function(event) {
+    if (!this.listensMouse) return;
+
     if (events.mouse(event)) {
-        this.reverseTraverseVisible(function(child) {
+        this.reverseEachVisible(function(child) {
             if (child.dispatch(event)) return false; // stop iteration
         });
     }
@@ -537,6 +594,12 @@ Animation.prototype.toString = function() {
  */
 Animation.prototype.subscribeEvents = function(canvas) {
     engine.subscribeAnimationToEvents(canvas, this, DOM_TO_EVT_MAP);
+    this.listensForMouse = true;
+    var newMouseState = new events.MouseEventsState();
+    this.mouseState = newMouseState;
+    this.traverse(function(child) {
+        child.ensureListensForMouseEvents(newMouseState);
+    });
 };
 
 /**
@@ -547,6 +610,7 @@ Animation.prototype.subscribeEvents = function(canvas) {
  */
 Animation.prototype.unsubscribeEvents = function(canvas) {
     engine.unsubscribeAnimationFromEvents(canvas, this);
+    // TODO: unsubscribe children from events
 };
 
 Animation.prototype._collectRemoteResources = function(player) {
