@@ -286,10 +286,14 @@ Element.prototype.resetTime = function() {
 };
 
 Element.prototype.initEvents = function() {
-
+    this.mouseSupport = new events.MouseEventsSupport(this, this.anim.state);
 };
 
 Element.prototype.resetEvents = Element.prototype.initEvents;
+
+Element.prototype.getMouseSupport = function() {
+    return this.mouseSupport;
+}
 
 /**
  * @method path

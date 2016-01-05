@@ -82,6 +82,8 @@ function Animation() {
     this.currentScene = this.scenes[this.currentSceneIdx];
 
     this.endOnLastScene = true;
+
+    this.mouseState = new events.MouseEventsState();
 }
 
 Animation.DEFAULT_DURATION = 10;
@@ -293,6 +295,16 @@ Animation.prototype.eachScene = function(func) {
     }
     return this;
 };
+
+Animation.prototype.dispatch = function(event) {
+    if (events.mouse(event)) {
+        this.reverseTraverseVisible(function(child) {
+            if (child.dispatch(event)) return false; // stop iteration
+        });
+    }
+
+    return true;
+}
 
 /**
  * @method render

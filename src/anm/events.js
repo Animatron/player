@@ -209,7 +209,8 @@ MouseEventsSupport.prototype.processOut = function(evt) {
     }
 
     if (processParent && this.owner.parent) {
-        return this.owner.parent.processOut(evt);
+        var parentSupport = this.owner.parent.getMouseSupport();
+        return parentSupport.processOut(evt);
     }
 
     return this;
