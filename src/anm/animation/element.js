@@ -297,7 +297,6 @@ Element.prototype.getMouseSupport = function() {
 };
 
 Element.prototype.dispatch = function(type, event) {
-    var dispatched;
     if (events.mouse(type) && this.mouseSupport) {
         return this.mouseSupport.dispatch(type, event);
     }

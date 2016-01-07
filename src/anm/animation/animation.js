@@ -355,12 +355,12 @@ Animation.prototype.dispatch = function(type, event) {
     if (!this.listensMouse) return;
 
     if (events.mouse(type)) {
-        this.reverseEachVisible(function(child) {
-            if (child.dispatch(type, event)) return false; // stop iteration
-        });
         var dispatched = new events.MouseEvent(type, event.x, event.y,
                                                this, event); // target, source
-        return dispatched;
+        this.reverseEachVisible(function(child) {
+            if (child.dispatch(type, dispatched)) return false; // stop iteration
+        });
+        return dispatched; // should return the one dispatched by child?
     }
 
     return event;

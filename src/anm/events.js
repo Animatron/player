@@ -154,16 +154,16 @@ MouseEventsSupport.prototype.adaptEvent = function(evt) {
 MouseEventsSupport.prototype.dispatch = function(type, event) {
     var owner = this.owner;
     var localEvent = this.adaptEvent(event);
-    var found = false; // found the matching child inside
-    if (owner.inside(localEvent.x, localEvent.y)) {
+    var dispatchedByChild; // found the matching child inside
+    if (owner.inside({ x: localEvent.x, y: localEvent.y })) {
         owner.reverseEach(function(child) {
-            if (child.dispatch(localEvent)) {
-                found = true;
-                return false; // stop iteration
+            if (child.isActive()) {
+                dispatchedByChild = child.dispatch(type, localEvent);
+                if (dispatchedByChild) return false; // stop iteration
             }
         });
 
-        if (!found) return;
+        if (dispatchedByChild) return dispatchedByChild;
 
         if (event.type === 'mouseclick') {
             this.owner.fire('mouseclick', localEvent);
