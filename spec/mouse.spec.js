@@ -52,6 +52,8 @@ describe('handling mouse in static objects', function() {
     root.add(e1)
     root.add(e2);
 
+    anim.add(root);
+
     anim.setDuration(10);
 
     var player;
@@ -114,6 +116,10 @@ describe('handling mouse in static objects', function() {
             });
         }
 
+    });
+
+    afterEach(function() {
+        player.anim.unsubscribeEvents(canvas);
     });
 
     describe('handles clicks properly', function() {
