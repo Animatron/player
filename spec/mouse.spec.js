@@ -37,15 +37,23 @@ describe('handling mouse in static objects', function() {
 
     function rectangle(x, y, width, height) {
         return new anm.Path().move(x,y)
-                             .line(width,0).line(width,height)
-                             .line(0,height).line(0,0);
+                             .line(width,x).line(width,height)
+                             .line(y,height).line(x,y);
     }
 
     root.path(rectangle(0, 0, 100, 100)).pivot(0, 0);
     e1.path(rectangle(0, 0, 100, 50)).pivot(0, 0);
     e11.path(rectangle(0, 0, 50, 50)).pivot(0, 0);
+    e12.path(rectangle(0, 0, 5, 5)).move(75, 5).pivot(0, 0);
+    e2.path(rectangle(0, 0, 100, 55)).move(0, 45).pivot(0, 0);
+
+    /* TODO: test with
+    root.path(rectangle(0, 0, 100, 100)).pivot(0, 0);
+    e1.path(rectangle(0, 0, 100, 50)).pivot(0, 0);
+    e11.path(rectangle(0, 0, 50, 50)).pivot(0, 0);
     e12.path(rectangle(75, 5, 5, 5)).pivot(0, 0);
     e2.path(rectangle(0, 45, 100, 55)).pivot(0, 0);
+    */
 
     e1.add(e11);
     e1.add(e12);
@@ -146,12 +154,12 @@ describe('handling mouse in static objects', function() {
             expect({ type: 'click', x: 10, y: 10 })
                .toBeHandledAs({ type: 'mouseclick', target: e11, x: 10, y: 10 });
 
+            expect({ type: 'click', x: 25, y: 25 })
+               .toBeHandledAs({ type: 'mouseclick', target: e11, x: 25, y: 25 });
+
         });
 
         it('properly passes click events to corresponding handlers, according to overlaps', function() {
-
-            expect({ type: 'click', x: 25, y: 25 })
-               .toBeHandledAs({ type: 'mouseclick', target: e11, x: 25, y: 25 });
 
             expect({ type: 'click', x: 75, y: 25 })
                .toBeHandledAs({ type: 'mouseclick', target: e1, x: 75, y: 25 });
@@ -164,9 +172,6 @@ describe('handling mouse in static objects', function() {
 
             expect({ type: 'click', x: 75, y: 47 })
                .toBeHandledAs({ type: 'mouseclick', target: e2, x: 75, y: 2 });
-
-            expect({ type: 'click', x: 75, y: 57 })
-               .toBeHandledAs({ type: 'mouseclick', target: e2, x: 25, y: 12 });
 
         });
 
