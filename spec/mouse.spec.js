@@ -140,7 +140,14 @@ describe('handling mouse in static objects', function() {
 
         });
 
-        it('properly bubbles and passes click events to corresponding handlers, according to overlaps', function() {
+        it('passes click event to the first subscribed element', function() {
+
+            expect({ type: 'click', x: 10, y: 10 })
+               .toBeHandledAs({ type: 'mouseclick', target: e11, x: 10, y: 10 });
+
+        });
+
+        it('properly passes click events to corresponding handlers, according to overlaps', function() {
 
             expect({ type: 'click', x: 25, y: 25 })
                .toBeHandledAs({ type: 'mouseclick', target: e11, x: 25, y: 25 });

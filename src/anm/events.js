@@ -165,12 +165,11 @@ MouseEventsSupport.prototype.dispatch = function(type, event) {
 
         if (dispatchedByChild) return dispatchedByChild;
 
-        if (event.type === 'mouseclick') {
-            this.owner.fire('mouseclick', localEvent);
-            return localEvent;
-        } else if (event.type === 'mousemove') {
-            this.processMove(localEvent);
-            return localEvent;
+        if (type === 'mouseclick') {
+            return localEvent; // pass this event to owner's handlers
+        } else if (type === 'mousemove') {
+            this.processMove(localEvent); // fire mouseover/mouseout if required
+            return localEvent; // but also pass this mousemove to handlers
         }
     }
     return;
