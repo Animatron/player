@@ -49,6 +49,7 @@ function provideEvents(subj, events) {
                 handlers[hi](adapted_evt);
             }
         }
+        return adapted_evt;
     };
     subj.prototype.provides = (function(evts) {
         return function(event) {
@@ -158,7 +159,8 @@ MouseEventsSupport.prototype.dispatch = function(type, event) {
     if (owner.inside({ x: localEvent.x, y: localEvent.y })) {
         owner.reverseEach(function(child) {
             if (child.isActive()) {
-                dispatchedByChild = child.dispatch(type, localEvent);
+                //dispatchedByChild = child.fire(type, localEvent); // will call child.dispatch` from the inside
+                dispatchedByChild = child.dispatch(type, localEvent); // will call child.dispatch` from the inside
                 if (dispatchedByChild) return false; // stop iteration
             }
         });

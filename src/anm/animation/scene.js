@@ -89,7 +89,7 @@ Scene.prototype.add = function(arg1, arg2, arg3) {
     if (!element.children) throw errors.animation(ErrLoc.A.OBJECT_IS_NOT_ELEMENT, this);
     this._register(element);
     element.parent = null;
-    this.anim.notifyAdd(element);
+    if (this.anim) this.anim.notifyAdd(element);
     this.children.push(element);
 };
 

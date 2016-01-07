@@ -1480,7 +1480,7 @@ Player.prototype.__subscribeDynamicEvents = function(anim) {
         if (!subscribed) {
             anim.listensMouse = true;
             this.__boundTo.push([ anim.id, this.canvas ]);
-            anim.on(C.X_ERROR, this.__onerror());
+            anim.on(C.X_ERROR, this.__onerror()); // FIXME: why is it here?
             anim.subscribeEvents(this.canvas);
         }
     }

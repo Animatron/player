@@ -352,7 +352,9 @@ Animation.prototype.eachScene = function(func) {
 // TODO: stop listening mouse events
 
 Animation.prototype.dispatch = function(type, event) {
-    if (!this.listensMouse) return;
+    if (!this.listensMouse) return event;
+
+    // FIXME: ensure player where this animation was attached is really playing when we handle the event
 
     if (events.mouse(type)) {
         var dispatched = new events.MouseEvent(type, event.x, event.y,
