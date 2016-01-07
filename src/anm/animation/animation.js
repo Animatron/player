@@ -351,17 +351,19 @@ Animation.prototype.eachScene = function(func) {
 
 // TODO: stop listening mouse events
 
-Animation.prototype.dispatch = function(event) {
+Animation.prototype.dispatch = function(type, event) {
     if (!this.listensMouse) return;
 
-    if (events.mouse(event)) {
-        var dispatched;
+    if (events.mouse(type)) {
         this.reverseEachVisible(function(child) {
-            if (child.dispatch(event)) return false; // stop iteration
+            if (child.dispatch(type, event)) return false; // stop iteration
         });
+        var dispatched = new events.MouseEvent(type, event.x, event.y,
+                                               this, event); // target, source
+        return dispatched;
     }
 
-    return true; // FIXME: should return adapted event
+    return event;
 }
 
 /**

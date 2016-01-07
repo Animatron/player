@@ -139,11 +139,10 @@ function MouseEventsSupport(owner, state) {
     this.hoverEvent = null;
 
     var prevDispatch = owner.dispatch;
-    owner.dispatch = function(evt) {
-        if (!isMouseEvent(evt)) return prevDispatch.apply(owner, arguments);
-        if (this.dispatch.apply(this, arguments) !== false) {
-            return prevDispatch.apply(owner, arguments);
-        };
+    owner.dispatch = function(type, event) {
+        if (!isMouseEvent(type)) return prevDispatch(owner, type, event);
+        var dispatched = this.dispatch(type, event);
+        if (dispatched) return prevDispatch.apply(owner, type, dispatched);
     }.bind(this);
 }
 MouseEventsSupport.prototype.markAsHoveredTree = function(hoverEvent) {
@@ -153,10 +152,10 @@ MouseEventsSupport.prototype.markAsHoveredTree = function(hoverEvent) {
     }
 }
 MouseEventsSupport.prototype.adaptEvent = function(evt) {
-    var local = this.adapt(evt.x, evt.y);
+    var local = this.owner.adapt(evt.x, evt.y);
     return new MouseEvent(evt.type,
                           local.x, local.y,
-                          evt.target,
+                          this.owner, // target
                           evt); // source
 }
 MouseEventsSupport.prototype.dispatch = function(evt) {
@@ -171,17 +170,17 @@ MouseEventsSupport.prototype.dispatch = function(evt) {
             }
         });
 
-        if (!found) return false;
+        if (!found) return;
 
         if (event.type === 'mouseclick') {
             this.owner.fire('mouseclick', localEvent);
-            return true;
+            return localEvent;
         } else if (event.type === 'mousemove') {
             this.processMove(localEvent);
-            return true;
+            return localEvent;
         }
     }
-    return false;
+    return;
 }
 MouseEventsSupport.prototype.processOver = function(commonChild, evt) {
     var inPath = [];
