@@ -32,26 +32,43 @@ function provideEvents(subj, events) {
     subj.prototype.subscribedTo = function(event) {
         return this.handlers && this.handlers[event] && this.handlers[event].length;
     };
-    subj.prototype.fire = function(event/*, evt_args*/) {
-        if (this.disabled) return;
-        if (!this.provides(event)) throw errors.system('Event \'' + event +
-                                                 '\' is not provided by ' + this);
-        if (this.dispatch && (this.dispatch.apply(this, arguments) === false)) return;
-        var _hdls = this.handlers ? this.handlers[event] : null;
-        var _hdls = this.handlers ? this.handlers[event] : null;
-        if (this['handle_'+event] || (_hdls && _hdls.length)) {
-            var evt_args = new Array(arguments.length - 1);
-            for (var i = 1; i < arguments.length; i++) {
-                evt_args[i - 1] = arguments[i];
-            }
-            if (this['handle_'+event]) this['handle_'+event].apply(this, evt_args);
-            if (_hdls) {
-                for (var hi = 0, hl = _hdls.length; hi < hl; hi++) {
-                    _hdls[hi].apply(this, evt_args);
-                }
+    subj.prototype.callHandlers = function(type, get_args) {
+        var handlers = this.handlers[type];
+        var evt_args = get_args();
+        if (this['handle_'+type]) this['handle_'+type].apply(this, get_args);
+        if (handlers) {
+            for (var hi = 0, hl = handlers.length; hi < hl; hi++) {
+                handlers[hi].apply(this, evt_args);
             }
         }
-
+    };
+    subj.prototype.fire = function(type/*, evt_args*/) {
+        if (this.disabled) return;
+        if (!this.provides(type)) throw errors.system('Event \'' + type +
+                                                 '\' is not provided by ' + this);
+        var dispatched;
+        if (this.dispatch) {
+            dispatched = this.dispatch.apply(this, arguments);
+            if (!dispatched) return;
+        }
+        if ((this.handlers[type] && this.handlers[type].length) || this['handle_'+type]) {
+            this.callHandlers(type, (function(fire_args) {
+                return function() {
+                    if (dispatched) return [ dispatched ];
+                    var evt_args = new Array(fire_args.length - 1);
+                    for (var i = 1; i < fire_args.length; i++) {
+                        evt_args[i - 1] = fire_args[i];
+                    }
+                    if (this['handle_'+type]) this['handle_'+type].apply(this, evt_args);
+                    if (_hdls) {
+                        for (var hi = 0, hl = _hdls.length; hi < hl; hi++) {
+                            _hdls[hi].apply(this, evt_args);
+                        }
+                    }
+                    return evt_args;
+                }
+            })(arguments));
+        }
     };
     subj.prototype.provides = (function(evts) {
         return function(event) {
@@ -157,12 +174,10 @@ MouseEventsSupport.prototype.markAsHoveredTree = function(hoverEvent) {
 }
 MouseEventsSupport.prototype.adaptEvent = function(evt) {
     var local = this.adapt(evt.x, evt.y);
-    return {
-        type: evt.type,
-        x: local.x,
-        y: local.y,
-        source: evt
-    };
+    return new MouseEvent(evt.type,
+                          local.x, local.y,
+                          evt.target,
+                          evt); // source
 }
 MouseEventsSupport.prototype.dispatch = function(evt) {
     var owner = this.owner;
@@ -234,12 +249,20 @@ MouseEventsSupport.prototype.processMove = function(evt) {
     processOver(commonChild, evt);
 }
 
+function MouseEvent(type, x, y, target, source) {
+    this.type = type;
+    this.x = x; this.y = y;
+    this.target = target || null;
+    this.source = source || null;
+}
+
 module.exports = {
     mouse: isMouseEvent,
     keyboard: isKeyboardEvent,
     mouseOrKeyboard: isMouseOrKeyboardEvent,
     registerEvent: registerEvent,
     provideEvents: provideEvents,
+    MouseEvent: MouseEvent,
     MouseEventsState: MouseEventsState,
     MouseEventsSupport: MouseEventsSupport
 };

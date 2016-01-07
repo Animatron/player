@@ -355,12 +355,13 @@ Animation.prototype.dispatch = function(event) {
     if (!this.listensMouse) return;
 
     if (events.mouse(event)) {
+        var dispatched;
         this.reverseEachVisible(function(child) {
             if (child.dispatch(event)) return false; // stop iteration
         });
     }
 
-    return true;
+    return true; // FIXME: should return adapted event
 }
 
 /**

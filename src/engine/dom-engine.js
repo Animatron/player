@@ -819,7 +819,8 @@ $DE.keyEvent = function(e) {
 };
 
 $DE.mouseEvent = function(e, cvs) {
-    return { pos: $DE.getEventPosition(e, cvs) };
+    var pos = $DE.getEventPosition(e, cvs);
+    return { x: pos.x, y: pos.y };
 };
 
 $DE.preventDefault = function(evt) {
