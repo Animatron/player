@@ -75,10 +75,13 @@ describe('handling mouse in static objects', function() {
 
     var customMatchers = prepareCustomMatchers(fireCanvasEvent);
 
-    function setupPlayer() {
+    function setupPlayer(done) {
         if (!canvas) {
             wrapper = document.createElement('div');
             document.body.appendChild(wrapper);
+            wrapper.style.position = 'fixed';
+            wrapper.style.top = '0';
+            wrapper.style.left = '0';
         } else {
             player.detach();
         }
@@ -96,7 +99,7 @@ describe('handling mouse in static objects', function() {
 
         canvas = wrapper.getElementsByTagName('canvas')[0];
 
-        player.load(anim).play();
+        player.load(anim, done).play();
     }
 
     beforeEach(function(done) {
@@ -104,12 +107,10 @@ describe('handling mouse in static objects', function() {
         jasmine.addMatchers(customMatchers);
 
         if (documentReady) {
-            setupPlayer();
-            done();
+            setupPlayer(done);
         } else {
             document.addEventListener('DOMContentLoaded', function() {
-                setupPlayer();
-                done();
+                setupPlayer(done);
             });
         }
 

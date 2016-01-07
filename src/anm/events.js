@@ -41,7 +41,7 @@ function provideEvents(subj, events) {
             dispatched = this.dispatch(type, event);
             if (!dispatched) return;
         }
-        var handlers = this.handlers[type];
+        var handlers = this.handlers ? this.handlers[type] : null;
         var adapted_evt = dispatched || event;
         if (this['handle_'+type]) this['handle_'+type].apply(this, get_args);
         if (handlers) {
