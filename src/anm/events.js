@@ -43,10 +43,10 @@ function provideEvents(subj, events) {
         }
         var handlers = this.handlers ? this.handlers[type] : null;
         var adapted_evt = dispatched || event;
-        if (this['handle_'+type]) this['handle_'+type].apply(this, get_args);
+        if (this['handle_'+type]) this['handle_'+type](adapted_evt);
         if (handlers) {
             for (var hi = 0, hl = handlers.length; hi < hl; hi++) {
-                handlers[hi](event);
+                handlers[hi](adapted_evt);
             }
         }
     };
