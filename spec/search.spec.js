@@ -368,7 +368,7 @@ describe('search', function() {
     it('searches properly inside replaced first scene', function() {
         var animation = new anm.Animation();
         var sceneTwo = animation.addScene('Scene Two');
-        var anotherScene = new anm.Scene('Another Scene');
+        var anotherScene = new anm.Scene(null, 'Another Scene');
 
         animation.replaceScene(0, anotherScene);
         anotherScene.add(element('foobar'));
