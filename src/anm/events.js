@@ -32,42 +32,22 @@ function provideEvents(subj, events) {
     subj.prototype.subscribedTo = function(event) {
         return this.handlers && this.handlers[event] && this.handlers[event].length;
     };
-    subj.prototype.callHandlers = function(type, get_args) {
-        var handlers = this.handlers[type];
-        var evt_args = get_args();
-        if (this['handle_'+type]) this['handle_'+type].apply(this, get_args);
-        if (handlers) {
-            for (var hi = 0, hl = handlers.length; hi < hl; hi++) {
-                handlers[hi].apply(this, evt_args);
-            }
-        }
-    };
-    subj.prototype.fire = function(type/*, evt_args*/) {
+    subj.prototype.fire = function(type, event) {
         if (this.disabled) return;
         if (!this.provides(type)) throw errors.system('Event \'' + type +
                                                  '\' is not provided by ' + this);
         var dispatched;
         if (this.dispatch) {
-            dispatched = this.dispatch.apply(this, arguments);
+            dispatched = this.dispatch(type, event);
             if (!dispatched) return;
         }
-        if ((this.handlers[type] && this.handlers[type].length) || this['handle_'+type]) {
-            this.callHandlers(type, (function(fire_args) {
-                return function() {
-                    if (dispatched) return [ dispatched ];
-                    var evt_args = new Array(fire_args.length - 1);
-                    for (var i = 1; i < fire_args.length; i++) {
-                        evt_args[i - 1] = fire_args[i];
-                    }
-                    if (this['handle_'+type]) this['handle_'+type].apply(this, evt_args);
-                    if (_hdls) {
-                        for (var hi = 0, hl = _hdls.length; hi < hl; hi++) {
-                            _hdls[hi].apply(this, evt_args);
-                        }
-                    }
-                    return evt_args;
-                }
-            })(arguments));
+        var handlers = this.handlers[type];
+        var adapted_evt = dispatched || event;
+        if (this['handle_'+type]) this['handle_'+type].apply(this, get_args);
+        if (handlers) {
+            for (var hi = 0, hl = handlers.length; hi < hl; hi++) {
+                handlers[hi](event);
+            }
         }
     };
     subj.prototype.provides = (function(evts) {
