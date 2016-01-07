@@ -129,43 +129,43 @@ describe('handling mouse in static objects', function() {
         it('passes click event to the Animation', function() {
 
             expect({ type: 'click', x: 10, y: 10 })
-               .toBeHandledAs({ type: 'mouseclick', target: anim, x: 10, y: 10 });
+               .toBeHandledAs({ type: 'mouseclick', target: anim, x: 10, y: 10, in: anim });
 
         });
 
         it('passes click event to the root element', function() {
 
             expect({ type: 'click', x: 10, y: 10 })
-               .toBeHandledAs({ type: 'mouseclick', target: root, x: 10, y: 10 });
+               .toBeHandledAs({ type: 'mouseclick', target: e11, x: 10, y: 10, in: root });
 
         });
 
         it('passes click event to the first subscribed element', function() {
 
             expect({ type: 'click', x: 10, y: 10 })
-               .toBeHandledAs({ type: 'mouseclick', target: e11, x: 10, y: 10 });
+               .toBeHandledAs({ type: 'mouseclick', target: e11, x: 10, y: 10, in: e11 });
 
         });
 
         it('properly passes click events to corresponding handlers, according to overlaps', function() {
 
             expect({ type: 'click', x: 25, y: 25 })
-               .toBeHandledAs({ type: 'mouseclick', target: e11, x: 25, y: 25 });
+               .toBeHandledAs({ type: 'mouseclick', target: e11, x: 25, y: 25, in: e11 });
 
             expect({ type: 'click', x: 75, y: 25 })
-               .toBeHandledAs({ type: 'mouseclick', target: e1, x: 75, y: 25 });
+               .toBeHandledAs({ type: 'mouseclick', target: e1, x: 75, y: 25, in: e1 });
 
             expect({ type: 'click', x: 76, y: 7 })
-               .toBeHandledAs({ type: 'mouseclick', target: e12, x: 1, y: 2 });
+               .toBeHandledAs({ type: 'mouseclick', target: e12, x: 1, y: 2, in: e12 });
 
             expect({ type: 'click', x: 25, y: 47 })
-               .toBeHandledAs({ type: 'mouseclick', target: e2, x: 25, y: 2 });
+               .toBeHandledAs({ type: 'mouseclick', target: e2, x: 25, y: 2, in: e2 });
 
             expect({ type: 'click', x: 75, y: 47 })
-               .toBeHandledAs({ type: 'mouseclick', target: e2, x: 75, y: 2 });
+               .toBeHandledAs({ type: 'mouseclick', target: e2, x: 75, y: 2, in: e2 });
 
             expect({ type: 'click', x: 75, y: 57 })
-               .toBeHandledAs({ type: 'mouseclick', target: e2, x: 25, y: 12 });
+               .toBeHandledAs({ type: 'mouseclick', target: e2, x: 25, y: 12, in: e2 });
 
         });
 
@@ -268,16 +268,18 @@ function prepareCustomMatchers(fireCanvasEvent) {
                     var handledEvents = [];
                     var eventSpies = [];
 
+
                     // create spies and assign handlers collecting the corresponding events
                     var eventSpy;
                     for (var i = 0; i < toTest.length; i++) {
                         var expectation = toTest[i];
+                        var listeningElement = (expectation.in || expectation.target);
                         var targetName = (expectation.target instanceof anm.Animation ? 'animation' : expectation.target.name);
                         eventSpy = jasmine.createSpy(targetName + '-' + expectation.type)
                                           .and.callFake(function(evt) {
                                               handledEvents.push(evt);
                                           });
-                        expectation.target.on(expectation.type, eventSpy);
+                        listeningElement.on(expectation.type, eventSpy);
                         eventSpies.push(eventSpy);
                     }
                     expect(toTest.length).toEqual(eventSpies.length);
@@ -291,6 +293,7 @@ function prepareCustomMatchers(fireCanvasEvent) {
                     // ensure all events came in expected order and are equal to expectations
                     expect(toTest.length).toEqual(handledEvents.length);
                     for (i = 0; i < handledEvents.length; i++) {
+                        delete toTest[i]['in'];
                         expect(handledEvents[i]).toEqual(jasmine.objectContaining(toTest[i]));
                     }
 

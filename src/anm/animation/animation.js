@@ -358,7 +358,8 @@ Animation.prototype.dispatch = function(type, event) {
         var dispatched = new events.MouseEvent(type, event.x, event.y,
                                                this, event); // target, source
         this.reverseEachVisible(function(child) {
-            if (child.dispatch(type, dispatched)) return false; // stop iteration
+            child.fire(type, dispatched); // child will check if event belongs to its bounds
+                                          // and only pass this event to handlers, if it really does
         });
         return dispatched; // should return the one dispatched by child?
     }
