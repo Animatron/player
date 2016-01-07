@@ -22,6 +22,8 @@
     +--------------------------------------------------------+
  */
 
+prettify();
+
 describe('handling mouse in static objects', function() {
 
     // build scene
@@ -223,6 +225,21 @@ xdescribe('handling mouse in transformed objects', function() {
 
 xdescribe('handling mouse in animated objects', function() {
 });
+
+function prettify() {
+    anm.Animation.prototype.jasmineToString = function() {
+        return '[ Animation' + (this.name ? ' ' + this.name : '') + ' ]';
+    }
+
+    anm.Element.prototype.jasmineToString = function() {
+        return '[ Element' + (this.name ? ' ' + this.name : '') + ' ' + this.id + ' ]';
+    }
+
+    anm.Scene.prototype.jasmineToString = function() {
+        return '[ Scene' + (this.name ? ' ' + this.name : '') + ' ' + this.id + ' ]';
+    }
+
+}
 
 function prepareCustomMatchers(fireCanvasEvent) {
     return {
