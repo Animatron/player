@@ -11,10 +11,10 @@ function registerEvent(id, name) { C[id] = name; }
 
 // adds specified events support to the `subj` object. `subj` object receives
 // `handlers` property that keeps the listeners for each event. Also, it gets
-// `e_<evt_name>` function for every event provided to call it when it is
+// `e_<event_name>` function for every event provided to call it when it is
 // required to call all handlers of all of thise event name
-// (`fire('<evt_name>', ...)` is the same but can not be reassigned by user).
-// `subj` can define `handle_<evt_name>` function to handle concrete event itself,
+// (`fire('<event_name>', ...)` is the same but can not be reassigned by user).
+// `subj` can define `handle_<event_name>` function to handle concrete event itself,
 // but without messing with other handlers.
 // And, user gets `on` function to subcribe to events and `provides` to check
 // if it is allowed.
@@ -41,19 +41,19 @@ function provideEvents(subj, events) {
             dispatched = this.dispatch(type, event);
             if (!dispatched) return;
         }
+        var adapted_event = dispatched || event;
+        if (this['handle_'+type]) this['handle_'+type](adapted_event);
         var handlers = this.handlers ? this.handlers[type] : null;
-        var adapted_evt = dispatched || event;
-        if (this['handle_'+type]) this['handle_'+type](adapted_evt);
         if (handlers) {
             for (var hi = 0, hl = handlers.length; hi < hl; hi++) {
-                handlers[hi](adapted_evt);
+                handlers[hi](adapted_event);
             }
         }
-        return adapted_evt;
+        return adapted_event;
     };
-    subj.prototype.provides = (function(evts) {
+    subj.prototype.provides = (function(events) {
         return function(event) {
-            if (!event) return evts;
+            if (!event) return events;
             return events.indexOf(event) >= 0;
         };
     })(events);
@@ -145,12 +145,12 @@ MouseEventsSupport.prototype.markAsHoveredTree = function(hoverEvent) {
         this.owner.parent.getMouseSupport().markAsHoveredTree(hoverEvent);
     }
 }
-MouseEventsSupport.prototype.adaptEvent = function(evt) {
-    var local = this.owner.adapt(evt.x, evt.y);
-    return new MouseEvent(evt.type,
+MouseEventsSupport.prototype.adaptEvent = function(event) {
+    var local = this.owner.adapt(event.x, event.y);
+    return new MouseEvent(event.type,
                           local.x, local.y,
                           this.owner, // target
-                          evt); // source
+                          event); // source
 }
 MouseEventsSupport.prototype.dispatch = function(type, event) {
     var owner = this.owner;
@@ -159,13 +159,12 @@ MouseEventsSupport.prototype.dispatch = function(type, event) {
     if (owner.inside({ x: localEvent.x, y: localEvent.y })) {
         owner.reverseEach(function(child) {
             if (child.isActive()) {
-                //dispatchedByChild = child.fire(type, localEvent); // will call child.dispatch` from the inside
-                dispatchedByChild = child.dispatch(type, localEvent); // will call child.dispatch` from the inside
+                dispatchedByChild = child.fire(type, localEvent); // will call `child.dispatch` from the inside
                 if (dispatchedByChild) return false; // stop iteration
             }
         });
 
-        if (dispatchedByChild) return dispatchedByChild;
+        if (dispatchedByChild) return dispatchedByChild; // pass event to the parent
 
         if (type === 'mouseclick') {
             return localEvent; // pass this event to owner's handlers
@@ -176,7 +175,7 @@ MouseEventsSupport.prototype.dispatch = function(type, event) {
     }
     return;
 }
-MouseEventsSupport.prototype.processOver = function(commonChild, evt) {
+MouseEventsSupport.prototype.processOver = function(commonChild, event) {
     var inPath = [];
     var next = this.owner;
     while (next && (next !== commonChild)) {
@@ -185,26 +184,26 @@ MouseEventsSupport.prototype.processOver = function(commonChild, evt) {
     }
 
     for (var i = (inPath.length - 1); i >= 0; i--) {
-        inPath[i].fire('mouseover', evt);
+        inPath[i].fire('mouseover', event);
     }
 }
-MouseEventsSupport.prototype.processOut = function(evt) {
+MouseEventsSupport.prototype.processOut = function(event) {
     var processParent = false;
-    if (this.hoverEvent && (this.hoverEvent !== evt)) {
+    if (this.hoverEvent && (this.hoverEvent !== event)) {
         this.hoverEvent = null;
-        this.fire('mouseout', evt);
+        this.fire('mouseout', event);
         processParent = true;
     }
 
     if (processParent && this.owner.parent) {
         var parentSupport = this.owner.parent.getMouseSupport();
-        return parentSupport.processOut(evt);
+        return parentSupport.processOut(event);
     }
 
     return this;
 }
-MouseEventsSupport.prototype.processMove = function(evt) {
-    this.markAsHoveredTree(evt);
+MouseEventsSupport.prototype.processMove = function(event) {
+    this.markAsHoveredTree(event);
 
     this.hoverEvent = event.id;
 
@@ -214,12 +213,12 @@ MouseEventsSupport.prototype.processMove = function(evt) {
 
     var commonChild = null;
     if (lastHoveredNode) {
-        commonChild = lastHoveredNode.processOut(evt);
+        commonChild = lastHoveredNode.processOut(event);
     }
 
     this.state.lastHoveredNode = this.owner;
 
-    processOver(commonChild, evt);
+    this.processOver(commonChild, event);
 }
 
 function MouseEvent(type, x, y, target, source) {

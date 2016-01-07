@@ -78,15 +78,16 @@ describe('handling mouse in static objects', function() {
     var customMatchers = prepareCustomMatchers(fireCanvasEvent);
 
     function setupPlayer(done) {
-        if (!canvas) {
-            wrapper = document.createElement('div');
-            document.body.appendChild(wrapper);
-            wrapper.style.position = 'fixed';
-            wrapper.style.top = '0';
-            wrapper.style.left = '0';
-        } else {
-            player.detach();
+        if (canvas || wrapper) {
+            player.detach(); // will remove the wrapper div from the body
         }
+
+        wrapper = document.createElement('div');
+        document.body.appendChild(wrapper);
+        wrapper.style.position = 'fixed';
+        wrapper.style.top = '0';
+        wrapper.style.left = '0';
+        wrapper.style.visibility = 'hidden';
 
         player = new anm.Player();
 
