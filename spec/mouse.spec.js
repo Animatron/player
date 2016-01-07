@@ -227,12 +227,12 @@ describe('handling mouse in static objects', function() {
 
             expect({ type: 'mousemove', x: 76, y: 6 })
                 .toBeHandledAs([ { target: e11, type: 'mouseout' },
-                                 { target: e12, type: 'mousein' } ]);
+                                 { target: e12, type: 'mouseover' } ]);
 
             expect({ type: 'mousemove', x: 25, y: 75 })
                 .toBeHandledAs([ { target: e12, type: 'mouseout' },
                                  { target: e1, type: 'mouseout' },
-                                 { target: e2, type: 'mousein' } ]);
+                                 { target: e2, type: 'mouseover' } ]);
 
         });
 
