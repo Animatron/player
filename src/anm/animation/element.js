@@ -296,6 +296,14 @@ Element.prototype.getMouseSupport = function() {
     return this.mouseSupport;
 };
 
+Element.prototype.dispatch = function(type, event) {
+    var dispatched;
+    if (events.mouse(type) && this.mouseSupport) {
+        return this.mouseSupport.dispatch(type, event);
+    }
+    return event;
+};
+
 /**
  * @method path
  * @chainable
@@ -512,8 +520,6 @@ Element.prototype.modifiers = function(ltime, dt, types) {
     // copy current state as previous one
     elm.applyPrevState(elm);
 
-    elm.__loadEvents();
-
     var modifiers = this.$modifiers;
     var type, typed_modifiers, modifier, lbtime;
     for (var i = 0, il = order.length; i < il; i++) { // for each type
@@ -553,8 +559,6 @@ Element.prototype.modifiers = function(ltime, dt, types) {
     elm.__modifying = null;
 
     elm.__appliedAt = ltime;
-
-    elm.resetEvents();
 
     return true;
 };

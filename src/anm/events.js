@@ -137,13 +137,6 @@ function MouseEventsSupport(owner, state) {
     this.state = state;
     this.owner = owner;
     this.hoverEvent = null;
-
-    var prevDispatch = owner.dispatch;
-    owner.dispatch = function(type, event) {
-        if (!isMouseEvent(type)) return prevDispatch(owner, type, event);
-        var dispatched = this.dispatch(type, event);
-        if (dispatched) return prevDispatch.apply(owner, type, dispatched);
-    }.bind(this);
 }
 MouseEventsSupport.prototype.markAsHoveredTree = function(hoverEvent) {
     this.hoverEvent = hoverEvent;
@@ -158,11 +151,11 @@ MouseEventsSupport.prototype.adaptEvent = function(evt) {
                           this.owner, // target
                           evt); // source
 }
-MouseEventsSupport.prototype.dispatch = function(evt) {
+MouseEventsSupport.prototype.dispatch = function(type, event) {
     var owner = this.owner;
-    var localEvent = adaptEvent(evt);
+    var localEvent = this.adaptEvent(event);
     var found = false; // found the matching child inside
-    if (owner.inside(local.x, local.y)) {
+    if (owner.inside(localEvent.x, localEvent.y)) {
         owner.reverseEach(function(child) {
             if (child.dispatch(localEvent)) {
                 found = true;

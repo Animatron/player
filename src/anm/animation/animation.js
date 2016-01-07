@@ -470,6 +470,7 @@ Animation.prototype.getTime = function() {
 };
 
 Animation.prototype.setDuration = function(duration) {
+    if (this.scenes.length === 1) this.scenes[0].setDuration(duration);
     this.timeline.setDuration(duration);
 };
 
@@ -612,6 +613,7 @@ Animation.prototype.subscribeEvents = function(canvas) {
  * @param {Canvas} canvas
  */
 Animation.prototype.unsubscribeEvents = function(canvas) {
+    this.listensMouse = false;
     engine.unsubscribeAnimationFromEvents(canvas, this);
     // TODO: unsubscribe children from events
 };
