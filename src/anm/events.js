@@ -57,7 +57,7 @@ function provideEvents(subj, events) {
                 handlers[hi](event);
             }
         }
-    }
+    };
     subj.prototype.provides = (function(events) {
         return function(event) {
             if (!event) return events;

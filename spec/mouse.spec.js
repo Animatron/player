@@ -132,6 +132,7 @@ describe('handling mouse in static objects', function() {
 
     afterEach(function() {
         player.anim.unsubscribeEvents(canvas);
+        player.stop();
     });
 
     describe('handles clicks properly', function() {
