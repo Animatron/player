@@ -191,7 +191,6 @@ MouseEventsSupport.prototype.processOver = function(commonChild, overEvent) {
     }
 
     for (var i = (inPath.length - 1); i >= 0; i--) {
-        console.log('pass mouseover to', inPath[i].name);
         inPath[i].notify('mouseover', overEvent);
     }
 }
@@ -199,7 +198,6 @@ MouseEventsSupport.prototype.processOut = function(outEvent) {
     var processParent = false;
     if (this.hoverEvent && (this.hoverEvent !== event)) {
         this.hoverEvent = null;
-        console.log('pass mouseout to ', this.owner.name);
         this.owner.notify('mouseout', outEvent);
         processParent = true;
     }
@@ -222,7 +220,8 @@ MouseEventsSupport.prototype.processMove = function(moveEvent) {
     if (lastHoveredNode) {
         var outEvent = moveEvent.clone();
         outEvent.type = 'mouseout';
-        commonChild = lastHoveredNode.processOut(outEvent);
+        var hoveredSupport = lastHoveredNode.getMouseSupport();
+        commonChild = hoveredSupport.processOut(outEvent);
     }
 
     this.state.lastHoveredNode = this.owner;

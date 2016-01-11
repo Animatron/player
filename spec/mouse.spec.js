@@ -182,22 +182,85 @@ describe('handling mouse in static objects', function() {
 
     describe('handles moves and in/outs properly', function() {
 
-        // TODO: split into subtests
+        var log = [];
 
-        it('transfers in/out events to the corresponding receivers', function() {
+        var handlers = {};
 
+        var MARKER = '\n';
+
+        var events = [ /*'mousemove',*/ 'mouseover', 'mouseout'/*, 'mouseclick'*/ ];
+        var targets = [ root, e1, e2, e11, e12 ];
+
+        beforeEach(function() {
+            var target, handler_id, event_type;
+            for (var i = 0; i < targets.length; i++) {
+                target = targets[i];
+                handlers[target.id] = {};
+                for (var j = 0; j < events.length; j++) {
+                    event_type = events[j];
+                    handler_id = target.on(event_type, (function(event_type, target) {
+                        return function(evt) {
+                            console.log(evt);
+                            log.push(target.name + ': ' + event_type + '@' + evt.x + ';' + evt.y + (evt.target ? ' -> ' + evt.target.name : ''));
+                        };
+                    })(event_type, target));
+                    handlers[target.id][event_type] = handler_id;
+                }
+            }
+        });
+
+        afterEach(function() {
+            log = [];
+            var target, event_type;
+            for (var i = 0; i < targets.length; i++) {
+                target = targets[i];
+                var trg_handlers = handlers[target.id];
+                for (var j = 0; j < events.length; j++) {
+                    event_type = events[j];
+                    target.unbind(event_type, trg_handlers[event_type]);
+                }
+            }
+        });
+
+        it('transfers in/out event to the corresponding receivers', function() {
             expect({ type: 'mousemove', x: 25, y: 75 })
-                .toBeHandledAs([ { target: e2, type: 'mouseover' },
-                                 { target: root, type: 'mouseover' } ]);
+                .toBeHandledAs([ { in: e2,   target: e2, type: 'mouseover', x: 25, y: 30 },
+                                 { in: root, target: e2, type: 'mouseover', x: 25, y: 30 } ]);
+        });
 
-            /*expect({ type: 'mousemove', x: 76, y: 6 })
-                .toBeHandledAs([ { target: e11, type: 'mouseout' },
-                                 { target: e12, type: 'mouseover' } ]);
+        it('in/out events properly work in sequences', function() {
 
-            expect({ type: 'mousemove', x: 25, y: 75 })
-                .toBeHandledAs([ { target: e12, type: 'mouseout' },
-                                 { target: e1, type: 'mouseout' },
-                                 { target: e2, type: 'mouseover' } ]);*/
+            fireCanvasEvent('mousemove', 25, 75);
+            expect(log.join(MARKER)).toEqual('root: mouseover@25;30 -> e2' + MARKER +
+                                             'e2: mouseover@25;30 -> e2');
+
+            log = [];
+
+            fireCanvasEvent('mousemove', 25, 75);
+            expect(log.join(MARKER)).toEqual('');
+
+            fireCanvasEvent('mousemove', 26, 76);
+            expect(log.join(MARKER)).toEqual('');
+
+            fireCanvasEvent('mousemove', 25, 25);
+            expect(log.join(MARKER)).toEqual('e2: mouseout@25;25 -> e11' + MARKER +
+                                             'root: mouseout@25;25 -> e11' + MARKER + // FIXME
+                                             'root: mouseover@25;25 -> e11' + MARKER + // FIXME
+                                             'e1: mouseover@25;25 -> e11' + MARKER +
+                                             'e11: mouseover@25;25 -> e11');
+
+            /* log = [];
+
+            fireCanvasEvent('mousemove', 76, 6);
+            expect(log.join(MARKER)).toEqual('e11: mouseout@25;30 -> e11' + MARKER +
+                                             'e12: mouseover@25;30 -> e12');
+
+            log = [];
+
+            fireCanvasEvent('mousemove', 25, 75);
+            expect(log.join(MARKER)).toEqual('e12: mouseout@25;30 -> e12' + MARKER +
+                                             'e1: mouseout@25;30 -> e12' + MARKER +
+                                             'e2: mouseover@25;30 -> e2'); */
 
         });
 
