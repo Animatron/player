@@ -110,7 +110,10 @@ describe('handling mouse in static objects', function() {
 
         canvas = wrapper.getElementsByTagName('canvas')[0];
 
-        player.load(anim, done).play();
+        player.load(anim, function() {
+            player.play();
+            setTimeout(done, 100); // ensure play at least one frame
+        });
     }
 
     beforeEach(function(done) {
@@ -181,58 +184,20 @@ describe('handling mouse in static objects', function() {
 
         // TODO: split into subtests
 
-        it('mouse move is catched by the root element', function() {
+        it('transfers in/out events to the corresponding receivers', function() {
 
-            expect({ type: 'mousemove', x: 50, y: 50 })
-               .toBeHandledAs({ type: 'mousemove', target: root, x: 50, y: 50 });
+            expect({ type: 'mousemove', x: 25, y: 75 })
+                .toBeHandledAs([ { target: e2, type: 'mouseover' },
+                                 { target: root, type: 'mouseover' } ]);
 
-        });
-
-        it('catches moving mouse over the root element once', function() {
-
-            expect({ type: 'mousemove', x: 101, y: 101 }); // just move, do not expect anything
-
-            expect({ type: 'mousemove', x: 50, y: 50 })
-               .toBeHandledAs({ type: 'mouseover', target: root });
-
-            expect({ type: 'mousemove', x: 51, y: 51 })
-               .not.toBeHandledAs({ type: 'mouseover', target: root });
-
-            expect({ type: 'mousemove', x: 52, y: 52 })
-               .not.toBeHandledAs({ type: 'mouseover', target: root });
-
-            expect({ type: 'mousemove', x: 101, y: 101 })
-               .not.toBeHandledAs({ type: 'mouseover', target: root });
-
-        });
-
-        it('catches moving mouse out of the root element once', function() {
-
-            expect({ type: 'mousemove', x: 50, y: 50 }); // just move, do not expect anything
-
-            expect({ type: 'mousemove', x: 101, y: 101 })
-                .toBeHandledAs({ type: 'mouseout', target: root, x: 101, y: 101 });
-
-            expect({ type: 'mousemove', x: 102, y: 102 })
-                .not.toBeHandledAs({ type: 'mouseout', target: root });
-
-        });
-
-        it('bubbles and transfers in/out events to the corresponding receivers', function() {
-
-            expect({ type: 'mousemove', x: 25, y: 25 })
-                .toBeHandledAs([ { target: e2, type: 'mouseout' },
-                                 { target: e1, type: 'mouseover' },
-                                 { target: e11, type: 'mouseover' } ]);
-
-            expect({ type: 'mousemove', x: 76, y: 6 })
+            /*expect({ type: 'mousemove', x: 76, y: 6 })
                 .toBeHandledAs([ { target: e11, type: 'mouseout' },
                                  { target: e12, type: 'mouseover' } ]);
 
             expect({ type: 'mousemove', x: 25, y: 75 })
                 .toBeHandledAs([ { target: e12, type: 'mouseout' },
                                  { target: e1, type: 'mouseout' },
-                                 { target: e2, type: 'mouseover' } ]);
+                                 { target: e2, type: 'mouseover' } ]);*/
 
         });
 
@@ -288,7 +253,7 @@ function prepareCustomMatchers(fireCanvasEvent) {
                         listeningElement.on(expectation.type, eventSpy);
                         eventSpies.push(eventSpy);
                     }
-                    expect(toTest.length).toEqual(eventSpies.length);
+                    expect(eventSpies.length).toEqual(toTest.length);
 
                     // fire the events in order
                     for (i = 0; i < toFire.length; i++) {
@@ -297,7 +262,7 @@ function prepareCustomMatchers(fireCanvasEvent) {
                     }
 
                     // ensure all events came in expected order and are equal to expectations
-                    expect(toTest.length).toEqual(handledEvents.length);
+                    expect(handledEvents.length).toEqual(toTest.length);
                     for (i = 0; i < handledEvents.length; i++) {
                         delete toTest[i]['in'];
                         expect(handledEvents[i]).toEqual(jasmine.objectContaining(toTest[i]));
