@@ -349,26 +349,6 @@ Animation.prototype.eachScene = function(func) {
     return this;
 };
 
-// TODO: stop listening mouse events
-
-Animation.prototype.dispatch = function(type, event) {
-    if (!this.listensMouse) return event;
-
-    // FIXME: ensure player where this animation was attached is really playing when we handle the event
-
-    if (events.mouse(type)) {
-        var dispatched = new events.MouseEvent(type, event.x, event.y,
-                                               this, event); // target, source
-        this.reverseEachVisible(function(child) {
-            child.fire(type, dispatched); // child will check if event belongs to its bounds
-                                          // and only pass this event to handlers, if it really does
-        });
-        return dispatched; // should return the one dispatched by child?
-    }
-
-    return event;
-}
-
 /**
  * @method render
  *
@@ -600,12 +580,26 @@ Animation.prototype.toString = function() {
  * @param {Canvas} canvas
  */
 Animation.prototype.subscribeEvents = function(canvas) {
-    engine.subscribeAnimationToEvents(canvas, this, DOM_TO_EVT_MAP);
+    var anim = this;
     this.listensForMouse = true;
-    var newMouseState = new events.MouseEventsState();
-    this.mouseState = newMouseState;
-    this.traverse(function(child) {
-        child.ensureListensForMouseEvents(newMouseState);
+    var mouseState = new events.MouseEventsState();
+    this.mouseState = mouseState;
+    engine.subscribeAnimationToEvents(canvas, this, function(domType, domEvent) {
+        var anmEventType = DOM_TO_EVT_MAP[domType];
+        if (events.isMouse(anmEventType)) {
+            var anmEvent = new events.MouseEvent(type, event.x, event.y,
+                                                 this, event); // target, source
+            var currentScene = anim.currentScene;
+            if (currentScene && currentScene.isAlive()) {
+                currentScene.reverseEach(function(child) {
+                    if (child.isActive()) {
+                        // stop iteration if event was dispatched and continue if it wasn't
+                        return child.getMouseSupport(state).dispatch(anmEvent) ? false : true;
+                    }
+                    return true; // continue iteration
+                });
+            }
+        }
     });
 };
 

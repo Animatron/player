@@ -287,20 +287,9 @@ Element.prototype.resetTime = function() {
 Element.prototype.initEvents = function() {};
 Element.prototype.resetEvents = Element.prototype.initEvents;
 
-Element.prototype.ensureListensForMouseEvents = function(mouseState) {
-    if (this.mouseSupport && (this.mouseSupport.state === mouseState)) return;
-    this.mouseSupport = new events.MouseEventsSupport(this, mouseState); // state === this.anim.mouseState
-};
-
-Element.prototype.getMouseSupport = function() {
+Element.prototype.getMouseSupport = function(mouseState) {
+    if (!this.mouseSupport) this.mouseSupport = new events.MouseEventsSupport(this, mouseState);
     return this.mouseSupport;
-};
-
-Element.prototype.dispatch = function(type, event) {
-    if (events.mouse(type) && this.mouseSupport) {
-        return this.mouseSupport.dispatch(type, event);
-    }
-    return event;
 };
 
 /**

@@ -26,6 +26,8 @@ prettify();
 
 describe('handling mouse in static objects', function() {
 
+    // FIXME: rename mouseover -> mousein
+
     // build scene
 
     var anim = new anm.Animation();

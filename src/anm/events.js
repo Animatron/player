@@ -21,7 +21,7 @@ function registerEvent(id, name) { C[id] = name; }
 function provideEvents(subj, events) {
     subj.prototype.on = function(event, handler) {
         if (!this.provides(event)) throw errors.system('Event \'' + event +
-                                                 '\' is not provided by ' + this);
+                                                 '\' can not be handled by ' + this);
         if (!handler) return;
         if (!this.handlers) this.handlers = {};
         if (!this.handlers[event]) this.handlers[event] = [];
@@ -32,21 +32,11 @@ function provideEvents(subj, events) {
     subj.prototype.subscribedTo = function(event) {
         return this.handlers && this.handlers[event] && this.handlers[event].length;
     };
-    // check if subject accepts event, dispatch it, if required, and pass it to handlers
     subj.prototype.fire = function(type, event) {
         if (this.disabled) return;
         if (!this.provides(type)) throw errors.system('Event \'' + type +
-                                                 '\' is not provided by ' + this);
-        var dispatched;
-        if (this.dispatch) {
-            dispatched = this.dispatch(type, event);
-            if (!dispatched) return;
-        }
-        dispatched = dispatched || event;
-        var new_type = dispatched ? (dispatched.type || type) : type;
-        if (!new_type) throw errors.system('Failed to find a type for event ' + event);
-        this.notify(new_type, dispatched);
-        return dispatched;
+                                                 '\' can not be handled by ' + this);
+        this.notify(type, event);
     };
     // force-pass event to handlers
     subj.prototype.notify = function(type, event) {
@@ -159,25 +149,26 @@ MouseEventsSupport.prototype.adaptEvent = function(event) {
                           this.owner, // target
                           event); // source
 }
-MouseEventsSupport.prototype.dispatch = function(type, event) {
+MouseEventsSupport.prototype.dispatch = function(event) {
     var owner = this.owner;
     var localEvent = this.adaptEvent(event);
     var dispatchedByChild; // found the matching child inside
-    if (owner.inside({ x: localEvent.x, y: localEvent.y })) {
+    if (owner.inside(localEvent)) {
         owner.reverseEach(function(child) {
             if (child.isActive()) {
-                dispatchedByChild = child.fire(type, localEvent); // will call `child.dispatch` from the inside
-                if (dispatchedByChild) return false; // stop iteration
+                dispatchedByChild = child.dispatch(type, localEvent); // will call `child.dispatch` from the inside
+                if (dispatchedByChild) return false; // stop iteration of reverseEach
             }
         });
 
-        if (dispatchedByChild) return dispatchedByChild; // pass event to the parent handlers
+        if (dispatchedByChild) return true;
 
-        if (type === 'mouseclick') {
-            return localEvent; // pass this event to owner's handlers
-        } else if (type === 'mousemove') {
+        if (event.type === 'mouseclick') {
+            this.fire('mouseclick', localEvent);
+            return true;
+        } else if (event.type === 'mousemove') {
             this.processMove(localEvent); // fire mouseover/mouseout if required
-            return localEvent; // but also pass this mousemove to handlers
+            return true;
         }
     }
     return;
@@ -254,8 +245,8 @@ MouseEvent.prototype.clone = function() {
 }
 
 module.exports = {
-    mouse: isMouseEvent,
-    keyboard: isKeyboardEvent,
+    isMouse: isMouseEvent,
+    isKeyboard: isKeyboardEvent,
     mouseOrKeyboard: isMouseOrKeyboardEvent,
     registerEvent: registerEvent,
     provideEvents: provideEvents,
