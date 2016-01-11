@@ -218,17 +218,27 @@ MouseEventsSupport.prototype.processMove = function(moveEvent) {
 
     var commonChild = null;
     if (lastHoveredNode) {
-        var outEvent = moveEvent.clone();
-        outEvent.type = 'mouseout';
+        var outEvent = this.makeOutEvent(moveEvent, lastHoveredNode);
         var hoveredSupport = lastHoveredNode.getMouseSupport();
         commonChild = hoveredSupport.processOut(outEvent);
     }
 
     this.state.lastHoveredNode = this.owner;
 
+    this.processOver(commonChild, this.makeOverEvent(moveEvent));
+}
+MouseEventsSupport.prototype.makeOutEvent = function(moveEvent, target) {
+    var outEvent = moveEvent.clone();
+    outEvent.type = 'mouseout';
+    outEvent.target = target;
+    outEvent.x = null; outEvent.y = null;
+    return outEvent;
+}
+MouseEventsSupport.prototype.makeOverEvent = function(moveEvent) {
     var overEvent = moveEvent.clone();
     overEvent.type = 'mouseover';
-    this.processOver(commonChild, overEvent);
+    overEvent.target = this.owner;
+    return overEvent;
 }
 
 function MouseEvent(type, x, y, target, source) {
