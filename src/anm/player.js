@@ -731,8 +731,8 @@ Player.prototype._addOpts = function(opts) {
     this.zoom =    opts.zoom || this.zoom;
     this.speed =   opts.speed || this.speed;
     this.bgColor = opts.bgColor || this.bgColor;
-    this.width = opts.width || this.width;
-    this.height = opts.height || this.height;
+    this.width =   opts.width || this.width;
+    this.height =  opts.height || this.height;
 
     this.ribbonsColor =
                    opts.ribbonsColor || this.ribbonsColor;

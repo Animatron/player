@@ -152,11 +152,14 @@ MouseEventsSupport.prototype.adaptEvent = function(event) {
 MouseEventsSupport.prototype.dispatch = function(event) {
     var owner = this.owner;
     var localEvent = this.adaptEvent(event);
-    var dispatchedByChild; // found the matching child inside
+    var dispatchedByChild, // found the matching child inside
+        childMouseSupport;
     if (owner.inside(localEvent)) {
+        var mouseState = this.state;
         owner.reverseEach(function(child) {
             if (child.isActive()) {
-                dispatchedByChild = child.dispatch(type, localEvent); // will call `child.dispatch` from the inside
+                childMouseSupport = child.getMouseSupport(mouseState);
+                dispatchedByChild = childMouseSupport.dispatch(localEvent); // will call `child.dispatch` from the inside
                 if (dispatchedByChild) return false; // stop iteration of reverseEach
             }
         });
@@ -164,7 +167,7 @@ MouseEventsSupport.prototype.dispatch = function(event) {
         if (dispatchedByChild) return true;
 
         if (event.type === 'mouseclick') {
-            this.fire('mouseclick', localEvent);
+            this.owner.fire('mouseclick', localEvent);
             return true;
         } else if (event.type === 'mousemove') {
             this.processMove(localEvent); // fire mouseover/mouseout if required
@@ -182,14 +185,14 @@ MouseEventsSupport.prototype.processOver = function(commonChild, overEvent) {
     }
 
     for (var i = (inPath.length - 1); i >= 0; i--) {
-        inPath[i].notify('mouseover', overEvent);
+        inPath[i].fire('mouseover', overEvent);
     }
 }
 MouseEventsSupport.prototype.processOut = function(outEvent) {
     var processParent = false;
     if (this.hoverEvent && (this.hoverEvent !== event)) {
         this.hoverEvent = null;
-        this.owner.notify('mouseout', outEvent);
+        this.owner.fire('mouseout', outEvent);
         processParent = true;
     }
 

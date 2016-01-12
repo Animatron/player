@@ -136,18 +136,8 @@ Animation.prototype.addScene = function(name, duration) {
         scene = name;
         scene.anim = this;
     }
-    this.notifyAdd(scene);
     this.scenes.push(scene);
     return scene;
-};
-
-Animation.prototype.notifyAdd = function(subject) { // use an event for this?
-    if (this.listensForMouse) {
-        var mouseState = this.mouseState;
-        subject.traverse(function(child) {
-            child.ensureListensForMouseEvents(mouseState);
-        });
-    }
 };
 
 Animation.prototype.getDuration = function() {
@@ -587,14 +577,14 @@ Animation.prototype.subscribeEvents = function(canvas) {
     engine.subscribeAnimationToEvents(canvas, this, function(domType, domEvent) {
         var anmEventType = DOM_TO_EVT_MAP[domType];
         if (events.isMouse(anmEventType)) {
-            var anmEvent = new events.MouseEvent(type, event.x, event.y,
+            var anmEvent = new events.MouseEvent(anmEventType, event.x, event.y,
                                                  this, event); // target, source
             var currentScene = anim.currentScene;
-            if (currentScene && currentScene.isAlive()) {
+            if (currentScene && currentScene.isActive()) {
                 currentScene.reverseEach(function(child) {
                     if (child.isActive()) {
                         // stop iteration if event was dispatched and continue if it wasn't
-                        return child.getMouseSupport(state).dispatch(anmEvent) ? false : true;
+                        return child.getMouseSupport(mouseState).dispatch(anmEvent) ? false : true;
                     }
                     return true; // continue iteration
                 });
