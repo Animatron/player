@@ -578,7 +578,7 @@ Animation.prototype.subscribeEvents = function(canvas) {
         var anmEventType = DOM_TO_EVT_MAP[domType];
         if (events.isMouse(anmEventType)) {
             var anmEvent = new events.MouseEvent(anmEventType, event.x, event.y,
-                                                 this, event); // target, source
+                                                 anim, event); // target, source
             var currentScene = anim.currentScene;
             if (currentScene && currentScene.isActive()) {
                 currentScene.reverseEach(function(child) {
@@ -589,6 +589,7 @@ Animation.prototype.subscribeEvents = function(canvas) {
                     return true; // continue iteration
                 });
             }
+            anim.fire(anmEventType, anmEvent);
         }
     });
 };
