@@ -671,6 +671,10 @@ $DE.setCanvasBackground = function(cvs, bg) {
     cvs.style.backgroundColor = bg;
 };
 
+$DE.disableCanvasFocusHilight = function(cvs) {
+    cvs.style.outline = 'none';
+};
+
 $DE._saveCanvasPos = function(cvs) {
     // FIXME: use getBoundingClientRect?
     var gcs = ($doc.defaultView &&
