@@ -783,6 +783,7 @@ Player.prototype._checkOpts = function() {
     if (this.bgColor) engine.setCanvasBackground(this.canvas, this.bgColor);
 
     if (this.anim && this.handleEvents) {
+        engine.disableCanvasFocusHilight(this.canvas);
         // checks inside if was already subscribed before, skips if so
         this.__subscribeDynamicEvents(this.anim);
     }
