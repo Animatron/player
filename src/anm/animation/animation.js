@@ -612,13 +612,11 @@ Animation.prototype._collectRemoteResources = function(player) {
         }
     });
     if (this.fonts && this.fonts.length) {
-        remotes = remotes.concat(this.fonts.map(function(f){
-            if (!f.gf_name) {
-                return f.url;
-            } else {
-                return null;
-            }
-        }));
+        remotes = remotes.concat(this.fonts.filter(function(f) {
+                                     return f.gf_name ? false : true; // skip google fonts
+                                 }).map(function(f) {
+                                     return f.url;
+                                 }));
     }
     return remotes;
 };

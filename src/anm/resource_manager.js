@@ -76,7 +76,7 @@ ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks, onpr
     var filteredUrls = [];
     rmLog('subscribing ' + callbacks.length + ' to ' + urls.length + ' urls: ' + urls);
     var test = {}; // FIXME: a very dirty way to test if urls duplicate, needs to be optimized
-    for (var i = 0; i < urls.length; i++){
+    for (var i = 0; i < urls.length; i++) {
         // there should be no empty urls and duplicates
         if (urls[i] && !test[urls[i]]) {
             test[urls[i]] = true;
