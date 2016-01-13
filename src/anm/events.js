@@ -86,7 +86,7 @@ registerEvent('X_MDCLICK', 'mousedoubleclick');
 registerEvent('X_MUP', 'mouseup');
 registerEvent('X_MDOWN', 'mousedown');
 registerEvent('X_MMOVE', 'mousemove');
-registerEvent('X_MOVER', 'mouseover');
+registerEvent('X_MIN', 'mousein');
 registerEvent('X_MOUT', 'mouseout');
 
 // * keyboard
@@ -170,7 +170,7 @@ MouseEventsSupport.prototype.dispatch = function(event) {
             this.owner.fire('mouseclick', localEvent);
             return true;
         } else if (event.type === 'mousemove') {
-            this.processMove(localEvent); // fire mouseover/mouseout if required
+            this.processMove(localEvent); // fire mousein/mouseout if required
             return true;
         }
     }
@@ -185,7 +185,7 @@ MouseEventsSupport.prototype.processOver = function(commonChild, overEvent) {
     }
 
     for (var i = (inPath.length - 1); i >= 0; i--) {
-        inPath[i].fire('mouseover', overEvent);
+        inPath[i].fire('mousein', overEvent);
     }
 }
 MouseEventsSupport.prototype.processOut = function(outEvent) {
@@ -230,7 +230,7 @@ MouseEventsSupport.prototype.makeOutEvent = function(moveEvent, target) {
 }
 MouseEventsSupport.prototype.makeOverEvent = function(moveEvent) {
     var overEvent = moveEvent.clone();
-    overEvent.type = 'mouseover';
+    overEvent.type = 'mousein';
     overEvent.target = this.owner;
     return overEvent;
 }

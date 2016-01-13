@@ -28,7 +28,7 @@ var DOM_TO_EVT_MAP = {
     'mouseup':   C.X_MUP,
     'mousedown': C.X_MDOWN,
     'mousemove': C.X_MMOVE,
-    'mouseover': C.X_MOVER,
+    'mouseover': C.X_MIN,
     'mouseout':  C.X_MOUT,
     'keypress':  C.X_KPRESS,
     'keyup':     C.X_KUP,
@@ -88,7 +88,7 @@ function Animation() {
 Animation.DEFAULT_DURATION = 10;
 
 provideEvents(Animation, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
-                           C.X_MMOVE, C.X_MOVER, C.X_MOUT,
+                           C.X_MMOVE, C.X_MIN, C.X_MOUT,
                            C.X_KPRESS, C.X_KUP, C.X_KDOWN, C.X_ERROR ]);
 /**
  * @method add
