@@ -176,7 +176,7 @@ MouseEventsSupport.prototype.dispatch = function(event) {
     }
     return;
 }
-MouseEventsSupport.prototype.processOver = function(commonChild, overEvent) {
+MouseEventsSupport.prototype.processOver = function(commonChild, moveEvent) {
     var inPath = [];
     var next = this.owner;
     while (next && (next !== commonChild)) {
@@ -184,21 +184,24 @@ MouseEventsSupport.prototype.processOver = function(commonChild, overEvent) {
         next = next.parent;
     }
 
-    for (var i = (inPath.length - 1); i >= 0; i--) {
-        inPath[i].fire('mouseover', overEvent);
+    if (inPath.length > 0) {
+        var overEvent = this.makeOverEvent(moveEvent);
+        for (var i = (inPath.length - 1); i >= 0; i--) {
+            inPath[i].fire('mouseover', overEvent);
+        }
     }
 }
-MouseEventsSupport.prototype.processOut = function(outEvent) {
+MouseEventsSupport.prototype.processOut = function(moveEvent) {
     var processParent = false;
-    if (this.hoverEvent && (this.hoverEvent !== outEvent)) {
+    if (this.hoverEvent && (this.hoverEvent !== moveEvent)) {
         this.hoverEvent = null;
-        this.owner.fire('mouseout', outEvent);
+        this.owner.fire('mouseout', this.makeOutEvent(moveEvent));
         processParent = true;
     }
 
     if (processParent && this.owner.parent) {
         var parentSupport = this.owner.parent.getMouseSupport(this.state);
-        return parentSupport.processOut(outEvent);
+        return parentSupport.processOut(moveEvent);
     }
 
     return this.owner;
@@ -212,19 +215,18 @@ MouseEventsSupport.prototype.processMove = function(moveEvent) {
 
     var commonChild = null;
     if (lastHoveredNode) {
-        var outEvent = this.makeOutEvent(moveEvent, lastHoveredNode);
         var hoveredSupport = lastHoveredNode.getMouseSupport(this.state);
-        commonChild = hoveredSupport.processOut(outEvent);
+        commonChild = hoveredSupport.processOut(moveEvent);
     }
 
     this.state.lastHoveredNode = this.owner;
 
-    this.processOver(commonChild, this.makeOverEvent(moveEvent));
+    this.processOver(commonChild, moveEvent);
 }
-MouseEventsSupport.prototype.makeOutEvent = function(moveEvent, target) {
+MouseEventsSupport.prototype.makeOutEvent = function(moveEvent) {
     var outEvent = moveEvent.clone();
     outEvent.type = 'mouseout';
-    outEvent.target = target;
+    outEvent.target = this.state.lastHoveredNode;
     outEvent.x = null; outEvent.y = null;
     return outEvent;
 }
