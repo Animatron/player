@@ -287,9 +287,15 @@ Element.prototype.resetTime = function() {
 Element.prototype.initEvents = function() {};
 Element.prototype.resetEvents = Element.prototype.initEvents;
 
-Element.prototype.getMouseSupport = function(mouseState) {
-    if (!this.mouseSupport) this.mouseSupport = new events.MouseEventsSupport(this, mouseState);
+Element.prototype.getMouseSupport = function() {
+    if (!this.mouseSupport) {
+        this.mouseSupport = new events.MouseEventsSupport(this, this.anim.mouseState);
+    }
     return this.mouseSupport;
+};
+
+Element.prototype.dispatchMouseEvent = function(mouseEvent) {
+    return this.getMouseSupport().dispatch(mouseEvent);
 };
 
 /**

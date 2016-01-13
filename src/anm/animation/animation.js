@@ -580,20 +580,18 @@ Animation.prototype.subscribeEvents = function(canvas) {
     engine.subscribeAnimationToEvents(canvas, this, function(domType, domEvent) {
         var anmEventType = DOM_TO_EVT_MAP[domType];
         if (events.isMouse(anmEventType)) {
-            var anmEvent = new events.MouseEvent(anmEventType, event.x, event.y,
-                                                 anim, event); // target, source
-            var mouseState = anim.mouseState;
             var currentScene = anim.currentScene;
             if (currentScene && currentScene.isActive()) {
+                var anmEvent = new events.MouseEvent(anmEventType, event.x, event.y,
+                                                     anim, event); // target, source
                 currentScene.reverseEach(function(child) {
                     if (child.isActive()) {
                         // stop iteration if event was dispatched and continue if it wasn't
-                        return child.getMouseSupport(mouseState).dispatch(anmEvent) ? false : true;
+                        return child.dispatchMouseEvent(anmEvent) ? false : true;
                     }
                     return true; // continue iteration
                 });
             }
-            anim.fire(anmEventType, anmEvent);
         }
     });
 };

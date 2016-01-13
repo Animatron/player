@@ -142,13 +142,6 @@ describe('handling mouse in static objects', function() {
 
         // TODO: split into subtests
 
-        it('passes click event to the Animation', function() {
-
-            expect({ type: 'click', x: 10, y: 10 })
-               .toBeHandledAs({ type: 'mouseclick', target: anim, x: 10, y: 10, in: anim });
-
-        });
-
         it('passes click event to the appropriate element', function() {
 
             expect({ type: 'click', x: 10, y: 10 })
