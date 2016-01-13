@@ -494,6 +494,9 @@ Animation.prototype.reset = function() {
     this.eachScene(function(scene) {
         scene.reset();
     });
+
+    if (this.mouseState) this.mouseState = new events.MouseEventsState();
+
     return this;
 };
 
@@ -579,6 +582,7 @@ Animation.prototype.subscribeEvents = function(canvas) {
         if (events.isMouse(anmEventType)) {
             var anmEvent = new events.MouseEvent(anmEventType, event.x, event.y,
                                                  anim, event); // target, source
+            var mouseState = anim.mouseState;
             var currentScene = anim.currentScene;
             if (currentScene && currentScene.isActive()) {
                 currentScene.reverseEach(function(child) {

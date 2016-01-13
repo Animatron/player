@@ -133,8 +133,9 @@ describe('handling mouse in static objects', function() {
     });
 
     afterEach(function() {
-        player.anim.unsubscribeEvents(canvas);
+        anim.unsubscribeEvents(canvas);
         player.stop();
+        anim.reset();
     });
 
     describe('handles clicks properly', function() {
@@ -224,11 +225,11 @@ describe('handling mouse in static objects', function() {
             }
         });
 
-        it('transfers in/out event to the corresponding receivers', function() {
+        /* it('transfers in/out event to the corresponding receivers', function() {
             expect({ type: 'mousemove', x: 25, y: 75 })
                 .toBeHandledAs([ { in: e2,   target: e2, type: 'mouseover', x: 25, y: 30 },
                                  { in: root, target: e2, type: 'mouseover', x: 25, y: 30 } ]);
-        });
+        }); */
 
         it('in/out events properly work in sequences', function() {
 
