@@ -247,8 +247,8 @@ describe('handling mouse in static objects', function() {
 
             fireCanvasEvent('mousemove', 25, 25);
             expect(log.join(MARKER)).toEqual('e2: mouseout@null;null -> e2' + MARKER +
-                                             'root: mouseout@null;null -> e2' + MARKER +
-                                             'root: mouseover@25;25 -> e11' + MARKER +
+                                             //'root: mouseout@null;null -> e2' + MARKER +
+                                             //'root: mouseover@25;25 -> e11' + MARKER +
                                              'e1: mouseover@25;25 -> e11' + MARKER +
                                              'e11: mouseover@25;25 -> e11');
 
@@ -257,8 +257,8 @@ describe('handling mouse in static objects', function() {
             fireCanvasEvent('mousemove', 76, 6);
             expect(log.join(MARKER)).toEqual('e11: mouseout@null;null -> e11' + MARKER +
                                              'e1: mouseout@null;null -> e11' + MARKER +
-                                             'root: mouseout@null;null -> e11' + MARKER +
-                                             'root: mouseover@1;1 -> e12' + MARKER +
+                                             //'root: mouseout@null;null -> e11' + MARKER +
+                                             //'root: mouseover@1;1 -> e12' + MARKER +
                                              'e1: mouseover@1;1 -> e12' + MARKER +
                                              'e12: mouseover@1;1 -> e12');
 

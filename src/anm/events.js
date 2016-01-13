@@ -139,7 +139,7 @@ function MouseEventsSupport(owner, state) {
 MouseEventsSupport.prototype.markAsHoveredTree = function(moveEvent) {
     this.hoverEvent = moveEvent;
     if (this.owner.parent) {
-        this.owner.parent.getMouseSupport().markAsHoveredTree(moveEvent);
+        this.owner.parent.getMouseSupport(this.state).markAsHoveredTree(moveEvent);
     }
 }
 MouseEventsSupport.prototype.adaptEvent = function(event) {
@@ -190,18 +190,18 @@ MouseEventsSupport.prototype.processOver = function(commonChild, overEvent) {
 }
 MouseEventsSupport.prototype.processOut = function(outEvent) {
     var processParent = false;
-    if (this.hoverEvent && (this.hoverEvent !== event)) {
+    if (this.hoverEvent && (this.hoverEvent !== outEvent)) {
         this.hoverEvent = null;
         this.owner.fire('mouseout', outEvent);
         processParent = true;
     }
 
     if (processParent && this.owner.parent) {
-        var parentSupport = this.owner.parent.getMouseSupport();
+        var parentSupport = this.owner.parent.getMouseSupport(this.state);
         return parentSupport.processOut(outEvent);
     }
 
-    return this;
+    return this.owner;
 }
 MouseEventsSupport.prototype.processMove = function(moveEvent) {
     this.markAsHoveredTree(moveEvent);
@@ -213,7 +213,7 @@ MouseEventsSupport.prototype.processMove = function(moveEvent) {
     var commonChild = null;
     if (lastHoveredNode) {
         var outEvent = this.makeOutEvent(moveEvent, lastHoveredNode);
-        var hoveredSupport = lastHoveredNode.getMouseSupport();
+        var hoveredSupport = lastHoveredNode.getMouseSupport(this.state);
         commonChild = hoveredSupport.processOut(outEvent);
     }
 
