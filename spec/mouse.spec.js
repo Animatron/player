@@ -148,14 +148,14 @@ describe('handling mouse in static objects', function() {
 
         });
 
-        it('passes click event to the root element', function() {
+        it('passes click event to the appropriate element', function() {
 
             expect({ type: 'click', x: 10, y: 10 })
-               .toBeHandledAs({ type: 'mouseclick', target: e11, x: 10, y: 10, in: root });
+               .toBeHandledAs({ type: 'mouseclick', target: e11, x: 10, y: 10 });
 
         });
 
-        it('passes click event to the first subscribed element', function() {
+        it('keeps passing click event to the subscribed element', function() {
 
             expect({ type: 'click', x: 10, y: 10 })
                .toBeHandledAs({ type: 'mouseclick', target: e11, x: 10, y: 10 });
@@ -318,7 +318,7 @@ function prepareCustomMatchers(fireCanvasEvent) {
                     for (var i = 0; i < toTest.length; i++) {
                         var expectation = toTest[i];
                         var listeningElement = (expectation.in || expectation.target);
-                        var targetName = (expectation.target instanceof anm.Animation ? 'animation' : expectation.target.name);
+                        var targetName = (listeningElement instanceof anm.Animation ? 'animation' : listeningElement.name);
                         eventSpy = jasmine.createSpy(targetName + '-' + expectation.type)
                                           .and.callFake(function(evt) {
                                               handledEvents.push(evt);
