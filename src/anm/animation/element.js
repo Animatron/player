@@ -147,7 +147,7 @@ Element.NO_BAND = null;
 Element.DEFAULT_LEN = Infinity;
 Element._customImporters = [];
 provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
-                         C.X_MMOVE, C.X_MOVER, C.X_MOUT ]);
+                         C.X_MMOVE, C.X_MENTER, C.X_MEXIT ]);
 /**
  * @method is
  *

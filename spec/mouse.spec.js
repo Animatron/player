@@ -26,7 +26,7 @@ prettify();
 
 describe('handling mouse in static objects', function() {
 
-    // FIXME: rename mouseover -> mousein
+    // FIXME: rename mouseenter -> mousein
 
     // build scene
 
@@ -185,7 +185,7 @@ describe('handling mouse in static objects', function() {
 
         var MARKER = '\n';
 
-        var events = [ /*'mousemove',*/ 'mouseover', 'mouseout'/*, 'mouseclick'*/ ];
+        var events = [ /*'mousemove',*/ 'mouseenter', 'mouseexit'/*, 'mouseclick'*/ ];
         var targets = [ root, e1, e2, e11, e12 ];
 
         beforeEach(function() {
@@ -220,15 +220,15 @@ describe('handling mouse in static objects', function() {
 
         /* it('transfers in/out event to the corresponding receivers', function() {
             expect({ type: 'mousemove', x: 25, y: 75 })
-                .toBeHandledAs([ { in: e2,   target: e2, type: 'mouseover', x: 25, y: 30 },
-                                 { in: root, target: e2, type: 'mouseover', x: 25, y: 30 } ]);
+                .toBeHandledAs([ { in: e2,   target: e2, type: 'mouseenter', x: 25, y: 30 },
+                                 { in: root, target: e2, type: 'mouseenter', x: 25, y: 30 } ]);
         }); */
 
         it('in/out events properly work in sequences', function() {
 
             fireCanvasEvent('mousemove', 25, 75);
-            expect(log.join(MARKER)).toEqual('root: mouseover@25;30 -> e2' + MARKER +
-                                             'e2: mouseover@25;30 -> e2');
+            expect(log.join(MARKER)).toEqual('root: mouseenter@25;30 -> e2' + MARKER +
+                                             'e2: mouseenter@25;30 -> e2');
 
             log = [];
 
@@ -239,22 +239,22 @@ describe('handling mouse in static objects', function() {
             expect(log.join(MARKER)).toEqual('');
 
             fireCanvasEvent('mousemove', 25, 25);
-            expect(log.join(MARKER)).toEqual('e2: mouseout@null;null -> e2' + MARKER +
-                                             'e1: mouseover@25;25 -> e11' + MARKER +
-                                             'e11: mouseover@25;25 -> e11');
+            expect(log.join(MARKER)).toEqual('e2: mouseexit@null;null -> e2' + MARKER +
+                                             'e1: mouseenter@25;25 -> e11' + MARKER +
+                                             'e11: mouseenter@25;25 -> e11');
 
             log = [];
 
             fireCanvasEvent('mousemove', 76, 6);
-            expect(log.join(MARKER)).toEqual('e11: mouseout@null;null -> e11' + MARKER +
-                                             'e12: mouseover@1;1 -> e12');
+            expect(log.join(MARKER)).toEqual('e11: mouseexit@null;null -> e11' + MARKER +
+                                             'e12: mouseenter@1;1 -> e12');
 
             log = [];
 
             fireCanvasEvent('mousemove', 25, 75);
-            expect(log.join(MARKER)).toEqual('e12: mouseout@null;null -> e12' + MARKER +
-                                             'e1: mouseout@null;null -> e12' + MARKER +
-                                             'e2: mouseover@25;30 -> e2');
+            expect(log.join(MARKER)).toEqual('e12: mouseexit@null;null -> e12' + MARKER +
+                                             'e1: mouseexit@null;null -> e12' + MARKER +
+                                             'e2: mouseenter@25;30 -> e2');
 
         });
 

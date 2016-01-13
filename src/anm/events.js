@@ -86,8 +86,8 @@ registerEvent('X_MDCLICK', 'mousedoubleclick');
 registerEvent('X_MUP', 'mouseup');
 registerEvent('X_MDOWN', 'mousedown');
 registerEvent('X_MMOVE', 'mousemove');
-registerEvent('X_MOVER', 'mouseover');
-registerEvent('X_MOUT', 'mouseout');
+registerEvent('X_MENTER', 'mouseenter');
+registerEvent('X_MEXIT', 'mouseexit');
 
 // * keyboard
 registerEvent('X_KPRESS', 'keypress');
@@ -167,7 +167,7 @@ MouseEventsSupport.prototype.dispatch = function(event) {
             this.owner.fire('mouseclick', localEvent);
             return true;
         } else if (event.type === 'mousemove') {
-            this.processMove(localEvent); // fire mouseover/mouseout if required
+            this.processMove(localEvent); // fire mouseenter/mousexit if required
             return true;
         }
     }
@@ -184,7 +184,7 @@ MouseEventsSupport.prototype.processOver = function(commonChild, moveEvent) {
     if (inPath.length > 0) {
         var overEvent = this.makeOverEvent(moveEvent);
         for (var i = (inPath.length - 1); i >= 0; i--) {
-            inPath[i].fire('mouseover', overEvent);
+            inPath[i].fire('mouseenter', overEvent);
         }
     }
 }
@@ -192,7 +192,7 @@ MouseEventsSupport.prototype.processOut = function(moveEvent) {
     var processParent = false;
     if (this.hoverEvent && (this.hoverEvent !== moveEvent)) {
         this.hoverEvent = null;
-        this.owner.fire('mouseout', this.makeOutEvent(moveEvent));
+        this.owner.fire('mouseexit', this.makeOutEvent(moveEvent));
         processParent = true;
     }
 
@@ -222,14 +222,14 @@ MouseEventsSupport.prototype.processMove = function(moveEvent) {
 }
 MouseEventsSupport.prototype.makeOutEvent = function(moveEvent) {
     var outEvent = moveEvent.clone();
-    outEvent.type = 'mouseout';
+    outEvent.type = 'mouseexit';
     outEvent.target = this.state.lastHoveredNode;
     outEvent.x = null; outEvent.y = null;
     return outEvent;
 }
 MouseEventsSupport.prototype.makeOverEvent = function(moveEvent) {
     var overEvent = moveEvent.clone();
-    overEvent.type = 'mouseover';
+    overEvent.type = 'mouseenter';
     overEvent.target = this.owner;
     return overEvent;
 }
