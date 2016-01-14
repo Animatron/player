@@ -1,6 +1,7 @@
 var utils = require('../utils.js'),
     is = utils.is,
-    iter = utils.iter;
+    iter = utils.iter,
+    log = require('../log.js');
 
 var Search = require('./search.js');
 
@@ -10,6 +11,8 @@ var Timeline = require('./timeline.js');
 
 function Scene(anim, name, duration) {
     this.id = utils.guid();
+
+    if (!anim) log.error('Scene was created with undefined Animation');
 
     this.anim = anim;
     this.name = name;
@@ -218,8 +221,8 @@ Scene.prototype.reset = function() {
     });
 };
 
-Scene._fromElement = function(elm) {
-    var scene = new Scene(elm.anim, elm.name/*, elm.timeline.getDuration()*/);
+Scene._fromElement = function(elm, anim) {
+    var scene = new Scene(anim || elm.anim, elm.name/*, elm.timeline.getDuration()*/);
     scene.timeline = elm.timeline.clone();
     elm.each(function(child) {
         scene.add(child);
