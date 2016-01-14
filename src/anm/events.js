@@ -161,15 +161,12 @@ MouseEventsSupport.prototype.dispatch = function(event) {
             }
         });
 
-        if (dispatchedByChild) return true;
-
-        if (event.type === 'mouseclick') {
-            this.owner.fire('mouseclick', localEvent);
-            return true;
-        } else if (event.type === 'mousemove') {
-            this.processMove(localEvent); // fire mouseenter/mousexit if required
-            return true;
+        if (!dispatchedByChild && (event.type === 'mousemove')) {
+            this.processMove(localEvent); // fire mouseenter/mouseexit if required
         }
+
+        this.owner.fire(event.type, localEvent);
+        return true;
     }
     return;
 }

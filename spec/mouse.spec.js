@@ -119,7 +119,8 @@ describe('handling mouse in static objects', function() {
 
         player.load(anim, function() {
             player.play();
-            setTimeout(done, 100); // ensure at least one frame was rendered
+            done();
+            //setTimeout(done, 100); // ensure at least one frame was rendered
         });
     }
 
@@ -184,82 +185,61 @@ describe('handling mouse in static objects', function() {
 
     describe('handles moves and in/outs properly', function() {
 
-        var log = [];
-
-        var handlers = {};
-
         var MARKER = '\n';
 
-        var events = [ /*'mousemove',*/ 'mouseenter', 'mouseexit'/*, 'mouseclick'*/ ];
         var targets = [ root, e1, e2, e11, e12 ];
+        var events = [ 'mouseenter', 'mouseexit' ];
+
+        var log = new EventLog(targets, events);
 
         beforeEach(function() {
-            var target, handler_id, event_type;
-            for (var i = 0; i < targets.length; i++) {
-                target = targets[i];
-                handlers[target.id] = {};
-                for (var j = 0; j < events.length; j++) {
-                    event_type = events[j];
-                    handler_id = target.on(event_type, (function(event_type, target) {
-                        return function(evt) {
-                            log.push(target.name + ': ' + event_type + '@' + evt.x + ';' + evt.y + (evt.target ? ' -> ' + evt.target.name : ''));
-                        };
-                    })(event_type, target));
-                    handlers[target.id][event_type] = handler_id;
-                }
-            }
+            log.subscribe();
         });
 
         afterEach(function() {
-            log = [];
-            var target, event_type;
-            for (var i = 0; i < targets.length; i++) {
-                target = targets[i];
-                var trg_handlers = handlers[target.id];
-                for (var j = 0; j < events.length; j++) {
-                    event_type = events[j];
-                    target.unbind(event_type, trg_handlers[event_type]);
-                }
-            }
+            log.unsubscribe();
+            log.clear();
         });
 
         /* it('transfers in/out event to the corresponding receivers', function() {
             expect({ type: 'mousemove', x: 25, y: 75 })
                 .toBeHandledAs([ { in: e2,   target: e2, type: 'mouseenter', x: 25, y: 30 },
                                  { in: root, target: e2, type: 'mouseenter', x: 25, y: 30 } ]);
+
+            fireCanvasEvent('mousemove', 10, 10);
         }); */
 
         it('in/out events properly work in sequences', function() {
 
             fireCanvasEvent('mousemove', 25, 75);
-            expect(log.join(MARKER)).toEqual('root: mouseenter@25;30 -> e2' + MARKER +
-                                             'e2: mouseenter@25;30 -> e2');
+            expect(log.stringify(MARKER)).toEqual([ 'root: mouseenter@25;30 -> e2',
+                                                    'e2: mouseenter@25;30 -> e2' ].join(MARKER));
 
-            log = [];
+            log.clear();
 
             fireCanvasEvent('mousemove', 25, 75);
-            expect(log.join(MARKER)).toEqual('');
+            expect(log.stringify(MARKER)).toEqual('');
 
             fireCanvasEvent('mousemove', 26, 76);
-            expect(log.join(MARKER)).toEqual('');
+            expect(log.stringify(MARKER)).toEqual('');
 
             fireCanvasEvent('mousemove', 25, 25);
-            expect(log.join(MARKER)).toEqual('e2: mouseexit@null;null -> e2' + MARKER +
-                                             'e1: mouseenter@25;25 -> e11' + MARKER +
-                                             'e11: mouseenter@25;25 -> e11');
+            expect(log.stringify(MARKER)).toEqual([ 'e2: mouseexit@null;null -> e2',
+                                                    'e1: mouseenter@25;25 -> e11',
+                                                    'e11: mouseenter@25;25 -> e11' ].join(MARKER));
 
-            log = [];
+            log.clear();
 
             fireCanvasEvent('mousemove', 76, 6);
-            expect(log.join(MARKER)).toEqual('e11: mouseexit@null;null -> e11' + MARKER +
-                                             'e12: mouseenter@1;1 -> e12');
+            expect(log.stringify(MARKER)).toEqual([ 'e11: mouseexit@null;null -> e11',
+                                                    'e12: mouseenter@1;1 -> e12' ].join(MARKER));
 
-            log = [];
+            log.clear();
 
             fireCanvasEvent('mousemove', 25, 75);
-            expect(log.join(MARKER)).toEqual('e12: mouseexit@null;null -> e12' + MARKER +
-                                             'e1: mouseexit@null;null -> e12' + MARKER +
-                                             'e2: mouseenter@25;30 -> e2');
+            expect(log.stringify(MARKER)).toEqual([ 'e12: mouseexit@null;null -> e12',
+                                                    'e1: mouseexit@null;null -> e12',
+                                                    'e2: mouseenter@25;30 -> e2' ].join(MARKER));
 
         });
 
@@ -267,24 +247,48 @@ describe('handling mouse in static objects', function() {
 
     describe('other types of events', function() {
 
+        var MARKER = '\n';
+
+        var targets = [ root, e1, e2, e11, e12 ];
+        var events = [ 'mousemove', 'mousedown', 'mouseup', 'mousedoubleclick' ];
+
+        var log = new EventLog(targets, events);
+
+        beforeEach(function() {
+            log.subscribe();
+        });
+
+        afterEach(function() {
+            log.unsubscribe();
+            log.clear();
+        });
+
         it('properly handles mousemove event', function() {
-            expect({ type: 'mousemove', x: 10, y: 10 })
-               .toBeHandledAs({ type: 'mousemove', target: e11, x: 10, y: 10 });
+            fireCanvasEvent('mousemove', 10, 10);
+            expect(log.stringify(MARKER)).toEqual([ 'e11: mousemove@10;10 -> e11',
+                                                    'e1: mousemove@10;10 -> e11',
+                                                    'root: mousemove@10;10 -> e11' ].join(MARKER));
         });
 
         it('properly handles mousedown event', function() {
-            expect({ type: 'mousedown', x: 10, y: 10 })
-               .toBeHandledAs({ type: 'mousedown', target: e11, x: 10, y: 10 });
+            fireCanvasEvent('mousedown', 10, 10);
+            expect(log.stringify(MARKER)).toEqual([ 'e11: mousedown@10;10 -> e11',
+                                                    'e1: mousedown@10;10 -> e11',
+                                                    'root: mousedown@10;10 -> e11' ].join(MARKER));
         });
 
         it('properly handles mouseup event', function() {
-            expect({ type: 'mouseup', x: 10, y: 10 })
-               .toBeHandledAs({ type: 'mouseup', target: e11, x: 10, y: 10 });
+            fireCanvasEvent('mouseup', 10, 10);
+            expect(log.stringify(MARKER)).toEqual([ 'e11: mouseup@10;10 -> e11',
+                                                    'e1: mouseup@10;10 -> e11',
+                                                    'root: mouseup@10;10 -> e11' ].join(MARKER));
         });
 
         it('properly handles doubleclick event', function() {
-            expect({ type: 'dblclick', x: 10, y: 10 })
-               .toBeHandledAs({ type: 'mousedoubleclick', target: e11, x: 10, y: 10 });
+            fireCanvasEvent('dblclick', 10, 10);
+            expect(log.stringify(MARKER)).toEqual([ 'e11: mousedoubleclick@10;10 -> e11',
+                                                    'e1: mousedoubleclick@10;10 -> e11',
+                                                    'root: mousedoubleclick@10;10 -> e11' ].join(MARKER));
         });
 
     });
@@ -310,6 +314,85 @@ function prettify() {
         return '[ Scene' + (this.name ? ' ' + this.name : '') + ' ' + this.id + ' ]';
     }
 
+}
+
+function EventLog(targets, events) {
+    this.log = [];
+    this.handlers = {};
+    this.targets = targets;
+    this.events = events;
+}
+EventLog.prototype.add = function(target, eventType, event) {
+    this.log.push(target.name + ': ' + eventType + '@' + event.x + ';' + event.y + (event.target ? ' -> ' + event.target.name : ''));
+}
+EventLog.prototype.clear = function() {
+    this.log = [];
+}
+EventLog.prototype.stringify = function(marker) {
+    return this.log.join(marker)
+}
+EventLog.prototype.subscribe = function() {
+    var eventLog = this;
+    var handlers = this.handlers,
+        targets = this.targets,
+        events = this.events;
+    var target, handler_id, event_type;
+    for (var i = 0; i < targets.length; i++) {
+        target = targets[i];
+        handlers[target.id] = {};
+        for (var j = 0; j < events.length; j++) {
+            event_type = events[j];
+            handler_id = target.on(event_type, (function(event_type, target) {
+                return function(evt) {
+                    eventLog.add(target, event_type, evt);
+                };
+            })(event_type, target));
+            handlers[target.id][event_type] = handler_id;
+        }
+    }
+}
+EventLog.prototype.unsubscribe = function() {
+    var handlers = this.handlers,
+        targets = this.targets,
+        events = this.events;
+    var target, event_type;
+    for (var i = 0; i < targets.length; i++) {
+        target = targets[i];
+        var trg_handlers = handlers[target.id];
+        for (var j = 0; j < events.length; j++) {
+            event_type = events[j];
+            target.unbind(event_type, trg_handlers[event_type]);
+        }
+    }
+}
+
+function pushToLog(log, targets, events) {
+    var handlers = {};
+    var target, handler_id, event_type;
+    for (var i = 0; i < targets.length; i++) {
+        target = targets[i];
+        handlers[target.id] = {};
+        for (var j = 0; j < events.length; j++) {
+            event_type = events[j];
+            handler_id = target.on(event_type, (function(event_type, target) {
+                return function(evt) {
+                    log.push(target.name + ': ' + event_type + '@' + evt.x + ';' + evt.y + (evt.target ? ' -> ' + evt.target.name : ''));
+                };
+            })(event_type, target));
+            handlers[target.id][event_type] = handler_id;
+        }
+    }
+    return function() {
+        var target, event_type;
+        for (var i = 0; i < targets.length; i++) {
+            target = targets[i];
+            var trg_handlers = handlers[target.id];
+            for (var j = 0; j < events.length; j++) {
+                event_type = events[j];
+                target.unbind(event_type, trg_handlers[event_type]);
+            }
+        }
+    }
 }
 
 function prepareCustomMatchers(fireCanvasEvent) {
