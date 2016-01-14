@@ -266,29 +266,29 @@ describe('handling mouse in static objects', function() {
         it('properly handles mousemove event', function() {
             fireCanvasEvent('mousemove', 10, 10);
             expect(log.stringify(MARKER)).toEqual([ 'e11: mousemove@10;10 -> e11',
-                                                    'e1: mousemove@10;10 -> e11',
-                                                    'root: mousemove@10;10 -> e11' ].join(MARKER));
+                                                    'e1: mousemove@10;10 -> e1',
+                                                    'root: mousemove@10;10 -> root' ].join(MARKER));
         });
 
         it('properly handles mousedown event', function() {
             fireCanvasEvent('mousedown', 10, 10);
             expect(log.stringify(MARKER)).toEqual([ 'e11: mousedown@10;10 -> e11',
-                                                    'e1: mousedown@10;10 -> e11',
-                                                    'root: mousedown@10;10 -> e11' ].join(MARKER));
+                                                    'e1: mousedown@10;10 -> e1',
+                                                    'root: mousedown@10;10 -> root' ].join(MARKER));
         });
 
         it('properly handles mouseup event', function() {
             fireCanvasEvent('mouseup', 10, 10);
             expect(log.stringify(MARKER)).toEqual([ 'e11: mouseup@10;10 -> e11',
-                                                    'e1: mouseup@10;10 -> e11',
-                                                    'root: mouseup@10;10 -> e11' ].join(MARKER));
+                                                    'e1: mouseup@10;10 -> e1',
+                                                    'root: mouseup@10;10 -> root' ].join(MARKER));
         });
 
         it('properly handles doubleclick event', function() {
             fireCanvasEvent('dblclick', 10, 10);
             expect(log.stringify(MARKER)).toEqual([ 'e11: mousedoubleclick@10;10 -> e11',
-                                                    'e1: mousedoubleclick@10;10 -> e11',
-                                                    'root: mousedoubleclick@10;10 -> e11' ].join(MARKER));
+                                                    'e1: mousedoubleclick@10;10 -> e1',
+                                                    'root: mousedoubleclick@10;10 -> root' ].join(MARKER));
         });
 
     });

@@ -152,23 +152,28 @@ MouseEventsSupport.prototype.adaptEvent = function(event) {
 MouseEventsSupport.prototype.dispatch = function(event) {
     var owner = this.owner;
     var localEvent = this.adaptEvent(event);
-    var dispatchedByChild; // found the matching child inside
+    var dispatchedChild;  // found the matching child inside
     if (owner.inside(localEvent)) {
         owner.reverseEach(function(child) {
             if (child.isActive()) {
-                dispatchedByChild = child.dispatchMouseEvent(localEvent);
-                if (dispatchedByChild) return false; // stop iteration of reverseEach
+                dispatchedChild = child.dispatchMouseEvent(localEvent) ? child : null;
+                if (dispatchedChild) return false; // stop iteration of reverseEach
             }
         });
 
-        if (!dispatchedByChild && (event.type === 'mousemove')) {
+        if (!dispatchedChild && (event.type === 'mousemove')) {
             this.processMove(localEvent); // fire mouseenter/mouseexit if required
         }
 
+        //var adaptedEvent = localEvent.clone();
+        //adaptedEvent.target = dispatchedChild || this.owner;
+        //this.owner.fire(event.type, adaptedEvent);
+
         this.owner.fire(event.type, localEvent);
+
         return true;
     }
-    return;
+    return false;
 }
 MouseEventsSupport.prototype.processOver = function(commonChild, moveEvent) {
     var inPath = [];
