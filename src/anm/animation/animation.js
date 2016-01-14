@@ -578,8 +578,8 @@ Animation.prototype.subscribeEvents = function(canvas) {
         if (events.isMouse(anmEventType)) {
             var currentScene = anim.currentScene;
             if (currentScene && currentScene.isActive()) {
-                var anmEvent = new events.MouseEvent(anmEventType, event.x, event.y,
-                                                     anim, event); // target, source
+                var anmEvent = new events.MouseEvent(anmEventType, domEvent.x, domEvent.y,
+                                                     anim, domEvent); // target, source
                 currentScene.reverseEach(function(child) {
                     if (child.isActive()) {
                         // stop iteration if event was dispatched and continue if it wasn't

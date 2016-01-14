@@ -70,11 +70,16 @@ describe('handling mouse in static objects', function() {
 
     var canvas, wrapper;
 
+    var CANVAS_X = 100,
+        CANVAS_Y = 100;
+
     // function to fire canvas event
 
     function fireCanvasEvent(type, x, y) {
         var evt = document.createEvent('MouseEvents');
-        evt.initMouseEvent(type, true, true, window, 1, x, y, x, y, false, false, true, false, 0, null);
+        evt.initMouseEvent(type, true, true, window, 1,
+                           x + CANVAS_X, y + CANVAS_Y, x + CANVAS_X, y + CANVAS_Y,
+                           false, false, true, false, 0, null);
         canvas.dispatchEvent(evt);
     }
 
@@ -95,8 +100,8 @@ describe('handling mouse in static objects', function() {
         wrapper = document.createElement('div');
         document.body.appendChild(wrapper);
         wrapper.style.position = 'fixed';
-        wrapper.style.top = '0';
-        wrapper.style.left = '0';
+        wrapper.style.top = CANVAS_X + 'px'; // test adapting canvas coordinates
+        wrapper.style.left = CANVAS_Y + 'px'; // test adapting canvas coordinates
         wrapper.style.visibility = 'hidden';
 
         player = new anm.Player();
@@ -114,7 +119,7 @@ describe('handling mouse in static objects', function() {
 
         player.load(anim, function() {
             player.play();
-            setTimeout(done, 100); // ensure play at least one frame
+            setTimeout(done, 100); // ensure at least one frame was rendered
         });
     }
 
