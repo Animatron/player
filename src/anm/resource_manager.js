@@ -247,7 +247,9 @@ ResourceManager.prototype.cancel = function(subject_id) {
         } }
     }
     // clear _url_to_subjects ?
-    delete this._subscriptions[subject_id];
+    if (this._subscriptions[subject_id]) {
+        delete this._subscriptions[subject_id];
+    }
 };
 
 ResourceManager.prototype.clear = function() {
