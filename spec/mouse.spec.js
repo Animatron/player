@@ -265,6 +265,30 @@ describe('handling mouse in static objects', function() {
 
     });
 
+    describe('other types of events', function() {
+
+        it('properly handles mousemove event', function() {
+            expect({ type: 'mousemove', x: 10, y: 10 })
+               .toBeHandledAs({ type: 'mousemove', target: e11, x: 10, y: 10 });
+        });
+
+        it('properly handles mousedown event', function() {
+            expect({ type: 'mousedown', x: 10, y: 10 })
+               .toBeHandledAs({ type: 'mousedown', target: e11, x: 10, y: 10 });
+        });
+
+        it('properly handles mouseup event', function() {
+            expect({ type: 'mouseup', x: 10, y: 10 })
+               .toBeHandledAs({ type: 'mouseup', target: e11, x: 10, y: 10 });
+        });
+
+        it('properly handles doubleclick event', function() {
+            expect({ type: 'dblclick', x: 10, y: 10 })
+               .toBeHandledAs({ type: 'mousedoubleclick', target: e11, x: 10, y: 10 });
+        });
+
+    });
+
 });
 
 xdescribe('handling mouse in transformed objects', function() {
