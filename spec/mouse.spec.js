@@ -90,8 +90,6 @@ describe('handling mouse in static objects', function() {
         documentReady = true;
     });
 
-    var customMatchers = prepareCustomMatchers(fireCanvasEvent);
-
     function setupPlayer(done) {
         if (canvas || wrapper) {
             player.detach(); // will remove the wrapper div from the body
@@ -125,8 +123,6 @@ describe('handling mouse in static objects', function() {
     }
 
     beforeEach(function(done) {
-
-        jasmine.addMatchers(customMatchers);
 
         if (documentReady) {
             setupPlayer(done);
@@ -376,91 +372,6 @@ EventLog.prototype.unsubscribe = function() {
         for (var j = 0; j < events.length; j++) {
             event_type = events[j];
             target.unbind(event_type, trg_handlers[event_type]);
-        }
-    }
-}
-
-function pushToLog(log, targets, events) {
-    var handlers = {};
-    var target, handler_id, event_type;
-    for (var i = 0; i < targets.length; i++) {
-        target = targets[i];
-        handlers[target.id] = {};
-        for (var j = 0; j < events.length; j++) {
-            event_type = events[j];
-            handler_id = target.on(event_type, (function(event_type, target) {
-                return function(evt) {
-                    log.push(target.name + ': ' + event_type + '@' + evt.x + ';' + evt.y + (evt.target ? ' -> ' + evt.target.name : ''));
-                };
-            })(event_type, target));
-            handlers[target.id][event_type] = handler_id;
-        }
-    }
-    return function() {
-        var target, event_type;
-        for (var i = 0; i < targets.length; i++) {
-            target = targets[i];
-            var trg_handlers = handlers[target.id];
-            for (var j = 0; j < events.length; j++) {
-                event_type = events[j];
-                target.unbind(event_type, trg_handlers[event_type]);
-            }
-        }
-    }
-}
-
-function prepareCustomMatchers(fireCanvasEvent) {
-    return {
-        toBeHandledAs: function() {
-            return {
-                compare: function(expected, actual) {
-                    //console.log(arguments);
-
-                    var toFire = Array.isArray(expected) ? expected : [ expected ],
-                        toTest = Array.isArray(actual) ? actual : [ actual ];
-
-                    var handledEvents = [];
-                    var eventSpies = [];
-
-
-                    // create spies and assign handlers collecting the corresponding events
-                    var eventSpy;
-                    for (var i = 0; i < toTest.length; i++) {
-                        var expectation = toTest[i];
-                        var listeningElement = (expectation.in || expectation.target);
-                        var targetName = (listeningElement instanceof anm.Animation ? 'animation' : listeningElement.name);
-                        eventSpy = jasmine.createSpy(targetName + '-' + expectation.type)
-                                          .and.callFake(function(evt) {
-                                              handledEvents.push(evt);
-                                          });
-                        listeningElement.on(expectation.type, eventSpy);
-                        eventSpies.push(eventSpy);
-                    }
-                    expect(eventSpies.length).toEqual(toTest.length);
-
-                    // fire the events in order
-                    for (i = 0; i < toFire.length; i++) {
-                        var declaration = toFire[i];
-                        fireCanvasEvent(declaration.type, declaration.x, declaration.y);
-                    }
-
-                    // ensure all events came in expected order and are equal to expectations
-                    expect(handledEvents.length).toEqual(toTest.length);
-                    for (i = 0; i < handledEvents.length; i++) {
-                        delete toTest[i]['in'];
-                        expect(handledEvents[i]).toEqual(jasmine.objectContaining(toTest[i]));
-                    }
-
-                    // ensure all spice have been called
-                    for (i = 0; i < eventSpies.length; i++) {
-                        expect(eventSpies[i]).toHaveBeenCalled();
-                        eventSpies[i].calls.reset();
-                        //expect(eventSpies[i]).toHaveBeenCalledOnce(); ?
-                    }
-
-                    return { pass: true }
-                }
-            }
         }
     }
 }
