@@ -146,38 +146,52 @@ describe('handling mouse in static objects', function() {
 
     describe('handles clicks properly', function() {
 
-        // TODO: split into subtests
+        var MARKER = '\n';
+
+        var targets = [ root, e1, e2, e11, e12 ];
+        var events = [ 'mouseclick' ];
+
+        var log = new EventLog(targets, events);
+
+        beforeEach(function() {
+            log.subscribe();
+        });
+
+        afterEach(function() {
+            log.unsubscribe();
+            log.clear();
+        });
 
         it('passes click event to the appropriate element', function() {
 
-            expect({ type: 'click', x: 10, y: 10 })
-               .toBeHandledAs({ type: 'mouseclick', target: e11, x: 10, y: 10 });
+            fireCanvasEvent('click', 10, 10);
+            expect(log.stringify(MARKER)).toEqual([ 'e11: mouseclick@10;10 -> e11' ].join(MARKER));
 
         });
 
         it('keeps passing click event to the subscribed element', function() {
 
-            expect({ type: 'click', x: 10, y: 10 })
-               .toBeHandledAs({ type: 'mouseclick', target: e11, x: 10, y: 10 });
+            fireCanvasEvent('click', 10, 10);
+            expect(log.stringify(MARKER)).toEqual([ 'e11: mouseclick@10;10 -> e11' ].join(MARKER));
 
-            expect({ type: 'click', x: 25, y: 25 })
-               .toBeHandledAs({ type: 'mouseclick', target: e11, x: 25, y: 25 });
+            fireCanvasEvent('click', 25, 25);
+            expect(log.stringify(MARKER)).toEqual([ 'e11: mouseclick@25;25 -> e11' ].join(MARKER));
 
         });
 
         it('properly passes click events to corresponding handlers, according to overlaps', function() {
 
-            expect({ type: 'click', x: 75, y: 25 })
-               .toBeHandledAs({ type: 'mouseclick', target: e1, x: 75, y: 25 });
+            fireCanvasEvent('click', 75, 25);
+            expect(log.stringify(MARKER)).toEqual([ 'e1: mouseclick@75;25 -> e1' ].join(MARKER));
 
-            expect({ type: 'click', x: 76, y: 7 })
-               .toBeHandledAs({ type: 'mouseclick', target: e12, x: 1, y: 2 });
+            fireCanvasEvent('click', 76, 7);
+            expect(log.stringify(MARKER)).toEqual([ 'e12: mouseclick@1;2 -> e12' ].join(MARKER));
 
-            expect({ type: 'click', x: 25, y: 47 })
-               .toBeHandledAs({ type: 'mouseclick', target: e2, x: 25, y: 2 });
+            fireCanvasEvent('click', 25, 47);
+            expect(log.stringify(MARKER)).toEqual([ 'e2: mouseclick@25;2 -> e2' ].join(MARKER));
 
-            expect({ type: 'click', x: 75, y: 47 })
-               .toBeHandledAs({ type: 'mouseclick', target: e2, x: 75, y: 2 });
+            fireCanvasEvent('click', 75, 47);
+            expect(log.stringify(MARKER)).toEqual([ 'e2: mouseclick@25;2 -> e2' ].join(MARKER));
 
         });
 
