@@ -28,8 +28,6 @@ var DOM_TO_EVT_MAP = {
     'mouseup':   C.X_MUP,
     'mousedown': C.X_MDOWN,
     'mousemove': C.X_MMOVE,
-    'mouseover': C.X_MOVER,
-    'mouseout':  C.X_MOUT,
     'keypress':  C.X_KPRESS,
     'keyup':     C.X_KUP,
     'keydown':   C.X_KDOWN
@@ -82,13 +80,12 @@ function Animation() {
     this.currentScene = this.scenes[this.currentSceneIdx];
 
     this.endOnLastScene = true;
+    this.listensMouse = false;
 }
 
 Animation.DEFAULT_DURATION = 10;
 
-provideEvents(Animation, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
-                           C.X_MMOVE, C.X_MOVER, C.X_MOUT,
-                           C.X_KPRESS, C.X_KUP, C.X_KDOWN, C.X_ERROR ]);
+provideEvents(Animation, [ C.X_KPRESS, C.X_KUP, C.X_KDOWN, C.X_ERROR ]);
 /**
  * @method add
  * @chainable
@@ -133,6 +130,7 @@ Animation.prototype.addScene = function(name, duration) {
         scene = new Scene(this, name, duration);
     } else {
         scene = name;
+        scene.anim = this;
     }
     this.scenes.push(scene);
     return scene;
@@ -250,6 +248,26 @@ Animation.prototype.each = function(visitor, data) {
 };
 
 /**
+ * @method eachVisible
+ * @chainable
+ *
+ * Visit every visible root element (direct child of a current scene) in a tree.
+ *
+ * @param {Function} visitor
+ * @param {anm.Element} visitor.child
+ * @param {Boolean} visitor.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
+ * @param {Object} [data]
+ */
+Animation.prototype.eachVisible = function(visitor, data) {
+    if (this.currentScene && this.currentScene.isActive()) {
+        this.currentScene.each(function(child) {
+            return (child.isActive() && (visitor(child, data) === false)) ? false : true;
+        });
+    }
+    return this;
+};
+
+/**
  * @method reverseEach
  * @chainable
  *
@@ -265,6 +283,29 @@ Animation.prototype.each = function(visitor, data) {
  */
 Animation.prototype.reverseEach = function(visitor, data) {
     this.eachScene(function(scene) { scene.reverseEach(visitor, data); });
+    return this;
+};
+
+/**
+ * @method reverseTraverseVisible
+ * @chainable
+ *
+ * Visit every visible root element of the scene in a tree. The only difference
+ * with {@link anm.Animation#eachVisible .eachVisible} is that `.reverseEachVisible` literally iterates
+ * over the children in the order _reverse_ to the order of their addition—this
+ * could be helpful when you need elements with higher z-index to be visited before.
+ *
+ * @param {Function} visitor
+ * @param {anm.Element} visitor.child
+ * @param {Boolean} visitor.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
+ * @param {Object} [data]
+ */
+Animation.prototype.reverseEachVisible = function(visitor, data) {
+    if (this.currentScene && this.currentScene.isActive()) {
+        this.currentScene.reverseEach(function(child) {
+            return (child.isActive() && (visitor(child, data) === false)) ? false : true;
+        });
+    }
     return this;
 };
 
@@ -398,6 +439,7 @@ Animation.prototype.getTime = function() {
 };
 
 Animation.prototype.setDuration = function(duration) {
+    if (this.scenes.length === 1) this.scenes[0].setDuration(duration);
     this.timeline.setDuration(duration);
 };
 
@@ -448,6 +490,9 @@ Animation.prototype.reset = function() {
     this.eachScene(function(scene) {
         scene.reset();
     });
+
+    if (this.mouseState) this.mouseState = new events.MouseEventsState();
+
     return this;
 };
 
@@ -524,7 +569,27 @@ Animation.prototype.toString = function() {
  * @param {Canvas} canvas
  */
 Animation.prototype.subscribeEvents = function(canvas) {
-    engine.subscribeAnimationToEvents(canvas, this, DOM_TO_EVT_MAP);
+    var anim = this;
+    this.listensForMouse = true;
+    var mouseState = new events.MouseEventsState();
+    this.mouseState = mouseState;
+    engine.subscribeAnimationToEvents(canvas, this, function(domType, domEvent) {
+        var anmEventType = DOM_TO_EVT_MAP[domType];
+        if (events.isMouse(anmEventType)) {
+            var currentScene = anim.currentScene;
+            if (currentScene && currentScene.isActive()) {
+                var anmEvent = new events.MouseEvent(anmEventType, event.x, event.y,
+                                                     anim, event); // target, source
+                currentScene.reverseEach(function(child) {
+                    if (child.isActive()) {
+                        // stop iteration if event was dispatched and continue if it wasn't
+                        return child.dispatchMouseEvent(anmEvent) ? false : true;
+                    }
+                    return true; // continue iteration
+                });
+            }
+        }
+    });
 };
 
 /**
@@ -534,73 +599,9 @@ Animation.prototype.subscribeEvents = function(canvas) {
  * @param {Canvas} canvas
  */
 Animation.prototype.unsubscribeEvents = function(canvas) {
+    this.listensMouse = false;
     engine.unsubscribeAnimationFromEvents(canvas, this);
-};
-
-// this function is called for any event fired for this element, just before
-// passing it to the handlers; if this function returns `true` or nothing, the event is
-// then passed to all the handlers; if it returns `false`, handlers never get this event.
-Animation.prototype.filterEvent = function(type, evt) {
-
-    function firstSubscriber(elm, type) {
-        return elm.firstParent(function(parent) {
-            return parent.subscribedTo(type);
-        });
-    }
-
-    var anim = this;
-    if (events.mouse(type)) {
-        var pos = anim.adapt(evt.pos.x, evt.pos.y);
-        var targetFound = false;
-        anim.reverseTraverseVisible(function(child) {
-            child.inside(pos, null, function(elm, local_pos) { // point is inside
-                targetFound = true;
-                if (type !== 'mousemove') {
-                    var subscriber = firstSubscriber(elm, type);
-                    if (subscriber) subscriber.fire(type, evt);
-                } else { // type === 'mousemove'
-                    // check mouseover/mouseout
-                    var mmoveSubscriber = firstSubscriber(elm, 'mousemove');
-                    if (!anim.__lastOverElm) {
-                        // mouse moved over some element for the first time
-                        anim.__lastOverElm = elm;
-                        var moverSubscriber = firstSubscriber(elm, 'mouseover');
-                        if (moverSubscriber) moverSubscriber.fire('mouseover', evt);
-                        if (mmoveSubscriber) mmoveSubscriber.fire('mousemove', evt); // fire this mousemove next to mouseover
-                    } else {
-                        if (elm.id === anim.__lastOverElm.id) { // mouse is still over this element
-                            if (mmoveSubscriber) mmoveSubscriber.fire(type, evt);
-                        } else {
-                            // mouse moved over new element
-                            var moverSubscriber = firstSubscriber(elm, 'mouseover');
-                            if (anim.__lastOverElm) {
-                                var moutSubscriber = firstSubscriber(anim.__lastOverElm, 'mouseout');
-                                if (moutSubscriber) moutSubscriber.fire('mouseout', evt);
-                                anim.__lastOverElm = null;
-                            }
-                            anim.__lastOverElm = elm;
-                            if (moverSubscriber) moverSubscriber.fire('mouseover', evt);
-                            if (mmoveSubscriber) mmoveSubscriber.fire('mousemove', evt); // fire this mousemove next to mouseover
-                        }
-                    }
-
-                }
-                return false; /* stop inner iteration, so first matched element exits the check */
-            });
-            if (targetFound) return false; /* stop outer iteration, so first matched element exits the check */
-        });
-        if ((type === 'mousemove') && !targetFound && anim.__lastOverElm) {
-            var stillInside = false;
-            anim.__lastOverElm.inside(pos, null, function() { stillInside = true; });
-            if (!stillInside) {
-                var moutSubscriber = firstSubscriber(anim.__lastOverElm, 'mouseout');
-                anim.__lastOverElm = null;
-                if (moutSubscriber) moutSubscriber.fire('mouseout', evt);
-            }
-        }
-        return false; /* stop passing this event further to other handlers */
-    }
-    return true; /* keep passing this event further to other handlers */
+    // TODO: unsubscribe children from events
 };
 
 Animation.prototype._collectRemoteResources = function(player) {

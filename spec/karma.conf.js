@@ -19,7 +19,7 @@ module.exports = function(config) {
       './dist/bundle/animatron.min.js',
 
       './spec/search.spec.js',
-      './spec/orient-to-path.spec.js'
+      './spec/mouse.spec.js'
     ],
 
 

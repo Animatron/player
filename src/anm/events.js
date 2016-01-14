@@ -11,17 +11,17 @@ function registerEvent(id, name) { C[id] = name; }
 
 // adds specified events support to the `subj` object. `subj` object receives
 // `handlers` property that keeps the listeners for each event. Also, it gets
-// `e_<evt_name>` function for every event provided to call it when it is
+// `e_<event_name>` function for every event provided to call it when it is
 // required to call all handlers of all of thise event name
-// (`fire('<evt_name>', ...)` is the same but can not be reassigned by user).
-// `subj` can define `handle_<evt_name>` function to handle concrete event itself,
+// (`fire('<event_name>', ...)` is the same but can not be reassigned by user).
+// `subj` can define `handle_<event_name>` function to handle concrete event itself,
 // but without messing with other handlers.
 // And, user gets `on` function to subcribe to events and `provides` to check
 // if it is allowed.
 function provideEvents(subj, events) {
     subj.prototype.on = function(event, handler) {
         if (!this.provides(event)) throw errors.system('Event \'' + event +
-                                                 '\' is not provided by ' + this);
+                                                 '\' can not be handled by ' + this);
         if (!handler) return;
         if (!this.handlers) this.handlers = {};
         if (!this.handlers[event]) this.handlers[event] = [];
@@ -29,37 +29,28 @@ function provideEvents(subj, events) {
         // FIXME: make it chainable, use handler instance to unbind, instead of index
         return (this.handlers[event].length - 1);
     };
-    /* subj.prototype.onAny = function(handler) { there's this.filterEvent below
-        if (!this.receivers) this.receivers = [];
-        this.receivers.push(handler);
-    }; */
     subj.prototype.subscribedTo = function(event) {
         return this.handlers && this.handlers[event] && this.handlers[event].length;
     };
-    subj.prototype.fire = function(event/*, evt_args*/) {
+    subj.prototype.fire = function(type, event) {
         if (this.disabled) return;
-        if (!this.provides(event)) throw errors.system('Event \'' + event +
-                                                 '\' is not provided by ' + this);
-        if (this.filterEvent && !(this.filterEvent.apply(this, arguments))) return;
-        var _hdls = this.handlers ? this.handlers[event] : null;
-        var _hdls = this.handlers ? this.handlers[event] : null;
-        if (this['handle_'+event] || (_hdls && _hdls.length)) {
-            var evt_args = new Array(arguments.length - 1);
-            for (var i = 1; i < arguments.length; i++) {
-                evt_args[i - 1] = arguments[i];
-            }
-            if (this['handle_'+event]) this['handle_'+event].apply(this, evt_args);
-            if (_hdls) {
-                for (var hi = 0, hl = _hdls.length; hi < hl; hi++) {
-                    _hdls[hi].apply(this, evt_args);
-                }
+        if (!this.provides(type)) throw errors.system('Event \'' + type +
+                                                 '\' can not be handled by ' + this);
+        this.notify(type, event);
+    };
+    // force-pass event to handlers
+    subj.prototype.notify = function(type, event) {
+        if (this['handle_'+type]) this['handle_'+type](event);
+        var handlers = this.handlers ? this.handlers[type] : null;
+        if (handlers) {
+            for (var hi = 0, hl = handlers.length; hi < hl; hi++) {
+                handlers[hi](event);
             }
         }
-
     };
-    subj.prototype.provides = (function(evts) {
+    subj.prototype.provides = (function(events) {
         return function(event) {
-            if (!event) return evts;
+            if (!event) return events;
             return events.indexOf(event) >= 0;
         };
     })(events);
@@ -95,8 +86,8 @@ registerEvent('X_MDCLICK', 'mousedoubleclick');
 registerEvent('X_MUP', 'mouseup');
 registerEvent('X_MDOWN', 'mousedown');
 registerEvent('X_MMOVE', 'mousemove');
-registerEvent('X_MOVER', 'mouseover');
-registerEvent('X_MOUT', 'mouseout');
+registerEvent('X_MENTER', 'mouseenter');
+registerEvent('X_MEXIT', 'mouseexit');
 
 // * keyboard
 registerEvent('X_KPRESS', 'keypress');
@@ -136,29 +127,132 @@ function isMouseEvent(type) { return (type.indexOf('mouse') === 0); }
 function isKeyboardEvent(type) { return (type.indexOf('key') === 0); }
 function isMouseOrKeyboardEvent(type) { return isMouseEvent(type) || isKeyboardEvent(type); }
 
-var m_and_k = {
-    'mouseclick': 1,
-    'mousedoubleclick': 2,
-    'mouseup': 4,
-    'mousedown': 8,
-    'mousemove': 16,
-    'mouseover': 32,
-    'mouseout': 64,
-    'keypress': 128,
-    'keyup': 256,
-    'keydown': 512
-};
+function MouseEventsState() {
+    this.lastHoveredNode = null;
+}
 
-function EventState() { this.reset(); }
-EventState.prototype.reset = function() { this.state = 0; }
-EventState.prototype.save = function(type) { this.state = this.state | m_and_k[type]; }
-EventState.prototype.check = function(type) { return this.state & m_and_k[type]; }
+function MouseEventsSupport(owner, state) {
+    this.state = state;
+    this.owner = owner;
+    this.hoverEvent = null;
+}
+MouseEventsSupport.prototype.markAsHoveredTree = function(moveEvent) {
+    this.hoverEvent = moveEvent;
+    if (this.owner.parent) {
+        this.owner.parent.getMouseSupport().markAsHoveredTree(moveEvent);
+    }
+}
+MouseEventsSupport.prototype.adaptEvent = function(event) {
+    var localPos = this.owner.adapt(event.x, event.y);
+    return new MouseEvent(event.type,
+                          localPos.x, localPos.y,
+                          this.owner, // target
+                          event); // source
+}
+MouseEventsSupport.prototype.dispatch = function(event) {
+    var owner = this.owner;
+    var localEvent = this.adaptEvent(event);
+    var dispatchedByChild; // found the matching child inside
+    if (owner.inside(localEvent)) {
+        owner.reverseEach(function(child) {
+            if (child.isActive()) {
+                dispatchedByChild = child.dispatchMouseEvent(localEvent);
+                if (dispatchedByChild) return false; // stop iteration of reverseEach
+            }
+        });
+
+        if (dispatchedByChild) return true;
+
+        if (event.type === 'mouseclick') {
+            this.owner.fire('mouseclick', localEvent);
+            return true;
+        } else if (event.type === 'mousemove') {
+            this.processMove(localEvent); // fire mouseenter/mousexit if required
+            return true;
+        }
+    }
+    return;
+}
+MouseEventsSupport.prototype.processOver = function(commonChild, moveEvent) {
+    var inPath = [];
+    var next = this.owner;
+    while (next && (next !== commonChild)) {
+        inPath.push(next);
+        next = next.parent;
+    }
+
+    if (inPath.length > 0) {
+        var overEvent = this.makeOverEvent(moveEvent);
+        for (var i = (inPath.length - 1); i >= 0; i--) {
+            inPath[i].fire('mouseenter', overEvent);
+        }
+    }
+}
+MouseEventsSupport.prototype.processOut = function(moveEvent) {
+    var processParent = false;
+    if (this.hoverEvent && (this.hoverEvent !== moveEvent)) {
+        this.hoverEvent = null;
+        this.owner.fire('mouseexit', this.makeOutEvent(moveEvent));
+        processParent = true;
+    }
+
+    if (processParent && this.owner.parent) {
+        var parentSupport = this.owner.parent.getMouseSupport();
+        return parentSupport.processOut(moveEvent);
+    }
+
+    return this.owner;
+}
+MouseEventsSupport.prototype.processMove = function(moveEvent) {
+    this.markAsHoveredTree(moveEvent);
+
+    var lastHoveredNode = this.state.lastHoveredNode;
+
+    if (lastHoveredNode === this.owner) return;
+
+    var commonChild = null;
+    if (lastHoveredNode) {
+        var hoveredSupport = lastHoveredNode.getMouseSupport();
+        commonChild = hoveredSupport.processOut(moveEvent);
+    }
+
+    this.state.lastHoveredNode = this.owner;
+
+    this.processOver(commonChild, moveEvent);
+}
+MouseEventsSupport.prototype.makeOutEvent = function(moveEvent) {
+    var outEvent = moveEvent.clone();
+    outEvent.type = 'mouseexit';
+    outEvent.target = this.state.lastHoveredNode;
+    outEvent.x = null; outEvent.y = null;
+    return outEvent;
+}
+MouseEventsSupport.prototype.makeOverEvent = function(moveEvent) {
+    var overEvent = moveEvent.clone();
+    overEvent.type = 'mouseenter';
+    overEvent.target = this.owner;
+    return overEvent;
+}
+
+function MouseEvent(type, x, y, target, source) {
+    this.type = type;
+    this.x = x; this.y = y;
+    this.target = target || null;
+    this.source = source || null;
+}
+MouseEvent.prototype.clone = function() {
+    return new MouseEvent(this.type,
+                          this.x, this.y,
+                          this.target, this.source);
+}
 
 module.exports = {
-    mouse: isMouseEvent,
-    keyboard: isKeyboardEvent,
+    isMouse: isMouseEvent,
+    isKeyboard: isKeyboardEvent,
     mouseOrKeyboard: isMouseOrKeyboardEvent,
     registerEvent: registerEvent,
     provideEvents: provideEvents,
-    EventState: EventState
+    MouseEvent: MouseEvent,
+    MouseEventsState: MouseEventsState,
+    MouseEventsSupport: MouseEventsSupport
 };
