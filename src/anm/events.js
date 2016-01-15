@@ -129,6 +129,7 @@ function isMouseOrKeyboardEvent(type) { return isMouseEvent(type) || isKeyboardE
 
 function MouseEventsState() {
     this.lastHoveredNode = null;
+    this.pressedNode = null;
 }
 
 function MouseEventsSupport(owner, state) {
@@ -152,6 +153,15 @@ MouseEventsSupport.prototype.adaptEvent = function(event) {
 MouseEventsSupport.prototype.dispatch = function(event) {
     var owner = this.owner;
     var localEvent = this.adaptEvent(event);
+    var state = this.state;
+
+    if ((event.type === 'mouseup') && state.pressedNode) {
+        event.target = state.pressedNode;
+        state.pressedNode.fire('mouseup', localEvent);
+        state.pressedNode = null;
+        return true;
+    }
+
     var dispatchedChild;  // found the matching child inside
     if (owner.inside(localEvent)) {
         owner.reverseEach(function(child) {
