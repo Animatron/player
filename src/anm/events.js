@@ -181,7 +181,7 @@ MouseEventsSupport.prototype.processOver = function(commonChild, moveEvent) {
     }
 
     if (inPath.length > 0) {
-        var overEvent = this.makeOverEvent(moveEvent);
+        var overEvent = this.makeEnterEvent(moveEvent);
         for (var i = (inPath.length - 1); i >= 0; i--) {
             inPath[i].fire('mouseenter', overEvent);
         }
@@ -191,7 +191,7 @@ MouseEventsSupport.prototype.processOut = function(moveEvent) {
     var processParent = false;
     if (this.hoverEvent && (this.hoverEvent !== moveEvent)) {
         this.hoverEvent = null;
-        this.owner.fire('mouseexit', this.makeOutEvent(moveEvent));
+        this.owner.fire('mouseexit', this.makeExitEvent(moveEvent));
         processParent = true;
     }
 
@@ -219,18 +219,19 @@ MouseEventsSupport.prototype.processMove = function(moveEvent) {
 
     this.processOver(commonChild, moveEvent);
 }
-MouseEventsSupport.prototype.makeOutEvent = function(moveEvent) {
-    var outEvent = moveEvent.clone();
-    outEvent.type = 'mouseexit';
-    outEvent.target = this.state.lastHoveredNode;
-    outEvent.x = null; outEvent.y = null;
-    return outEvent;
+MouseEventsSupport.prototype.makeExitEvent = function(moveEvent) {
+    var exitEvent = moveEvent.clone();
+    exitEvent.type = 'mouseexit';
+    exitEvent.target = this.state.lastHoveredNode;
+    exitEvent.x = null; exitEvent.y = null;
+    return exitEvent;
 }
-MouseEventsSupport.prototype.makeOverEvent = function(moveEvent) {
-    var overEvent = moveEvent.clone();
-    overEvent.type = 'mouseenter';
-    overEvent.target = this.owner;
-    return overEvent;
+MouseEventsSupport.prototype.makeEnterEvent = function(moveEvent) {
+    var enterEvent = moveEvent.clone();
+    enterEvent.type = 'mouseenter';
+    enterEvent.target = this.owner;
+    enterEvent.x = null; enterEvent.y = null;
+    return enterEvent;
 }
 
 function MouseEvent(type, x, y, target, source) {

@@ -26,14 +26,44 @@ prettify();
 
 describe('handling mouse in static objects', function() {
 
-    // build scene
+    function buildAnimation() {
+        var anim = new anm.Animation();
+        var root = new anm.Element('root');
+        var e1 = new anm.Element('e1');
+        var e11 = new anm.Element('e11');
+        var e12 = new anm.Element('e12');
+        var e2 = new anm.Element('e2');
 
-    var anim = new anm.Animation();
-    var root = new anm.Element('root');
-    var e1 = new anm.Element('e1');
-    var e2 = new anm.Element('e2');
-    var e11 = new anm.Element('e11');
-    var e12 = new anm.Element('e12');
+        root.path(rectangle(0, 0, 100, 100)).pivot(0, 0);
+        e1.path(rectangle(0, 0, 100, 50)).pivot(0, 0);
+        e11.path(rectangle(0, 0, 50, 50)).pivot(0, 0);
+        e12.path(rectangle(0, 0, 5, 5)).move(75, 5).pivot(0, 0);
+        e2.path(rectangle(0, 0, 100, 55)).move(0, 45).pivot(0, 0);
+
+        /* TODO: test with
+        root.path(rectangle(0, 0, 100, 100)).pivot(0, 0);
+        e1.path(rectangle(0, 0, 100, 50)).pivot(0, 0);
+        e11.path(rectangle(0, 0, 50, 50)).pivot(0, 0);
+        e12.path(rectangle(75, 5, 5, 5)).pivot(0, 0);
+        e2.path(rectangle(0, 45, 100, 55)).pivot(0, 0);
+        */
+
+        e1.add(e11);
+        e1.add(e12);
+        root.add(e1)
+        root.add(e2);
+
+        anim.add(root);
+
+        anim.setDuration(10);
+
+        return {
+            anim: anim,
+            root: root,
+            e1: e1, e11: e11, e12: e12,
+            e2: e2
+        }
+    }
 
     function rectangle(x, y, width, height) {
         return new anm.Path().move(x,y)
@@ -41,29 +71,8 @@ describe('handling mouse in static objects', function() {
                              .line(y,height).line(x,y);
     }
 
-    root.path(rectangle(0, 0, 100, 100)).pivot(0, 0);
-    e1.path(rectangle(0, 0, 100, 50)).pivot(0, 0);
-    e11.path(rectangle(0, 0, 50, 50)).pivot(0, 0);
-    e12.path(rectangle(0, 0, 5, 5)).move(75, 5).pivot(0, 0);
-    e2.path(rectangle(0, 0, 100, 55)).move(0, 45).pivot(0, 0);
-
-    /* TODO: test with
-    root.path(rectangle(0, 0, 100, 100)).pivot(0, 0);
-    e1.path(rectangle(0, 0, 100, 50)).pivot(0, 0);
-    e11.path(rectangle(0, 0, 50, 50)).pivot(0, 0);
-    e12.path(rectangle(75, 5, 5, 5)).pivot(0, 0);
-    e2.path(rectangle(0, 45, 100, 55)).pivot(0, 0);
-    */
-
-    e1.add(e11);
-    e1.add(e12);
-    root.add(e1)
-    root.add(e2);
-
-    anim.add(root);
-
-    anim.setDuration(10);
-
+    var anim;
+    var root, e1, e11, e12, e2;
     var player;
 
     var canvas, wrapper;
@@ -88,7 +97,7 @@ describe('handling mouse in static objects', function() {
         documentReady = true;
     });
 
-    function setupPlayer(done) {
+    function setupPlayer(animation, done) {
         if (canvas || wrapper) {
             player.detach(); // will remove the wrapper div from the body
         }
@@ -122,11 +131,18 @@ describe('handling mouse in static objects', function() {
 
     beforeEach(function(done) {
 
+        animData = buildAnimation();
+
+        anim = animData.anim;
+        root = animData.root;
+        e1 = animData.e1; e11 = animData.e11; e12 = animData.e12;
+        e2 = animData.e2;
+
         if (documentReady) {
-            setupPlayer(done);
+            setupPlayer(anim, done);
         } else {
             document.addEventListener('DOMContentLoaded', function() {
-                setupPlayer(done);
+                setupPlayer(anim, done);
             });
         }
 
@@ -142,18 +158,15 @@ describe('handling mouse in static objects', function() {
 
         var MARKER = '\n';
 
-        var targets = [ root, e1, e2, e11, e12 ];
-        var events = [ 'mouseclick' ];
-
-        var log = new EventLog(targets, events);
+        var log;
 
         beforeEach(function() {
+            log = new EventLog([ root, e1, e2, e11, e12 ], [ 'mouseclick' ]);
             log.subscribe();
         });
 
         afterEach(function() {
             log.unsubscribe();
-            log.clear();
         });
 
         it('passes click event to the appropriate element', function() {
@@ -203,18 +216,16 @@ describe('handling mouse in static objects', function() {
 
         var MARKER = '\n';
 
-        var targets = [ root, e1, e2, e11, e12 ];
-        var events = [ 'mouseenter', 'mouseexit' ];
-
-        var log = new EventLog(targets, events);
+        var log;
 
         beforeEach(function() {
+            log = new EventLog([ root, e1, e2, e11, e12 ],
+                               [ 'mouseenter', 'mouseexit' ]);
             log.subscribe();
         });
 
         afterEach(function() {
             log.unsubscribe();
-            log.clear();
         });
 
         /* it('transfers in/out event to the corresponding receivers', function() {
@@ -228,8 +239,8 @@ describe('handling mouse in static objects', function() {
         it('in/out events properly work in sequences', function() {
 
             fireCanvasEvent('mousemove', 25, 75);
-            expect(log.stringify(MARKER)).toEqual([ 'root: mouseenter@25;30 -> e2',
-                                                    'e2: mouseenter@25;30 -> e2' ].join(MARKER));
+            expect(log.stringify(MARKER)).toEqual([ 'root: mouseenter@null;null -> e2',
+                                                    'e2: mouseenter@null;null -> e2' ].join(MARKER));
 
             log.clear();
 
@@ -241,22 +252,50 @@ describe('handling mouse in static objects', function() {
 
             fireCanvasEvent('mousemove', 25, 25);
             expect(log.stringify(MARKER)).toEqual([ 'e2: mouseexit@null;null -> e2',
-                                                    'e1: mouseenter@25;25 -> e11',
-                                                    'e11: mouseenter@25;25 -> e11' ].join(MARKER));
+                                                    'e1: mouseenter@null;null -> e11',
+                                                    'e11: mouseenter@null;null -> e11' ].join(MARKER));
 
             log.clear();
 
             fireCanvasEvent('mousemove', 76, 6);
             expect(log.stringify(MARKER)).toEqual([ 'e11: mouseexit@null;null -> e11',
-                                                    'e12: mouseenter@1;1 -> e12' ].join(MARKER));
+                                                    'e12: mouseenter@null;null -> e12' ].join(MARKER));
 
             log.clear();
 
             fireCanvasEvent('mousemove', 25, 75);
             expect(log.stringify(MARKER)).toEqual([ 'e12: mouseexit@null;null -> e12',
                                                     'e1: mouseexit@null;null -> e12',
-                                                    'e2: mouseenter@25;30 -> e2' ].join(MARKER));
+                                                    'e2: mouseenter@null;null -> e2' ].join(MARKER));
 
+        });
+
+    });
+
+    describe('test mouse release event', function() {
+
+        var MARKER = '\n';
+
+        var log;
+
+        beforeEach(function() {
+            log = new EventLog([ root, e1, e2, e11, e12 ],
+                               [ 'mouseenter', 'mouseexit', 'mouseup', 'mousedown' ]);
+            log.subscribe();
+        })
+
+        it('handles mouse release and corresponding events in proper order', function() {
+            fireCanvasEvent('mousemove', 77, 7);
+            fireCanvasEvent('mousedown', 77, 7);
+            fireCanvasEvent('mousemove', 25, 6);
+            fireCanvasEvent('mouseup', 25, 6);
+            expect(log.stringify(MARKER)).toEqual([ 'root: mouseenter@null;null -> e12',
+                                                    'e1: mouseenter@null;null -> e12',
+                                                    'e12: mouseenter@null;null -> e2',
+                                                    'e12: mousedown@2;2 -> e12',
+                                                    'e12: mouseexit@null;null -> e12',
+                                                    'e11: mouseenter@null;null -> e11',
+                                                    'e11: mouseup@-50;1 -> e11' ].join(MARKER));
         });
 
     });
@@ -265,12 +304,9 @@ describe('handling mouse in static objects', function() {
 
         var MARKER = '\n';
 
-        var targets = [ root, e1, e2, e11, e12 ];
-        var events = [ 'mousemove', 'mousedown', 'mouseup', 'mousedoubleclick' ];
-
-        var log = new EventLog(targets, events);
-
         beforeEach(function() {
+            log = new EventLog([ root, e1, e2, e11, e12 ],
+                               [ 'mousemove', 'mousedown', 'mouseup', 'mousedoubleclick' ]);
             log.subscribe();
         });
 
