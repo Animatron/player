@@ -155,9 +155,10 @@ MouseEventsSupport.prototype.dispatch = function(event) {
     var localEvent = this.adaptEvent(event);
     var state = this.state;
 
-    if ((event.type === 'mouseup') && state.pressedNode) {
-        event.target = state.pressedNode;
-        state.pressedNode.fire('mouseup', localEvent);
+    if ((localEvent.type === 'mouseup') && state.pressedNode) {
+        localEvent.target = state.pressedNode;
+        var adaptedEvent = state.pressedNode.getMouseSupport().adaptEvent(localEvent);
+        state.pressedNode.fire('mouseup', adaptedEvent);
         state.pressedNode = null;
         return true;
     }
@@ -172,10 +173,13 @@ MouseEventsSupport.prototype.dispatch = function(event) {
         });
 
         if (!dispatchedChild) {
-            if (event.type === 'mousemove') {
+            if (localEvent.type === 'mousemove') {
                 this.processMove(localEvent); // fire mouseenter/mouseexit if required
             }
-            this.owner.fire(event.type, localEvent);
+            if ((localEvent.type === 'mouseclick') || (localEvent.type === 'mousedown')) {
+                state.pressedNode = this.owner;
+            }
+            this.owner.fire(localEvent.type, localEvent);
         }
 
         return true;

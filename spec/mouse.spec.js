@@ -291,11 +291,11 @@ describe('handling mouse in static objects', function() {
             fireCanvasEvent('mouseup', 25, 6);
             expect(log.stringify(MARKER)).toEqual([ 'root: mouseenter@null;null -> e12',
                                                     'e1: mouseenter@null;null -> e12',
-                                                    'e12: mouseenter@null;null -> e2',
+                                                    'e12: mouseenter@null;null -> e12',
                                                     'e12: mousedown@2;2 -> e12',
                                                     'e12: mouseexit@null;null -> e12',
                                                     'e11: mouseenter@null;null -> e11',
-                                                    'e11: mouseup@-50;1 -> e11' ].join(MARKER));
+                                                    'e12: mouseup@-50;1 -> e12' ].join(MARKER));
         });
 
     });
