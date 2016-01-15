@@ -24,12 +24,13 @@ function PlayerManager() {
 
 events.provideEvents(PlayerManager, [ C.S_NEW_PLAYER, C.S_PLAYER_DETACH ]);
 
-PlayerManager.prototype.filterEvent = function(evt, player) {
-    if (evt == C.S_NEW_PLAYER) {
+PlayerManager.prototype.dispatch = function(type, event) {
+    if (type == C.S_NEW_PLAYER) {
+        var player = event;
         this.hash[player.id] = player;
         this.instances.push(player);
     }
-    return true;
+    return event;
 };
 
 /**

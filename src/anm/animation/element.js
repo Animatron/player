@@ -9,8 +9,7 @@ var engine = require('engine');
 var C = require('../constants.js');
 
 var events = require('../events.js'),
-    provideEvents = events.provideEvents,
-    EventState = events.EventState;
+    provideEvents = events.provideEvents;
 
 var Transform = require('../../vendor/transform.js');
 
@@ -137,24 +136,7 @@ function Element(name, draw, onframe) {
     this.__detachQueue = [];
 
     // FIXME: add all of the `provideEvents` method to docs for all elements who provide them
-    var me = this,
-        default_on = this.on;
-    /**
-     * @method on
-     *
-     * Subscribe for an element-related event with a handler.
-     *
-     * There's quite big list of possible events to subscribe, and it will be added here later. `TODO`
-     *
-     * @param {C.X*} type event type
-     * @param {Function} handler event handler
-     */
-    this.on = function(type, handler) {
-        /* if (events.mouseOrKeyboard(type)) {
-            return this.m_on.call(me, type, handler);
-        } else */ return default_on.call(me, type, handler);
-        // return this; // FIXME: make chainable
-    };
+    var me = this;
 
     this.addSysModifiers();
     this.addSysPainters();
@@ -165,7 +147,7 @@ Element.NO_BAND = null;
 Element.DEFAULT_LEN = Infinity;
 Element._customImporters = [];
 provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
-                         C.X_MMOVE, C.X_MOVER, C.X_MOUT ]);
+                         C.X_MMOVE, C.X_MENTER, C.X_MEXIT ]);
 /**
  * @method is
  *
@@ -242,8 +224,8 @@ Element.prototype.initState = function() {
 
     return this;
 };
-
 Element.prototype.resetState = Element.prototype.initState;
+
 Element.prototype.initVisuals = function() {
 
     // since properties below will conflict with getters/setters having same names,
@@ -283,8 +265,8 @@ Element.prototype.initVisuals = function() {
 
     return this;
 };
-
 Element.prototype.resetVisuals = Element.prototype.initVisuals;
+
 Element.prototype.initTime = function() {
 
     /** @property {anm.Timeline} timeline instance @readonly */
@@ -297,20 +279,25 @@ Element.prototype.initTime = function() {
 
     return this;
 };
-
 Element.prototype.resetTime = function() {
     this.timeline.reset();
     this.switch = null;
 };
 
-Element.prototype.initEvents = function() {
-    this.evts = {}; // events cache
-    this.__evt_st = new EventState(); // event state
-    this.__evtCache = [];
-    return this;
+Element.prototype.initEvents = function() {};
+Element.prototype.resetEvents = Element.prototype.initEvents;
+
+Element.prototype.getMouseSupport = function() {
+    if (!this.mouseSupport) {
+        this.mouseSupport = new events.MouseEventsSupport(this, this.anim.mouseState);
+    }
+    return this.mouseSupport;
 };
 
-Element.prototype.resetEvents = Element.prototype.initEvents;
+Element.prototype.dispatchMouseEvent = function(mouseEvent) {
+    return this.getMouseSupport().dispatch(mouseEvent);
+};
+
 /**
  * @method path
  * @chainable
@@ -527,8 +514,6 @@ Element.prototype.modifiers = function(ltime, dt, types) {
     // copy current state as previous one
     elm.applyPrevState(elm);
 
-    elm.__loadEvents();
-
     var modifiers = this.$modifiers;
     var type, typed_modifiers, modifier, lbtime;
     for (var i = 0, il = order.length; i < il; i++) { // for each type
@@ -568,8 +553,6 @@ Element.prototype.modifiers = function(ltime, dt, types) {
     elm.__modifying = null;
 
     elm.__appliedAt = ltime;
-
-    elm.resetEvents();
 
     return true;
 };
@@ -1497,24 +1480,6 @@ Element.prototype.isActive = function() {
 };
 
 /**
- * @private @method m_on
- *
- * Subscribe for mouse or keyboard event over this element (these events are
- * separated from a flow)
- */
-Element.prototype.m_on = function(type, handler) {
-    this.modify(new Modifier(
-        function(t) { /* FIXME: handlers must have priority? */
-            if (this.__evt_st.check(type)) {
-                var evts = this.evts[type];
-                for (var i = 0, el = evts.length; i < el; i++) {
-                    if (handler.call(this, evts[i], t) === false) return false;
-                }
-            }
-        }, C.MOD_EVENT));
-};
-
-/**
  * @private @method dispose
  *
  * Dispose the memory-consuming objects, called authomatically on animation end
@@ -1999,43 +1964,20 @@ Element.prototype.myBounds = function() {
 /**
  * @method inside
  *
- * Test if a point given in global coordinate space is located inside the element's bounds
- * or one of its children/sub-children and calls given function for found elements. If function
- * explicitly returns `false`, stops the iteration and exits.
- *
- * Also, visits the children in reverse order, so function is called first for the elements
- * with higher z-index (it means they are "closer" to the one who watches the animation)
- * than the ones found later: it's safe to assume first found element is the top one
- * (_not_ considering the time band, which could be filtered or not in a corresponding function).
- *
- * If filter returned `false` for some element, it's children won't be checked. If point is
- * inside of some element, it's children also won't be checked.
- *
- * NB: `.inside(...)` is NOT returning the result of a test. It only calls an `fn` callback if
- * test passed.
+ * Test if a point given in local coordinate space is located inside the element's bounds.
+ * For paths, also checks if point
  *
  * @param {Object} pt point to check
  * @param {Number} pt.x
  * @param {Number} pt.y
- * @param {Function} filter function to filter elements before checking bounds, since it's quite a slow operation
- * @param {anm.Element} filter.elm element to check
- * @param {Boolean} filter.return return `true` if this element should be checked, `false` if not
- * @param {Function} fn function to call for matched elements
- * @param {anm.Element} fn.elm element matched with the point
- * @param {Number} fn.pt point adapted to child coordinate space
- * @param {Boolean} fn.return return nothing or `true`, if iteration should keep going, return `false` if it should exit
+ * @return {Boolean} is point inside of the bounds
  */
-Element.prototype.inside = function(pt, filter, fn) {
-    var passed_filter = !filter || filter(this);
-if (!passed_filter) return; /* skip this element and its children, but not exit completely */;
-    var local_pt = this.adapt(pt.x, pt.y);
+Element.prototype.inside = function(local_pt) {
     if (this.myBounds().inside(local_pt)) {
         var subj = this.$path || this.$text || this.$image || this.$video;
-        if (subj && subj.inside(local_pt)) return fn(this, local_pt);
+        return subj && subj.inside(local_pt);
     }
-    this.reverseEach(function(elm) {
-        return elm.inside(local_pt, filter, fn);
-    });
+    return false;
 };
 
 /**
@@ -2429,33 +2371,6 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
 
 Element.prototype.__pbefore = function(ctx, type) { };
 Element.prototype.__pafter = function(ctx, type) { };
-Element.prototype.filterEvent = function(type, evt) {
-    /*if (this.visible && this.active)*/
-    this.__saveEvt(type, evt);
-    return true;
-};
-
-Element.prototype.__saveEvt = function(type, evt) {
-    this.__evtCache.push([type, evt]);
-};
-
-Element.prototype.__loadEvents = function() {
-    var cache = this.__evtCache;
-    var cache_len = cache.length;
-    this.resetEvents();
-    if (cache_len > 0) {
-        var edata, type, evts;
-        for (var ei = 0; ei < cache_len; ei++) {
-            edata = cache[ei];
-            type = edata[0];
-            this.__evt_st.save(type);
-            evts = this.evts;
-            if (!evts[type]) evts[type] = [];
-            evts[type].push(edata[1]);
-        }
-        this.__evtCache = [];
-    }
-};
 
 Element.prototype.__safeDetach = function(what, _cnt) {
     var pos = -1, found = _cnt || 0;

@@ -107,7 +107,7 @@ Import.project = function(prj) {
         var node_src = Import._find(scenes_ids[i], elems);
         if (Import._type(node_src) != TYPE_SCENE) _reportError('Given Scene ID ' + scenes_ids[i] + ' points to something else');
         // FIXME: change to explicit Import.scene
-        scene = Scene._fromElement(Import.node(node_src, null, null, elems, null, root));
+        scene = Scene._fromElement(Import.node(node_src, null, null, elems, null, root), root);
         // there's always a default scene in Player, which is first one
         if (i === 0) { root.replaceScene(0, scene); } else { root.addScene(scene); };
     }
