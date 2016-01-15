@@ -177,11 +177,6 @@ public class Test extends TestCase {
             return new Point(point.x - testChild.boundsInParent.x, point.y - testChild.boundsInParent.y);
         }
 
-        public Point transformToParent(Node child, Point point) {
-            TestNode testChild = (TestNode) child;
-            return new Point(point.x + testChild.boundsInParent.x, point.y + testChild.boundsInParent.y);
-        }
-
         @Override
         public boolean contains(Point point) {
             return point.x >= 0 && point.x < boundsInParent.width && point.y >=0 && point.y < boundsInParent.height;
