@@ -9,6 +9,7 @@ public abstract class Node {
 
     static long NULL = -1;
     static Node lastHoveredNode;
+    static Node pressedNode;
 
     Node parent;
 
@@ -34,7 +35,18 @@ public abstract class Node {
         return this;
     }
 
-    public boolean dispatch(MouseEvent event, Point point) {
+    public boolean dispatch(MouseEvent event) {
+        return dispatch(event, event.point);
+    }
+
+    private boolean dispatch(MouseEvent event, Point point) {
+        if (event.type == MouseEvent.Type.release && pressedNode != null) {
+            Node.pressedNode.notifyRelease(convertToChild(point, Node.pressedNode));
+            Node.pressedNode = null;
+            return true;
+        }
+
+
         if (contains(point)) {
             for (int i = children.size() - 1; i >=0; i--) {
                 Node each = children.get(i);
@@ -44,6 +56,7 @@ public abstract class Node {
             switch (event.type) {
                 case press:
                     notifyPress(point);
+                    pressedNode = this;
                     return true;
                 case move:
                     processHover(event);
@@ -53,6 +66,21 @@ public abstract class Node {
 
 
         return false;
+    }
+
+    private Point convertToChild(Point point, Node child) {
+        List<Node> path = new ArrayList<>();
+        Node each = child;
+        while (each != null) {
+            path.add(0, each);
+            each = each.parent;
+        }
+
+        Point eachPoint = point;
+        for (int i = 0; i < path.size() - 1; i++) {
+            eachPoint = path.get(i).transformToChild(path.get(i + 1), eachPoint);
+        }
+        return eachPoint;
     }
 
     void markAsHoveredTree(long eventId) {
@@ -82,6 +110,12 @@ public abstract class Node {
     private void notifyPress(Point point) {
         for (Listener each : listeners) {
             each.onPress(point);
+        }
+    }
+
+    private void notifyRelease(Point point) {
+        for (Listener each : listeners) {
+            each.onRelease(point);
         }
     }
 
@@ -132,6 +166,7 @@ public abstract class Node {
 
     public interface Listener {
         void onPress(Point point);
+        void onRelease(Point point);
         void onIn();
         void onOut();
     }

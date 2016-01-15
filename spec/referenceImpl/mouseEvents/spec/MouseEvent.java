@@ -7,7 +7,7 @@ public class MouseEvent {
     public final long id;
 
     public enum Type {
-        press, move
+        press, release, move
     }
 
     private static long nextEventId;
