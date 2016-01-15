@@ -161,15 +161,12 @@ MouseEventsSupport.prototype.dispatch = function(event) {
             }
         });
 
-        if (!dispatchedChild && (event.type === 'mousemove')) {
-            this.processMove(localEvent); // fire mouseenter/mouseexit if required
+        if (!dispatchedChild) {
+            if (event.type === 'mousemove') {
+                this.processMove(localEvent); // fire mouseenter/mouseexit if required
+            }
+            this.owner.fire(event.type, localEvent);
         }
-
-        //var adaptedEvent = localEvent.clone();
-        //adaptedEvent.target = dispatchedChild || this.owner;
-        //this.owner.fire(event.type, adaptedEvent);
-
-        this.owner.fire(event.type, localEvent);
 
         return true;
     }

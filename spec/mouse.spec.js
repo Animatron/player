@@ -26,8 +26,6 @@ prettify();
 
 describe('handling mouse in static objects', function() {
 
-    // FIXME: rename mouseenter -> mousein
-
     // build scene
 
     var anim = new anm.Animation();
@@ -170,6 +168,8 @@ describe('handling mouse in static objects', function() {
             fireCanvasEvent('click', 10, 10);
             expect(log.stringify(MARKER)).toEqual([ 'e11: mouseclick@10;10 -> e11' ].join(MARKER));
 
+            log.clear();
+
             fireCanvasEvent('click', 25, 25);
             expect(log.stringify(MARKER)).toEqual([ 'e11: mouseclick@25;25 -> e11' ].join(MARKER));
 
@@ -180,14 +180,20 @@ describe('handling mouse in static objects', function() {
             fireCanvasEvent('click', 75, 25);
             expect(log.stringify(MARKER)).toEqual([ 'e1: mouseclick@75;25 -> e1' ].join(MARKER));
 
+            log.clear();
+
             fireCanvasEvent('click', 76, 7);
             expect(log.stringify(MARKER)).toEqual([ 'e12: mouseclick@1;2 -> e12' ].join(MARKER));
+
+            log.clear();
 
             fireCanvasEvent('click', 25, 47);
             expect(log.stringify(MARKER)).toEqual([ 'e2: mouseclick@25;2 -> e2' ].join(MARKER));
 
+            log.clear();
+
             fireCanvasEvent('click', 75, 47);
-            expect(log.stringify(MARKER)).toEqual([ 'e2: mouseclick@25;2 -> e2' ].join(MARKER));
+            expect(log.stringify(MARKER)).toEqual([ 'e2: mouseclick@75;2 -> e2' ].join(MARKER));
 
         });
 
