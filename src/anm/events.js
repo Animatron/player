@@ -129,6 +129,7 @@ function isMouseOrKeyboardEvent(type) { return isMouseEvent(type) || isKeyboardE
 
 function MouseEventsState() {
     this.lastHoveredNode = null;
+    this.pressedNode = null;
 }
 
 function MouseEventsSupport(owner, state) {
@@ -152,26 +153,38 @@ MouseEventsSupport.prototype.adaptEvent = function(event) {
 MouseEventsSupport.prototype.dispatch = function(event) {
     var owner = this.owner;
     var localEvent = this.adaptEvent(event);
-    var dispatchedByChild; // found the matching child inside
+    var state = this.state;
+
+    if ((localEvent.type === 'mouseup') && state.pressedNode) {
+        localEvent.target = state.pressedNode;
+        var adaptedEvent = state.pressedNode.getMouseSupport().adaptEvent(localEvent);
+        state.pressedNode.fire('mouseup', adaptedEvent);
+        state.pressedNode = null;
+        return true;
+    }
+
+    var dispatchedChild;  // found the matching child inside
     if (owner.inside(localEvent)) {
         owner.reverseEach(function(child) {
             if (child.isActive()) {
-                dispatchedByChild = child.dispatchMouseEvent(localEvent);
-                if (dispatchedByChild) return false; // stop iteration of reverseEach
+                dispatchedChild = child.dispatchMouseEvent(localEvent) ? child : null;
+                if (dispatchedChild) return false; // stop iteration of reverseEach
             }
         });
 
-        if (dispatchedByChild) return true;
-
-        if (event.type === 'mouseclick') {
-            this.owner.fire('mouseclick', localEvent);
-            return true;
-        } else if (event.type === 'mousemove') {
-            this.processMove(localEvent); // fire mouseenter/mousexit if required
-            return true;
+        if (!dispatchedChild) {
+            if (localEvent.type === 'mousemove') {
+                this.processMove(localEvent); // fire mouseenter/mouseexit if required
+            }
+            if ((localEvent.type === 'mouseclick') || (localEvent.type === 'mousedown')) {
+                state.pressedNode = this.owner;
+            }
+            this.owner.fire(localEvent.type, localEvent);
         }
+
+        return true;
     }
-    return;
+    return false;
 }
 MouseEventsSupport.prototype.processOver = function(commonChild, moveEvent) {
     var inPath = [];
@@ -182,7 +195,7 @@ MouseEventsSupport.prototype.processOver = function(commonChild, moveEvent) {
     }
 
     if (inPath.length > 0) {
-        var overEvent = this.makeOverEvent(moveEvent);
+        var overEvent = this.makeEnterEvent(moveEvent);
         for (var i = (inPath.length - 1); i >= 0; i--) {
             inPath[i].fire('mouseenter', overEvent);
         }
@@ -192,7 +205,7 @@ MouseEventsSupport.prototype.processOut = function(moveEvent) {
     var processParent = false;
     if (this.hoverEvent && (this.hoverEvent !== moveEvent)) {
         this.hoverEvent = null;
-        this.owner.fire('mouseexit', this.makeOutEvent(moveEvent));
+        this.owner.fire('mouseexit', this.makeExitEvent(moveEvent));
         processParent = true;
     }
 
@@ -220,18 +233,19 @@ MouseEventsSupport.prototype.processMove = function(moveEvent) {
 
     this.processOver(commonChild, moveEvent);
 }
-MouseEventsSupport.prototype.makeOutEvent = function(moveEvent) {
-    var outEvent = moveEvent.clone();
-    outEvent.type = 'mouseexit';
-    outEvent.target = this.state.lastHoveredNode;
-    outEvent.x = null; outEvent.y = null;
-    return outEvent;
+MouseEventsSupport.prototype.makeExitEvent = function(moveEvent) {
+    var exitEvent = moveEvent.clone();
+    exitEvent.type = 'mouseexit';
+    exitEvent.target = this.state.lastHoveredNode;
+    exitEvent.x = null; exitEvent.y = null;
+    return exitEvent;
 }
-MouseEventsSupport.prototype.makeOverEvent = function(moveEvent) {
-    var overEvent = moveEvent.clone();
-    overEvent.type = 'mouseenter';
-    overEvent.target = this.owner;
-    return overEvent;
+MouseEventsSupport.prototype.makeEnterEvent = function(moveEvent) {
+    var enterEvent = moveEvent.clone();
+    enterEvent.type = 'mouseenter';
+    enterEvent.target = this.owner;
+    enterEvent.x = null; enterEvent.y = null;
+    return enterEvent;
 }
 
 function MouseEvent(type, x, y, target, source) {
