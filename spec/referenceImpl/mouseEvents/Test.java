@@ -95,16 +95,33 @@ public class Test extends TestCase {
                 "e2: in");
     }
 
+    public void testRelease() throws Exception {
+        root.dispatch(new MouseEvent(77, 7, MouseEvent.Type.move));
+        root.dispatch(new MouseEvent(77, 7, MouseEvent.Type.press));
+        root.dispatch(new MouseEvent(25, 6, MouseEvent.Type.move));
+        root.dispatch(new MouseEvent(25, 6, MouseEvent.Type.release));
+
+        assertEquals(
+                "root: in\n" +
+                "e1: in\n" +
+                "e12: in\n" +
+                "e12: press@2,2\n" +
+                "e12: out\n" +
+                "e11: in\n" +
+                "e12: release@-50,1"
+                , events);
+    }
+
     void assertDispatchPress(int x, int y, String expected) {
         MouseEvent event = new MouseEvent(x, y, MouseEvent.Type.press);
-        root.dispatch(event, event.point);
+        root.dispatch(event);
         assertEquals(expected, events);
         events = null;
     }
 
     void assertDispatchMove(int x, int y, String expected) {
         MouseEvent event = new MouseEvent(x, y, MouseEvent.Type.move);
-        root.dispatch(event, event.point);
+        root.dispatch(event);
         assertEquals(expected, events != null ? events : "");
         events = null;
     }
@@ -121,6 +138,11 @@ public class Test extends TestCase {
                 @Override
                 public void onPress(Point point) {
                     log("press", point);
+                }
+
+                @Override
+                public void onRelease(Point point) {
+                    log("release", point);
                 }
 
                 @Override
@@ -153,6 +175,11 @@ public class Test extends TestCase {
         public Point transformToChild(Node child, Point point) {
             TestNode testChild = (TestNode) child;
             return new Point(point.x - testChild.boundsInParent.x, point.y - testChild.boundsInParent.y);
+        }
+
+        public Point transformToParent(Node child, Point point) {
+            TestNode testChild = (TestNode) child;
+            return new Point(point.x + testChild.boundsInParent.x, point.y + testChild.boundsInParent.y);
         }
 
         @Override
