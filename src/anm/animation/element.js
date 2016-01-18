@@ -284,7 +284,9 @@ Element.prototype.resetTime = function() {
     this.switch = null;
 };
 
-Element.prototype.initEvents = function() {};
+Element.prototype.initEvents = function() {
+    this.mouseSupport = null;
+};
 Element.prototype.resetEvents = Element.prototype.initEvents;
 
 Element.prototype.getMouseSupport = function() {

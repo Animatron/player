@@ -144,6 +144,7 @@ MouseEventsSupport.prototype.markAsHoveredTree = function(moveEvent) {
     }
 }
 MouseEventsSupport.prototype.adaptEvent = function(event) {
+    if (this.onwer instanceof anm.Scene) return event;
     var localPos = this.owner.adapt(event.x, event.y);
     return new MouseEvent(event.type,
                           localPos.x, localPos.y,
@@ -209,8 +210,8 @@ MouseEventsSupport.prototype.processOut = function(moveEvent) {
         processParent = true;
     }
 
-    if (processParent && this.owner.parent) {
-        var parentSupport = this.owner.parent.getMouseSupport();
+    if (processParent && this.getParent()) {
+        var parentSupport = this.getParent().getMouseSupport();
         return parentSupport.processOut(moveEvent);
     }
 
@@ -246,6 +247,11 @@ MouseEventsSupport.prototype.makeEnterEvent = function(moveEvent) {
     enterEvent.target = this.owner;
     enterEvent.x = null; enterEvent.y = null;
     return enterEvent;
+}
+MouseEventsSupport.prototype.getParent = function() {
+    if (this.owner.parent) return this.owner.parent;
+    if (this.owner.scene) return this.owner.scene;
+    return null;
 }
 
 function MouseEvent(type, x, y, target, source) {

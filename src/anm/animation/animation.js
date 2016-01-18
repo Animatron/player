@@ -580,13 +580,7 @@ Animation.prototype.subscribeEvents = function(canvas) {
             if (currentScene && currentScene.isActive()) {
                 var anmEvent = new events.MouseEvent(anmEventType, domEvent.x, domEvent.y,
                                                      anim, domEvent); // target, source
-                currentScene.reverseEach(function(child) {
-                    if (child.isActive()) {
-                        // stop iteration if event was dispatched and continue if it wasn't
-                        return child.dispatchMouseEvent(anmEvent) ? false : true;
-                    }
-                    return true; // continue iteration
-                });
+                currentScene.getMouseSupport().dispatch(anmEvent);
             }
         }
     });
