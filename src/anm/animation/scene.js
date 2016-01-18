@@ -1,10 +1,12 @@
 var utils = require('../utils.js'),
     is = utils.is,
     iter = utils.iter,
-    log = require('../log.js'),
-    events = require('../events.js');
+    log = require('../log.js');
 
-var C = require('./constants.js');
+var events = require('../events.js'),
+    provideEvents = events.provideEvents;
+
+var C = require('../constants.js');
 
 var Search = require('./search.js');
 
@@ -236,8 +238,8 @@ Scene.prototype.reset = function() {
 };
 
 Scene.prototype.getMouseSupport = function() {
-    if (!this.mouseSupport) this.mouseSupport = new events.MouseEventsSupport(this.anim.state);
-    return this.mouseSupport();
+    if (!this.mouseSupport) this.mouseSupport = new events.MouseEventsSupport(this, this.anim.mouseState);
+    return this.mouseSupport;
 };
 
 Scene.prototype.inside = function(point) {

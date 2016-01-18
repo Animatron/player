@@ -144,7 +144,7 @@ MouseEventsSupport.prototype.markAsHoveredTree = function(moveEvent) {
     }
 }
 MouseEventsSupport.prototype.adaptEvent = function(event) {
-    if (this.onwer instanceof anm.Scene) return event;
+    if (!this.owner.adapt) return event;
     var localPos = this.owner.adapt(event.x, event.y);
     return new MouseEvent(event.type,
                           localPos.x, localPos.y,
