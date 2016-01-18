@@ -403,7 +403,7 @@ describe('handling mouse in static objects', function() {
             });
 
             it('properly fires click to the element', function() {
-                fireCanvasEvent('mouseclick', 76, 6);
+                fireCanvasEvent('click', 76, 6);
                 expect(log.stringify(MARKER)).toEqual([ 'rect: mouseclick@1;1 -> rect' ].join(MARKER));
             });
 
