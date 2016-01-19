@@ -3,6 +3,11 @@ var utils = require('../utils.js'),
     iter = utils.iter,
     log = require('../log.js');
 
+var events = require('../events.js'),
+    provideEvents = events.provideEvents;
+
+var C = require('../constants.js');
+
 var Search = require('./search.js');
 
 var Element = require('./element.js');
@@ -24,6 +29,9 @@ function Scene(anim, name, duration) {
     this.children = [];
     this.hash = {};
 }
+
+provideEvents(Scene, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
+                       C.X_MMOVE, C.X_MENTER, C.X_MEXIT ]);
 
 Scene.prototype.tick = function(dt) {
     this.timeline.tick(dt);
@@ -80,6 +88,13 @@ Scene.prototype.reverseEach = function(visitor, data) {
     var i = this.children.length;
     while (i--) {
         if (visitor(this.children[i], data) === false) break;
+    }
+};
+
+Scene.prototype.reverseEachVisible = function(visitor, data) {
+    var i = this.children.length;
+    while (i--) {
+        if (this.children[i].isActive() && (visitor(this.children[i], data) === false)) break;
     }
 };
 
@@ -219,6 +234,16 @@ Scene.prototype.reset = function() {
     this.each(function(child) {
         child.reset();
     });
+    this.mouseSupport = null;
+};
+
+Scene.prototype.getMouseSupport = function() {
+    if (!this.mouseSupport) this.mouseSupport = new events.MouseEventsSupport(this, this.anim.mouseState);
+    return this.mouseSupport;
+};
+
+Scene.prototype.inside = function(point) {
+    return true;
 };
 
 Scene._fromElement = function(elm, anim) {

@@ -26,7 +26,22 @@ prettify();
 
 describe('handling mouse in static objects', function() {
 
-    function buildAnimation() {
+    function buildSimpleAnimation() {
+        var anim = new anm.Animation();
+        var rect = new anm.Element('rect');
+
+        rect.path(rectangle(0, 0, 20, 20)).move(75, 5).pivot(0, 0);
+
+        anim.add(rect);
+        anim.setDuration(10);
+
+        return {
+            anim: anim,
+            rect: rect
+        }
+    }
+
+    function buildLayeredAnimation() {
         var anim = new anm.Animation();
         var root = new anm.Element('root');
         var e1 = new anm.Element('e1');
@@ -71,8 +86,6 @@ describe('handling mouse in static objects', function() {
                              .line(y,height).line(x,y);
     }
 
-    var anim;
-    var root, e1, e11, e12, e2;
     var player;
 
     var canvas, wrapper;
@@ -97,7 +110,7 @@ describe('handling mouse in static objects', function() {
         documentReady = true;
     });
 
-    function setupPlayer(animation, done) {
+    function setupPlayer(anim, done) {
         if (canvas || wrapper) {
             player.detach(); // will remove the wrapper div from the body
         }
@@ -129,210 +142,279 @@ describe('handling mouse in static objects', function() {
         });
     }
 
-    beforeEach(function(done) {
+    describe('layered animation', function() {
 
-        animData = buildAnimation();
+        var anim;
+        var root, e1, e11, e12, e2;
 
-        anim = animData.anim;
-        root = animData.root;
-        e1 = animData.e1; e11 = animData.e11; e12 = animData.e12;
-        e2 = animData.e2;
+        beforeEach(function(done) {
 
-        if (documentReady) {
-            setupPlayer(anim, done);
-        } else {
-            document.addEventListener('DOMContentLoaded', function() {
+            animData = buildLayeredAnimation();
+
+            anim = animData.anim;
+            root = animData.root;
+            e1 = animData.e1; e11 = animData.e11; e12 = animData.e12;
+            e2 = animData.e2;
+
+            if (documentReady) {
                 setupPlayer(anim, done);
+            } else {
+                document.addEventListener('DOMContentLoaded', function() {
+                    setupPlayer(anim, done);
+                });
+            }
+
+        });
+
+        afterEach(function() {
+            anim.unsubscribeEvents(canvas);
+            player.stop();
+            anim.reset();
+        });
+
+        describe('handles clicks properly', function() {
+
+            var MARKER = '\n';
+
+            var log;
+
+            beforeEach(function() {
+                log = new EventLog([ root, e1, e2, e11, e12 ], [ 'mouseclick' ]);
+                log.subscribe();
             });
-        }
+
+            afterEach(function() {
+                log.unsubscribe();
+            });
+
+            it('passes click event to the appropriate element', function() {
+
+                fireCanvasEvent('click', 10, 10);
+                expect(log.stringify(MARKER)).toEqual([ 'e11: mouseclick@10;10 -> e11' ].join(MARKER));
+
+            });
+
+            it('keeps passing click event to the subscribed element', function() {
+
+                fireCanvasEvent('click', 10, 10);
+                expect(log.stringify(MARKER)).toEqual([ 'e11: mouseclick@10;10 -> e11' ].join(MARKER));
+
+                log.clear();
+
+                fireCanvasEvent('click', 25, 25);
+                expect(log.stringify(MARKER)).toEqual([ 'e11: mouseclick@25;25 -> e11' ].join(MARKER));
+
+            });
+
+            it('properly passes click events to corresponding handlers, according to overlaps', function() {
+
+                fireCanvasEvent('click', 75, 25);
+                expect(log.stringify(MARKER)).toEqual([ 'e1: mouseclick@75;25 -> e1' ].join(MARKER));
+
+                log.clear();
+
+                fireCanvasEvent('click', 76, 7);
+                expect(log.stringify(MARKER)).toEqual([ 'e12: mouseclick@1;2 -> e12' ].join(MARKER));
+
+                log.clear();
+
+                fireCanvasEvent('click', 25, 47);
+                expect(log.stringify(MARKER)).toEqual([ 'e2: mouseclick@25;2 -> e2' ].join(MARKER));
+
+                log.clear();
+
+                fireCanvasEvent('click', 75, 47);
+                expect(log.stringify(MARKER)).toEqual([ 'e2: mouseclick@75;2 -> e2' ].join(MARKER));
+
+            });
+
+        });
+
+        describe('handles moves and in/outs properly', function() {
+
+            var MARKER = '\n';
+
+            var log;
+
+            beforeEach(function() {
+                log = new EventLog([ root, e1, e2, e11, e12 ],
+                                   [ 'mouseenter', 'mouseexit' ]);
+                log.subscribe();
+            });
+
+            afterEach(function() {
+                log.unsubscribe();
+            });
+
+            it('transfers in/out event to the corresponding receivers', function() {
+                fireCanvasEvent('mousemove', 25, 75);
+                expect(log.stringify(MARKER)).toEqual([ 'root: mouseenter@null;null -> e2',
+                                                        'e2: mouseenter@null;null -> e2' ].join(MARKER));
+
+                fireCanvasEvent('mousemove', 10, 10);
+            });
+
+            it('in/out events properly work in sequences', function() {
+
+                fireCanvasEvent('mousemove', 25, 75);
+                expect(log.stringify(MARKER)).toEqual([ 'root: mouseenter@null;null -> e2',
+                                                        'e2: mouseenter@null;null -> e2' ].join(MARKER));
+
+                log.clear();
+
+                fireCanvasEvent('mousemove', 25, 75);
+                expect(log.stringify(MARKER)).toEqual('');
+
+                fireCanvasEvent('mousemove', 26, 76);
+                expect(log.stringify(MARKER)).toEqual('');
+
+                fireCanvasEvent('mousemove', 25, 25);
+                expect(log.stringify(MARKER)).toEqual([ 'e2: mouseexit@null;null -> e2',
+                                                        'e1: mouseenter@null;null -> e11',
+                                                        'e11: mouseenter@null;null -> e11' ].join(MARKER));
+
+                log.clear();
+
+                fireCanvasEvent('mousemove', 76, 6);
+                expect(log.stringify(MARKER)).toEqual([ 'e11: mouseexit@null;null -> e11',
+                                                        'e12: mouseenter@null;null -> e12' ].join(MARKER));
+
+                log.clear();
+
+                fireCanvasEvent('mousemove', 25, 75);
+                expect(log.stringify(MARKER)).toEqual([ 'e12: mouseexit@null;null -> e12',
+                                                        'e1: mouseexit@null;null -> e12',
+                                                        'e2: mouseenter@null;null -> e2' ].join(MARKER));
+
+            });
+
+        });
+
+        describe('test mouse release event', function() {
+
+            var MARKER = '\n';
+
+            var log;
+
+            beforeEach(function() {
+                log = new EventLog([ root, e1, e2, e11, e12 ],
+                                   [ 'mouseenter', 'mouseexit', 'mouseup', 'mousedown' ]);
+                log.subscribe();
+            })
+
+            it('handles mouse release and corresponding events in proper order', function() {
+                fireCanvasEvent('mousemove', 77, 7);
+                fireCanvasEvent('mousedown', 77, 7);
+                fireCanvasEvent('mousemove', 25, 6);
+                fireCanvasEvent('mouseup', 25, 6);
+                expect(log.stringify(MARKER)).toEqual([ 'root: mouseenter@null;null -> e12',
+                                                        'e1: mouseenter@null;null -> e12',
+                                                        'e12: mouseenter@null;null -> e12',
+                                                        'e12: mousedown@2;2 -> e12',
+                                                        'e12: mouseexit@null;null -> e12',
+                                                        'e11: mouseenter@null;null -> e11',
+                                                        'e12: mouseup@-50;1 -> e12' ].join(MARKER));
+            });
+
+        });
+
+        describe('other types of events', function() {
+
+            var MARKER = '\n';
+
+            beforeEach(function() {
+                log = new EventLog([ root, e1, e2, e11, e12 ],
+                                   [ 'mousemove', 'mousedown', 'mouseup', 'mousedoubleclick' ]);
+                log.subscribe();
+            });
+
+            afterEach(function() {
+                log.unsubscribe();
+                log.clear();
+            });
+
+            it('properly handles mousemove event', function() {
+                fireCanvasEvent('mousemove', 10, 10);
+                expect(log.stringify(MARKER)).toEqual([ 'e11: mousemove@10;10 -> e11' ].join(MARKER));
+            });
+
+            it('properly handles mousedown event', function() {
+                fireCanvasEvent('mousedown', 10, 10);
+                expect(log.stringify(MARKER)).toEqual([ 'e11: mousedown@10;10 -> e11' ].join(MARKER));
+            });
+
+            it('properly handles mouseup event', function() {
+                fireCanvasEvent('mouseup', 10, 10);
+                expect(log.stringify(MARKER)).toEqual([ 'e11: mouseup@10;10 -> e11' ].join(MARKER));
+            });
+
+            it('properly handles doubleclick event', function() {
+                fireCanvasEvent('dblclick', 10, 10);
+                expect(log.stringify(MARKER)).toEqual([ 'e11: mousedoubleclick@10;10 -> e11' ].join(MARKER));
+            });
+
+        });
 
     });
 
-    afterEach(function() {
-        anim.unsubscribeEvents(canvas);
-        player.stop();
-        anim.reset();
-    });
+    describe('single-shape animation', function() {
 
-    describe('handles clicks properly', function() {
+        var anim,
+            rect;
 
-        var MARKER = '\n';
+        beforeEach(function(done) {
 
-        var log;
+            animData = buildSimpleAnimation();
 
-        beforeEach(function() {
-            log = new EventLog([ root, e1, e2, e11, e12 ], [ 'mouseclick' ]);
-            log.subscribe();
+            anim = animData.anim;
+            rect = animData.rect;
+
+            if (documentReady) {
+                setupPlayer(anim, done);
+            } else {
+                document.addEventListener('DOMContentLoaded', function() {
+                    setupPlayer(anim, done);
+                });
+            }
+
         });
 
         afterEach(function() {
-            log.unsubscribe();
+            anim.unsubscribeEvents(canvas);
+            player.stop();
+            anim.reset();
         });
 
-        it('passes click event to the appropriate element', function() {
+        describe('should properly handle events in one-element animation', function() {
 
-            fireCanvasEvent('click', 10, 10);
-            expect(log.stringify(MARKER)).toEqual([ 'e11: mouseclick@10;10 -> e11' ].join(MARKER));
+            var MARKER = '\n';
 
-        });
+            beforeEach(function() {
+                useSimpleAnimation = true;
 
-        it('keeps passing click event to the subscribed element', function() {
+                log = new EventLog([ rect ],
+                                   [ 'mouseclick', 'mouseenter', 'mouseexit' ]);
+                log.subscribe();
+            });
 
-            fireCanvasEvent('click', 10, 10);
-            expect(log.stringify(MARKER)).toEqual([ 'e11: mouseclick@10;10 -> e11' ].join(MARKER));
+            afterEach(function() {
+                log.unsubscribe();
+                log.clear();
+            });
 
-            log.clear();
+            it('properly fires click to the element', function() {
+                fireCanvasEvent('click', 76, 6);
+                expect(log.stringify(MARKER)).toEqual([ 'rect: mouseclick@1;1 -> rect' ].join(MARKER));
+            });
 
-            fireCanvasEvent('click', 25, 25);
-            expect(log.stringify(MARKER)).toEqual([ 'e11: mouseclick@25;25 -> e11' ].join(MARKER));
+            it('properly fires enter and exit for the element', function() {
+                fireCanvasEvent('mousemove', 10, 10);
+                fireCanvasEvent('mousemove', 76, 6);
+                fireCanvasEvent('mousemove', 10, 10);
+                expect(log.stringify(MARKER)).toEqual([ 'rect: mouseenter@null;null -> rect',
+                                                        'rect: mouseexit@null;null -> rect' ].join(MARKER));
+            });
 
-        });
-
-        it('properly passes click events to corresponding handlers, according to overlaps', function() {
-
-            fireCanvasEvent('click', 75, 25);
-            expect(log.stringify(MARKER)).toEqual([ 'e1: mouseclick@75;25 -> e1' ].join(MARKER));
-
-            log.clear();
-
-            fireCanvasEvent('click', 76, 7);
-            expect(log.stringify(MARKER)).toEqual([ 'e12: mouseclick@1;2 -> e12' ].join(MARKER));
-
-            log.clear();
-
-            fireCanvasEvent('click', 25, 47);
-            expect(log.stringify(MARKER)).toEqual([ 'e2: mouseclick@25;2 -> e2' ].join(MARKER));
-
-            log.clear();
-
-            fireCanvasEvent('click', 75, 47);
-            expect(log.stringify(MARKER)).toEqual([ 'e2: mouseclick@75;2 -> e2' ].join(MARKER));
-
-        });
-
-    });
-
-    describe('handles moves and in/outs properly', function() {
-
-        var MARKER = '\n';
-
-        var log;
-
-        beforeEach(function() {
-            log = new EventLog([ root, e1, e2, e11, e12 ],
-                               [ 'mouseenter', 'mouseexit' ]);
-            log.subscribe();
-        });
-
-        afterEach(function() {
-            log.unsubscribe();
-        });
-
-        /* it('transfers in/out event to the corresponding receivers', function() {
-            expect({ type: 'mousemove', x: 25, y: 75 })
-                .toBeHandledAs([ { in: e2,   target: e2, type: 'mouseenter', x: 25, y: 30 },
-                                 { in: root, target: e2, type: 'mouseenter', x: 25, y: 30 } ]);
-
-            fireCanvasEvent('mousemove', 10, 10);
-        }); */
-
-        it('in/out events properly work in sequences', function() {
-
-            fireCanvasEvent('mousemove', 25, 75);
-            expect(log.stringify(MARKER)).toEqual([ 'root: mouseenter@null;null -> e2',
-                                                    'e2: mouseenter@null;null -> e2' ].join(MARKER));
-
-            log.clear();
-
-            fireCanvasEvent('mousemove', 25, 75);
-            expect(log.stringify(MARKER)).toEqual('');
-
-            fireCanvasEvent('mousemove', 26, 76);
-            expect(log.stringify(MARKER)).toEqual('');
-
-            fireCanvasEvent('mousemove', 25, 25);
-            expect(log.stringify(MARKER)).toEqual([ 'e2: mouseexit@null;null -> e2',
-                                                    'e1: mouseenter@null;null -> e11',
-                                                    'e11: mouseenter@null;null -> e11' ].join(MARKER));
-
-            log.clear();
-
-            fireCanvasEvent('mousemove', 76, 6);
-            expect(log.stringify(MARKER)).toEqual([ 'e11: mouseexit@null;null -> e11',
-                                                    'e12: mouseenter@null;null -> e12' ].join(MARKER));
-
-            log.clear();
-
-            fireCanvasEvent('mousemove', 25, 75);
-            expect(log.stringify(MARKER)).toEqual([ 'e12: mouseexit@null;null -> e12',
-                                                    'e1: mouseexit@null;null -> e12',
-                                                    'e2: mouseenter@null;null -> e2' ].join(MARKER));
-
-        });
-
-    });
-
-    describe('test mouse release event', function() {
-
-        var MARKER = '\n';
-
-        var log;
-
-        beforeEach(function() {
-            log = new EventLog([ root, e1, e2, e11, e12 ],
-                               [ 'mouseenter', 'mouseexit', 'mouseup', 'mousedown' ]);
-            log.subscribe();
-        })
-
-        it('handles mouse release and corresponding events in proper order', function() {
-            fireCanvasEvent('mousemove', 77, 7);
-            fireCanvasEvent('mousedown', 77, 7);
-            fireCanvasEvent('mousemove', 25, 6);
-            fireCanvasEvent('mouseup', 25, 6);
-            expect(log.stringify(MARKER)).toEqual([ 'root: mouseenter@null;null -> e12',
-                                                    'e1: mouseenter@null;null -> e12',
-                                                    'e12: mouseenter@null;null -> e12',
-                                                    'e12: mousedown@2;2 -> e12',
-                                                    'e12: mouseexit@null;null -> e12',
-                                                    'e11: mouseenter@null;null -> e11',
-                                                    'e12: mouseup@-50;1 -> e12' ].join(MARKER));
-        });
-
-    });
-
-    describe('other types of events', function() {
-
-        var MARKER = '\n';
-
-        beforeEach(function() {
-            log = new EventLog([ root, e1, e2, e11, e12 ],
-                               [ 'mousemove', 'mousedown', 'mouseup', 'mousedoubleclick' ]);
-            log.subscribe();
-        });
-
-        afterEach(function() {
-            log.unsubscribe();
-            log.clear();
-        });
-
-        it('properly handles mousemove event', function() {
-            fireCanvasEvent('mousemove', 10, 10);
-            expect(log.stringify(MARKER)).toEqual([ 'e11: mousemove@10;10 -> e11' ].join(MARKER));
-        });
-
-        it('properly handles mousedown event', function() {
-            fireCanvasEvent('mousedown', 10, 10);
-            expect(log.stringify(MARKER)).toEqual([ 'e11: mousedown@10;10 -> e11' ].join(MARKER));
-        });
-
-        it('properly handles mouseup event', function() {
-            fireCanvasEvent('mouseup', 10, 10);
-            expect(log.stringify(MARKER)).toEqual([ 'e11: mouseup@10;10 -> e11' ].join(MARKER));
-        });
-
-        it('properly handles doubleclick event', function() {
-            fireCanvasEvent('dblclick', 10, 10);
-            expect(log.stringify(MARKER)).toEqual([ 'e11: mousedoubleclick@10;10 -> e11' ].join(MARKER));
         });
 
     });
