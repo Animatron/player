@@ -403,8 +403,14 @@ $DE.clearChildren = function(elm) {
 
 // Creating & Modifying Canvas
 
-$DE.createCanvas = function(width, height, bg, ratio) {
+$DE.newCanvas = function() {
     var cvs = $doc.createElement('canvas');
+    cvs.style.outline = 'none';
+    return cvs;
+};
+
+$DE.createCanvas = function(width, height, bg, ratio) {
+    var cvs = $DE.newCanvas();
     $DE.setCanvasSize(cvs, width, height, ratio);
     if (bg) $DE.setCanvasBackground(cvs, bg);
     return cvs;
@@ -427,7 +433,7 @@ $DE.assignPlayerToWrapper = function(wrapper, player, backup_id) {
 
     var state_before = wrapper.cloneNode(false);
 
-    var canvas = canvasWasPassed ? wrapper : $doc.createElement('canvas');
+    var canvas = canvasWasPassed ? wrapper : $DE.newCanvas();
     wrapper = canvasWasPassed ? $doc.createElement('div') : wrapper;
 
     if (wrapper.getAttribute(MARKER_ATTR)) throw new Error('Player is already attached to element \'' + (wrapper.id || canvas.id) + '\'.');
@@ -746,7 +752,7 @@ $DE.addCanvasOverlay = function(id, player_cvs, conf, callback) {
         y_shift = parseFloat(p_style.getPropertyValue('border-top-width'));
     var new_w = (w * pw),
         new_h = (h * ph);
-    var cvs = $doc.createElement('canvas');
+    var cvs = $DE.newCanvas();
     cvs.id = (p_props.id) ? ('__' + p_props.id + '_' + id) : ('__anm_' + id);
     var props = $DE.getAnmProps(cvs);
     if (callback) callback(cvs, player_cvs);
@@ -958,7 +964,7 @@ $DE.appendToBody = function(element) {
     $doc.body.appendChild(element);
 };
 
-var testCanvas = $doc.createElement ? $doc.createElement('canvas') : {};
+var testCanvas = $doc.createElement ? $DE.newCanvas() : {};
 $DE.canvasSupported = !!(testCanvas.getContext && testCanvas.getContext('2d'));
 
 var https = $win.location && $win.location.protocol === 'https:';
