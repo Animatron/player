@@ -29,7 +29,7 @@ function Controls(player) {
 
     this.happens = C.NOTHING;
 
-    this.mpos = {x: 0, y: 0};
+    this.mpos = { x: 0, y: 0 };
     this.alpha = 1;
     this.click = false;
     this.updated = true;
@@ -290,7 +290,6 @@ Controls.prototype.handleMouseMove = function(evt) {
     }
 };
 
-
 Controls.prototype.handleClick = function() {
     this.updated = true;
     this.mouseInteracted = true;
@@ -309,7 +308,6 @@ Controls.prototype.handleMouseLeave = function() {
     }
 };
 
-
 Controls.prototype.hide = function() {
     if (this.alpha === 0 || this.fadeMode === FADE_OUT) {
         //already hidden/hiding
@@ -321,7 +319,6 @@ Controls.prototype.hide = function() {
     this.fadeTimer = theme.fadeTimes.fadeout - this.fadeTimer;
     this.updated = true;
 };
-
 
 Controls.prototype.show = function() {
     if (this.alpha === 1 || this.fadeMode === FADE_IN) {
@@ -407,14 +404,20 @@ var drawBack = function(ctx, theme, w, h, bgcolor) {
 var drawProgress = function(ctx, theme, w, h, progress) {
     ctx.save();
     var btnWidth = theme.progress.buttonWidth,
+        topBackColor = theme.progress.topBackColor,
+        bottomBackColor = theme.progress.bottomBackColor,
         bottomHeight = theme.bottomControls.height;
-    ctx.fillStyle = theme.progress.backColor;
-    ctx.fillRect(0, h-bottomHeight, w, bottomHeight);
+    ctx.translate(0, h-bottomHeight);
+    var backGradient = ctx.createLinearGradient(0,0,0,bottomHeight);
+    backGradient.addColorStop(0,topBackColor);
+    backGradient.addColorStop(1,bottomBackColor);
+    ctx.fillStyle = backGradient;
+    ctx.fillRect(0, 0, w, bottomHeight);
     ctx.fillStyle = theme.progress.inactiveColor;
-    ctx.fillRect(btnWidth, h-10, w-2*btnWidth, 5);
+    ctx.fillRect(btnWidth, bottomHeight-10, w-2*btnWidth, 5);
     var progressWidth = Math.round(progress*(w-2*btnWidth));
     ctx.fillStyle = theme.progress.activeColor;
-    ctx.fillRect(btnWidth, h-10, progressWidth, 5);
+    ctx.fillRect(btnWidth, bottomHeight-10, progressWidth, 5);
     ctx.restore();
 };
 
@@ -580,11 +583,11 @@ var drawError = function(ctx, theme, w, h, error, focused) {
 //draw either the current time or the time under the mouse position
 var drawTime = function(ctx, theme, w, h, time, duration, progress, coords) {
     var btnWidth = theme.progress.buttonWidth,
-        inArea = Controls.isInProgressArea(coords, w, h) && coords.x > btnWidth && coords.x < w-btnWidth;
+        inArea = Controls.isInProgressArea(coords, w, h) && (coords.x > btnWidth) && (coords.x < w-btnWidth);
     if (inArea) {
-      //calculate time at mouse position
-      progress = (coords.x-btnWidth)/(w-2*btnWidth);
-      time = Math.round(duration*progress);
+        //calculate time at mouse position
+        progress = (coords.x-btnWidth)/(w-2*btnWidth);
+        time = Math.round(duration*progress);
     }
     var progressPos = btnWidth + Math.round(progress*(w-2*btnWidth));
     ctx.beginPath();

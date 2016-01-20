@@ -16,7 +16,8 @@
         "height": 15
     },
     "progress": {
-        "backColor": "rgba(0,0,0,0.7)",
+        "topBackColor": "rgba(0,0,0,0)",
+        "bottomBackColor": "rgba(0,0,0,0.6)",
         "activeColor": "white",
         "inactiveColor": "rgba(255,255,255,0.5)",
         "buttonWidth": 27
