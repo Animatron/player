@@ -12,15 +12,18 @@
       "radius": 40,
       "color": "rgba(0,0,0,0.7)"
     },
-    "bottomControls": {
-        "height": 15
-    },
-    "progress": {
+    "bottom": {
+        "height": 20,
         "topBackColor": "rgba(0,0,0,0)",
-        "bottomBackColor": "rgba(0,0,0,0.6)",
-        "activeColor": "white",
-        "inactiveColor": "rgba(255,255,255,0.5)",
-        "buttonWidth": 27
+        "bottomBackColor": "rgba(0,0,0,0.35)",
+        "buttonWidth": 27,
+        "progress": {
+            "margin": 5,
+            "activeColor": "red",
+            "inactiveColor": "rgba(255,255,255,0.7)",
+            "activeHeight": 7,
+            "inactiveHeight": 5
+        }
     },
     "button": {
       "color": "white"

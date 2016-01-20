@@ -100,7 +100,7 @@ Controls.prototype.checkMouseTimeout = function(gtime) {
             //if we're in a state where controls should autohide
             (this.happens === C.PLAYING || this.happens === C.PAUSED) &&
             //and the mouse is not busy somewhere on the bottom area
-            !Controls.isInProgressArea(this.mpos, this.bounds[2], this.bounds[3])
+            !Controls.isInBottomArea(this.mpos, this.bounds[2], this.bounds[3])
         ) {
             this.hide();
             this.autoHidden = true;
@@ -230,15 +230,15 @@ Controls.prototype.react = function() {
     if ((s === C.NOTHING) || (s === C.LOADING) || (s === C.ERROR)) return;
 
     var duration = p.anim ? p.anim.getDuration() : 0,
-        btnWidth = theme.progress.buttonWidth,
-        bottomHeight = theme.bottomControls.height;
+        btnWidth = theme.bottom.buttonWidth,
+        bottomHeight = theme.bottom.height;
 
     var coords = this.mpos,
         w = this.bounds[2], h = this.bounds[3];
 
     //handle clicks in the bottom area, where the playhead
     //and mute buttons reside
-    if (!this.invisible && Controls.isInProgressArea(coords, w, h)) {
+    if (!this.invisible && Controls.isInBottomArea(coords, w, h)) {
         if ((coords.x > btnWidth) && (coords.x < w-btnWidth)) {
             time = utils.roundTo(duration*(coords.x-btnWidth)/(w-2*btnWidth), 1);
             p.seek(time);
@@ -276,7 +276,7 @@ Controls.prototype.handleMouseMove = function(evt) {
     if (this.happens === C.PLAYING || this.happens === C.PAUSED) {
         //if we are in the state where the playhead is accessible,
         //let's check if the mouse was there.
-        if (Controls.isInProgressArea(this.mpos, this.bounds[2], this.bounds[3])) {
+        if (Controls.isInBottomArea(this.mpos, this.bounds[2], this.bounds[3])) {
             this.updated = true;
             this.mouseInProgressArea = true;
         } else {
@@ -384,8 +384,8 @@ Controls.prototype.stopRenderLoop = function() {
 };
 
 //check whether the mpos coordinates are within the bottom area
-Controls.isInProgressArea = function(mpos, w, h) {
-    return (mpos.y <= h && mpos.y >= (h - theme.bottomControls.height));
+Controls.isInBottomArea = function(mpos, w, h) {
+    return (mpos.y <= h && mpos.y >= (h - theme.bottom.height));
 };
 
 //draw the play/pause button background
@@ -403,21 +403,25 @@ var drawBack = function(ctx, theme, w, h, bgcolor) {
 //draw the progress area, complete with the progress bar
 var drawProgress = function(ctx, theme, w, h, progress) {
     ctx.save();
-    var btnWidth = theme.progress.buttonWidth,
-        topBackColor = theme.progress.topBackColor,
-        bottomBackColor = theme.progress.bottomBackColor,
-        bottomHeight = theme.bottomControls.height;
+    var btnWidth = theme.bottom.buttonWidth,
+        topBackColor = theme.bottom.topBackColor,
+        bottomBackColor = theme.bottom.bottomBackColor,
+        bottomHeight = theme.bottom.height;
+    var progressMargin = theme.bottom.progress.margin,
+        progressHeight = theme.bottom.progress.inactiveHeight;
     ctx.translate(0, h-bottomHeight);
-    var backGradient = ctx.createLinearGradient(0,0,0,bottomHeight);
-    backGradient.addColorStop(0,topBackColor);
+    ctx.fillStyle = theme.bottom.progress.inactiveColor;
+    ctx.fillRect(progressMargin, 0, w-2*progressMargin, progressHeight);
+    var progressWidth = Math.round(progress*(w-2*btnWidth));
+    ctx.fillStyle = theme.bottom.progress.activeColor;
+    ctx.fillRect(progressMargin, 0, progressWidth, progressHeight);
+    ctx.translate(0, progressHeight);
+    var backGradient = ctx.createLinearGradient(0, 0, 0, bottomHeight - progressHeight);
+    backGradient.addColorStop(0,'transparent');
+    backGradient.addColorStop(0.3,topBackColor);
     backGradient.addColorStop(1,bottomBackColor);
     ctx.fillStyle = backGradient;
-    ctx.fillRect(0, 0, w, bottomHeight);
-    ctx.fillStyle = theme.progress.inactiveColor;
-    ctx.fillRect(btnWidth, bottomHeight-10, w-2*btnWidth, 5);
-    var progressWidth = Math.round(progress*(w-2*btnWidth));
-    ctx.fillStyle = theme.progress.activeColor;
-    ctx.fillRect(btnWidth, bottomHeight-10, progressWidth, 5);
+    ctx.fillRect(0, 0, w, bottomHeight - progressHeight);
     ctx.restore();
 };
 
@@ -454,7 +458,7 @@ var drawTinyPause = function(ctx, w, h) {
     ctx.save();
 
     var cx = 0,
-        cy = h-theme.bottomControls.height;
+        cy = h-theme.bottom.height;
 
     ctx.fillStyle = theme.button.color;
     ctx.fillRect(cx+9, cy+3, 3, 9);
@@ -467,7 +471,7 @@ var drawTinyPlay = function(ctx, w, h) {
     ctx.save();
 
     var cx = 0,
-        cy = h-theme.bottomControls.height;
+        cy = h-theme.bottom.height;
 
     ctx.strokeStyle = 'transparent';
     ctx.fillStyle = theme.button.color;
@@ -487,8 +491,8 @@ var drawTinyPlay = function(ctx, w, h) {
 var drawVolumeBtn = function(ctx, w, h, muted) {
     ctx.save();
 
-    var cx = w-theme.progress.buttonWidth,
-        cy = h-theme.bottomControls.height;
+    var cx = w-theme.bottom.buttonWidth,
+        cy = h-theme.bottom.height;
 
     ctx.strokeStyle = 'transparent';
     ctx.lineWidth = 1;
@@ -582,8 +586,8 @@ var drawError = function(ctx, theme, w, h, error, focused) {
 
 //draw either the current time or the time under the mouse position
 var drawTime = function(ctx, theme, w, h, time, duration, progress, coords) {
-    var btnWidth = theme.progress.buttonWidth,
-        inArea = Controls.isInProgressArea(coords, w, h) && (coords.x > btnWidth) && (coords.x < w-btnWidth);
+    var btnWidth = theme.bottom.buttonWidth,
+        inArea = Controls.isInBottomArea(coords, w, h) && (coords.x > btnWidth) && (coords.x < w-btnWidth);
     if (inArea) {
         //calculate time at mouse position
         progress = (coords.x-btnWidth)/(w-2*btnWidth);
@@ -591,7 +595,7 @@ var drawTime = function(ctx, theme, w, h, time, duration, progress, coords) {
     }
     var progressPos = btnWidth + Math.round(progress*(w-2*btnWidth));
     ctx.beginPath();
-    ctx.fillStyle = theme.progress.backColor;
+    ctx.fillStyle = theme.bottom.bottomBackColor;
     ctx.strokeStyle = 'transparent';
     ctx.clearRect(0, h-40, w, 20);
     var x = Math.min(Math.max(1, progressPos-17), w-35), r=3, y=h-40, rw=34, rh=20;
