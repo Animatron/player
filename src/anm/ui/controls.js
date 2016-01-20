@@ -404,38 +404,23 @@ var drawBack = function(ctx, theme, w, h, bgcolor) {
 var drawProgress = function(ctx, theme, w, h, progress) {
     ctx.save();
     var btnWidth = theme.bottom.buttonWidth,
-        topBackColor = theme.bottom.topBackColor,
-        bottomBackColor = theme.bottom.bottomBackColor,
+        backGradColors = theme.bottom.backGradient,
         bottomHeight = theme.bottom.height;
     var progressMargin = theme.bottom.progress.margin,
         progressHeight = theme.bottom.progress.inactiveHeight;
     ctx.translate(0, h - bottomHeight);
+    var backGradient = ctx.createLinearGradient(0, 0, 0, bottomHeight);
+    for (var i = 0; i < backGradColors.length; i++) {
+        backGradient.addColorStop(backGradColors[i][0], backGradColors[i][1]);
+    }
+    ctx.fillStyle = backGradient;
+    ctx.fillRect(0, 0, w, bottomHeight);
     ctx.fillStyle = theme.bottom.progress.inactiveColor;
     ctx.fillRect(progressMargin, 0, w - 2 * progressMargin, progressHeight);
     var progressWidth = Math.round(progress * (w - 2 * progressMargin));
     ctx.strokeStyle = 'transparent';
     ctx.fillStyle = theme.bottom.progress.activeColor;
-    ctx.fillRect(progressMargin, 0, progressWidth, progressHeight - 1);
-    ctx.translate(0, progressHeight);
-    var backGradient = ctx.createLinearGradient(0, 0, 0, bottomHeight - progressHeight);
-    //backGradient.addColorStop(0, 'transparent');
-    //backGradient.addColorStop(0.2, topBackColor);
-    backGradient.addColorStop(0, topBackColor);
-    backGradient.addColorStop(1, bottomBackColor);
-    ctx.fillStyle = backGradient;
-    ctx.fillRect(0, 0, w, bottomHeight - progressHeight);
-    /* ctx.translate(0, h - bottomHeight);
-    var backGradient = ctx.createLinearGradient(0, 0, 0, bottomHeight);
-    backGradient.addColorStop(0, topBackColor);
-    backGradient.addColorStop(1, bottomBackColor);
-    ctx.fillStyle = backGradient;
-    ctx.fillRect(0, 0, w, bottomHeight);
-    ctx.fillStyle = theme.bottom.progress.inactiveColor;
-    ctx.fillRect(progressMargin, 2, w - 2 * progressMargin, progressHeight);
-    var progressWidth = Math.round(progress * (w - 2 * progressMargin));
-    ctx.strokeStyle = 'transparent';
-    ctx.fillStyle = theme.bottom.progress.activeColor;
-    ctx.fillRect(progressMargin, 0, progressWidth, progressHeight - 1); */
+    ctx.fillRect(progressMargin, 0, progressWidth, progressHeight);
     ctx.restore();
 };
 
@@ -611,8 +596,8 @@ var drawTime = function(ctx, theme, w, h, time, duration, progress, coords) {
                  && (coords.y > (h - bottomHeight - 2))
                  && (coords.y < (h - bottomHeight + progressHeight + 2));
     var timeX = btnWidth + 20,
-        timeY = h - ((bottomHeight - progressHeight) / 2) + 1;
-    drawText(ctx, theme, timeX, timeY, 6, utils.fmt_time(time) + '/' + utils.fmt_time(duration));
+        timeY = h - ((bottomHeight - progressHeight) / 2);
+    drawText(ctx, theme, timeX, timeY, 6, utils.fmt_time(time) + ' / ' + utils.fmt_time(duration));
     if (inArea) {
         //calculate time at mouse position
         progress = (coords.x - progressMargin) / (w - 2 * progressMargin);

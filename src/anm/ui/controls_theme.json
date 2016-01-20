@@ -13,16 +13,20 @@
       "color": "rgba(0,0,0,0.7)"
     },
     "bottom": {
-        "height": 22,
-        "topBackColor": "rgba(0,0,0,0.3)",
-        "bottomBackColor": "rgba(0,0,0,0.4)",
+        "height": 25,
+        "backGradient": [
+            [ 0, "rgba(0,0,0,0.0)" ],
+            [ 0.3, "rgba(0,0,0,0.1)" ],
+            [ 0.6, "rgba(0,0,0,0.2)" ],
+            [ 1, "rgba(0,0,0,0.35)" ]
+        ],
         "hintBackColor": "rgba(0,0,0,0.7)",
         "buttonWidth": 27,
         "buttonY": 5,
         "progress": {
             "margin": 5,
             "activeColor": "red",
-            "inactiveColor": "rgba(255,255,255,0.7)",
+            "inactiveColor": "rgba(250,250,250,0.7)",
             "activeHeight": 5,
             "inactiveHeight": 3
         }
