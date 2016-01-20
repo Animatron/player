@@ -409,16 +409,16 @@ var drawProgress = function(ctx, theme, w, h, progress) {
         bottomHeight = theme.bottom.height;
     var progressMargin = theme.bottom.progress.margin,
         progressHeight = theme.bottom.progress.inactiveHeight;
-    ctx.translate(0, h-bottomHeight);
+    ctx.translate(0, h - bottomHeight);
     ctx.fillStyle = theme.bottom.progress.inactiveColor;
-    ctx.fillRect(progressMargin, 0, w-2*progressMargin, progressHeight);
-    var progressWidth = Math.round(progress*(w-2*btnWidth));
+    ctx.fillRect(progressMargin, 0, w - 2 * progressMargin, progressHeight);
+    var progressWidth = Math.round(progress * (w - 2 * progressMargin));
     ctx.fillStyle = theme.bottom.progress.activeColor;
     ctx.fillRect(progressMargin, 0, progressWidth, progressHeight);
     ctx.translate(0, progressHeight);
     var backGradient = ctx.createLinearGradient(0, 0, 0, bottomHeight - progressHeight);
     backGradient.addColorStop(0,'transparent');
-    backGradient.addColorStop(0.3,topBackColor);
+    backGradient.addColorStop(0.1,topBackColor);
     backGradient.addColorStop(1,bottomBackColor);
     ctx.fillStyle = backGradient;
     ctx.fillRect(0, 0, w, bottomHeight - progressHeight);
@@ -458,7 +458,7 @@ var drawTinyPause = function(ctx, w, h) {
     ctx.save();
 
     var cx = 0,
-        cy = h-theme.bottom.height;
+        cy = h - theme.bottom.height + theme.bottom.buttonY;
 
     ctx.fillStyle = theme.button.color;
     ctx.fillRect(cx+9, cy+3, 3, 9);
@@ -471,7 +471,7 @@ var drawTinyPlay = function(ctx, w, h) {
     ctx.save();
 
     var cx = 0,
-        cy = h-theme.bottom.height;
+        cy = h - theme.bottom.height + theme.bottom.buttonY;
 
     ctx.strokeStyle = 'transparent';
     ctx.fillStyle = theme.button.color;
@@ -491,8 +491,8 @@ var drawTinyPlay = function(ctx, w, h) {
 var drawVolumeBtn = function(ctx, w, h, muted) {
     ctx.save();
 
-    var cx = w-theme.bottom.buttonWidth,
-        cy = h-theme.bottom.height;
+    var cx = w - theme.bottom.buttonWidth,
+        cy = h - theme.bottom.height + theme.bottom.buttonY;
 
     ctx.strokeStyle = 'transparent';
     ctx.lineWidth = 1;
