@@ -395,7 +395,7 @@ var drawBack = function(ctx, theme, w, h, bgcolor) {
         cy = h / 2;
     ctx.beginPath();
     ctx.fillStyle = theme.circle.color;
-    ctx.arc(cx,cy,theme.circle.radius,0,2*Math.PI);
+    ctx.arc(cx, cy, theme.circle.radius, 0, 2*Math.PI);
     ctx.fill();
     ctx.restore();
 };
@@ -413,13 +413,14 @@ var drawProgress = function(ctx, theme, w, h, progress) {
     ctx.fillStyle = theme.bottom.progress.inactiveColor;
     ctx.fillRect(progressMargin, 0, w - 2 * progressMargin, progressHeight);
     var progressWidth = Math.round(progress * (w - 2 * progressMargin));
+    ctx.strokeStyle = 'transparent';
     ctx.fillStyle = theme.bottom.progress.activeColor;
-    ctx.fillRect(progressMargin, 0, progressWidth, progressHeight);
+    ctx.fillRect(progressMargin, 0, progressWidth, progressHeight - 1);
     ctx.translate(0, progressHeight);
     var backGradient = ctx.createLinearGradient(0, 0, 0, bottomHeight - progressHeight);
-    backGradient.addColorStop(0,'transparent');
-    backGradient.addColorStop(0.1,topBackColor);
-    backGradient.addColorStop(1,bottomBackColor);
+    backGradient.addColorStop(0, 'transparent');
+    backGradient.addColorStop(0.1, topBackColor);
+    backGradient.addColorStop(1, bottomBackColor);
     ctx.fillStyle = backGradient;
     ctx.fillRect(0, 0, w, bottomHeight - progressHeight);
     ctx.restore();
@@ -461,8 +462,8 @@ var drawTinyPause = function(ctx, w, h) {
         cy = h - theme.bottom.height + theme.bottom.buttonY;
 
     ctx.fillStyle = theme.button.color;
-    ctx.fillRect(cx+9, cy+3, 3, 9);
-    ctx.fillRect(cx+15, cy+3, 3, 9);
+    ctx.fillRect(cx + 9,  cy + 3, 3, 9);
+    ctx.fillRect(cx + 15, cy + 3, 3, 9);
 
     ctx.restore();
 };
@@ -476,10 +477,10 @@ var drawTinyPlay = function(ctx, w, h) {
     ctx.strokeStyle = 'transparent';
     ctx.fillStyle = theme.button.color;
     ctx.beginPath();
-    ctx.moveTo(cx + 9, cy + 3);
+    ctx.moveTo(cx + 9,  cy + 3);
     ctx.lineTo(cx + 18, cy + 7);
-    ctx.lineTo(cx + 9, cy + 11);
-    ctx.lineTo(cx + 9, cy + 3);
+    ctx.lineTo(cx + 9,  cy + 11);
+    ctx.lineTo(cx + 9,  cy + 3);
     ctx.closePath();
     ctx.fill();
 
@@ -587,18 +588,22 @@ var drawError = function(ctx, theme, w, h, error, focused) {
 //draw either the current time or the time under the mouse position
 var drawTime = function(ctx, theme, w, h, time, duration, progress, coords) {
     var btnWidth = theme.bottom.buttonWidth,
-        inArea = Controls.isInBottomArea(coords, w, h) && (coords.x > btnWidth) && (coords.x < w-btnWidth);
+        bottomHeight = theme.bottom.height,
+        progressMargin = theme.bottom.progress.margin;
+    var inArea = Controls.isInBottomArea(coords, w, h) && (coords.x > progressMargin) && (coords.x < w-progressMargin);
     if (inArea) {
         //calculate time at mouse position
-        progress = (coords.x-btnWidth)/(w-2*btnWidth);
+        progress = (coords.x-progressMargin)/(w-2*progressMargin);
         time = Math.round(duration*progress);
     }
-    var progressPos = btnWidth + Math.round(progress*(w-2*btnWidth));
+    var progressPos = progressMargin + Math.round(progress * (w - 2 * progressMargin));
+    var myHeight = 20;
     ctx.beginPath();
     ctx.fillStyle = theme.bottom.bottomBackColor;
     ctx.strokeStyle = 'transparent';
-    ctx.clearRect(0, h-40, w, 20);
-    var x = Math.min(Math.max(1, progressPos-17), w-35), r=3, y=h-40, rw=34, rh=20;
+    var x = Math.min(Math.max(1, progressPos-17), w-35), r=3, rw=34, rh=myHeight;
+    var y = h - bottomHeight - myHeight;
+    ctx.clearRect(0, y, w, myHeight);
     drawRoundedRect(ctx,x,y,rw,rh,r);
     ctx.moveTo(x+rw/2-3, y+rh);
     ctx.lineTo(x+rw/2, y+rh+3);

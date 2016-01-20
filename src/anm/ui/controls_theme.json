@@ -13,9 +13,9 @@
       "color": "rgba(0,0,0,0.7)"
     },
     "bottom": {
-        "height": 20,
+        "height": 22,
         "topBackColor": "rgba(0,0,0,0)",
-        "bottomBackColor": "rgba(0,0,0,0.35)",
+        "bottomBackColor": "rgba(0,0,0,0.4)",
         "buttonWidth": 27,
         "buttonY": 5,
         "progress": {
