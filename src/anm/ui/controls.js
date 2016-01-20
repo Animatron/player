@@ -231,6 +231,8 @@ Controls.prototype.react = function() {
 
     var duration = p.anim ? p.anim.getDuration() : 0,
         btnWidth = theme.bottom.buttonWidth,
+        progressMargin = theme.bottom.progress.margin,
+        progressHeight = theme.bottom.progress.inactiveHeight, // FIXME: make activeHeight
         bottomHeight = theme.bottom.height;
 
     var coords = this.mpos,
@@ -239,8 +241,8 @@ Controls.prototype.react = function() {
     //handle clicks in the bottom area, where the playhead
     //and mute buttons reside
     if (!this.invisible && Controls.isInBottomArea(coords, w, h)) {
-        if ((coords.x > btnWidth) && (coords.x < w-btnWidth)) {
-            time = utils.roundTo(duration*(coords.x-btnWidth)/(w-2*btnWidth), 1);
+        if ((coords.x > progressMargin) && (coords.x < w-progressMargin) && (coords.y < (h - bottomHeight + progressHeight))) {
+            time = utils.roundTo(duration*(coords.x-progressMargin)/(w-2*progressMargin), 1);
             p.seek(time);
             this.time = time;
             return;
@@ -481,7 +483,6 @@ var drawTinyPlay = function(ctx, w, h) {
     ctx.lineTo(cx + 9,  cy + 3);
     ctx.closePath();
     ctx.fill();
-
 
     ctx.restore();
 };
