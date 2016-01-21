@@ -15,10 +15,10 @@
     "bottom": {
         "height": 25,
         "backGradient": [
-            [ 0, "rgba(0,0,0,0.0)" ],
-            [ 0.3, "rgba(0,0,0,0.1)" ],
-            [ 0.6, "rgba(0,0,0,0.2)" ],
-            [ 1, "rgba(0,0,0,0.35)" ]
+            [ 0, "transparent"],
+            [ 0.9, "transparent" ],
+            [ 0.95, "rgba(0,0,0,0.3)" ],
+            [ 1, "rgba(0,0,0,0.6)" ],
         ],
         "hintBackColor": "rgba(0,0,0,0.7)",
         "buttonWidth": 27,

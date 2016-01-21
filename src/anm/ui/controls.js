@@ -410,13 +410,13 @@ var drawProgress = function(ctx, theme, w, h, progress) {
         bottomHeight = theme.bottom.height;
     var progressMargin = theme.bottom.progress.margin,
         progressHeight = theme.bottom.progress.inactiveHeight;
-    ctx.translate(0, h - bottomHeight);
-    var backGradient = ctx.createLinearGradient(0, 0, 0, bottomHeight);
+    var backGradient = ctx.createLinearGradient(0, 0, 0, h);
     for (var i = 0; i < backGradColors.length; i++) {
         backGradient.addColorStop(backGradColors[i][0], backGradColors[i][1]);
     }
     ctx.fillStyle = backGradient;
-    ctx.fillRect(0, 0, w, bottomHeight);
+    ctx.fillRect(0, 0, w, h);
+    ctx.translate(0, h - bottomHeight);
     ctx.fillStyle = theme.bottom.progress.inactiveColor;
     ctx.fillRect(progressMargin, 0, w - 2 * progressMargin, progressHeight);
     var progressWidth = Math.round(progress * (w - 2 * progressMargin));
