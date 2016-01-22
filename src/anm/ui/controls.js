@@ -230,7 +230,7 @@ Controls.prototype.react = function() {
     if ((s === C.NOTHING) || (s === C.LOADING) || (s === C.ERROR)) return;
 
     var duration = p.anim ? p.anim.getDuration() : 0,
-        btnWidth = theme.bottom.buttonWidth,
+        btnWidth = theme.bottom.buttonSize,
         progressMargin = theme.bottom.progress.margin,
         progressHeight = theme.bottom.progress.inactiveHeight, // FIXME: make activeHeight
         bottomHeight = theme.bottom.height;
@@ -246,7 +246,7 @@ Controls.prototype.react = function() {
             p.seek(time);
             this.time = time;
             return;
-        } else if (coords.x > w-btnWidth) { //mute button?
+        } else if (coords.x > w-theme.bottom.marginX-btnWidth) { //mute button?
             p.toggleMute();
             return;
         }
@@ -405,18 +405,18 @@ var drawBack = function(ctx, theme, w, h, bgcolor) {
 //draw the progress area, complete with the progress bar
 var drawProgress = function(ctx, theme, w, h, progress) {
     ctx.save();
-    var btnWidth = theme.bottom.buttonWidth,
+    var btnWidth = theme.bottom.buttonSize,
         backGradColors = theme.bottom.backGradient,
         bottomHeight = theme.bottom.height;
     var progressMargin = theme.bottom.progress.margin,
         progressHeight = theme.bottom.progress.inactiveHeight;
-    ctx.translate(0, h - bottomHeight);
-    var backGradient = ctx.createLinearGradient(0, 0, 0, bottomHeight);
+    var backGradient = ctx.createLinearGradient(0, 0, 0, h);
     for (var i = 0; i < backGradColors.length; i++) {
         backGradient.addColorStop(backGradColors[i][0], backGradColors[i][1]);
     }
     ctx.fillStyle = backGradient;
-    ctx.fillRect(0, 0, w, bottomHeight);
+    ctx.fillRect(0, 0, w, h);
+    ctx.translate(0, h - bottomHeight);
     ctx.fillStyle = theme.bottom.progress.inactiveColor;
     ctx.fillRect(progressMargin, 0, w - 2 * progressMargin, progressHeight);
     var progressWidth = Math.round(progress * (w - 2 * progressMargin));
@@ -458,12 +458,19 @@ var drawPlay = function(ctx, theme, w, h, focused) {
 var drawTinyPause = function(ctx, w, h) {
     ctx.save();
 
-    var cx = 0,
-        cy = h - theme.bottom.height + theme.bottom.buttonY;
+    var cx = 0 + theme.bottom.marginX,
+        cy = h - theme.bottom.height + theme.bottom.marginY,
+        bh = theme.bottom.buttonSize; // bar height
 
+    var bw = Math.floor(bh * 0.37), // bar width
+        gw = Math.floor(bh * 0.26); // gap width
+
+    ctx.translate(cx, cy);
+
+    ctx.strokeStyle = 'transparent';
     ctx.fillStyle = theme.button.color;
-    ctx.fillRect(cx + 9,  cy + 3, 3, 9);
-    ctx.fillRect(cx + 15, cy + 3, 3, 9);
+    ctx.fillRect(0, 0, bw, bh);
+    ctx.fillRect(bw + gw, 0, bw, bh);
 
     ctx.restore();
 };
@@ -471,16 +478,19 @@ var drawTinyPause = function(ctx, w, h) {
 var drawTinyPlay = function(ctx, w, h) {
     ctx.save();
 
-    var cx = 0,
-        cy = h - theme.bottom.height + theme.bottom.buttonY;
+    var cx = 0 + theme.bottom.marginX,
+        cy = h - theme.bottom.height + theme.bottom.marginY,
+        bs = theme.bottom.buttonSize;
+
+    ctx.translate(cx, cy);
 
     ctx.strokeStyle = 'transparent';
     ctx.fillStyle = theme.button.color;
     ctx.beginPath();
-    ctx.moveTo(cx + 9,  cy + 3);
-    ctx.lineTo(cx + 18, cy + 7);
-    ctx.lineTo(cx + 9,  cy + 11);
-    ctx.lineTo(cx + 9,  cy + 3);
+    ctx.moveTo(0,  0);
+    ctx.lineTo(Math.floor(bs * 1.1), bs / 2);
+    ctx.lineTo(0, bs);
+    ctx.lineTo(0, 0);
     ctx.closePath();
     ctx.fill();
 
@@ -491,40 +501,46 @@ var drawTinyPlay = function(ctx, w, h) {
 var drawVolumeBtn = function(ctx, w, h, muted) {
     ctx.save();
 
-    var cx = w - theme.bottom.buttonWidth,
-        cy = h - theme.bottom.height + theme.bottom.buttonY;
+    var cx = w - theme.bottom.buttonSize - theme.bottom.marginX,
+        cy = h - theme.bottom.height + theme.bottom.marginY;
+
+    var bs = theme.bottom.buttonSize; // button size
+
+    ctx.translate(cx, cy);
 
     ctx.strokeStyle = 'transparent';
     ctx.lineWidth = 1;
     ctx.fillStyle = theme.button.color;
     ctx.beginPath();
-    ctx.translate(cx,cy);
-    ctx.moveTo(3,6);
-    ctx.lineTo(6,6);
-    ctx.lineTo(12,3);
-    ctx.lineTo(12,12);
-    ctx.lineTo(6,9);
-    ctx.lineTo(3,9);
-    ctx.lineTo(3,6);
+    ctx.moveTo(0, Math.floor(bs * 0.35));
+    ctx.lineTo(Math.floor(bs * 0.3), Math.floor(bs * 0.35));
+    ctx.lineTo(Math.floor(bs * 0.7), 0);
+    ctx.lineTo(Math.floor(bs * 0.7), bs);
+    ctx.lineTo(Math.floor(bs * 0.3), Math.ceil(bs * 0.65));
+    ctx.lineTo(Math.floor(bs * 0.3), Math.ceil(bs * 0.65));
+    ctx.lineTo(0, Math.ceil(bs * 0.65));
+    ctx.lineTo(0, Math.floor(bs * 0.4));
     ctx.closePath();
     ctx.fill();
 
     ctx.lineWidth = 1;
     ctx.strokeStyle = theme.button.color;
 
-    ctx.beginPath();
+    var ms = bs - Math.floor(bs * 0.75); // mark size
+    ctx.translate(Math.floor(bs * 0.75), (bs / 2) - (ms / 2));
     if (muted) {
-        ctx.moveTo(15,5);
-        ctx.lineTo(21,10);
-        ctx.moveTo(15,10);
-        ctx.lineTo(21,5);
+        ctx.beginPath();
+        ctx.moveTo(0,0);
+        ctx.lineTo(ms,ms);
+        ctx.moveTo(ms,0);
+        ctx.lineTo(0,ms);
         ctx.stroke();
     } else {
         // )))
+        var gap = ms / 3;
         for (var i = 0; i < 3; i++) {
             ctx.beginPath();
-            ctx.moveTo(15+i*3,3);
-            ctx.bezierCurveTo(18+i*3,7, 18+i*3,8, 15+i*3, 12);
+            ctx.arc(0, ms / 2, (i * gap) + gap, 1.5*Math.PI, 0.5*Math.PI);
             ctx.stroke();
         }
     }
@@ -586,7 +602,7 @@ var drawError = function(ctx, theme, w, h, error, focused) {
 
 //draw either the current time or the time under the mouse position
 var drawTime = function(ctx, theme, w, h, time, duration, progress, coords) {
-    var btnWidth = theme.bottom.buttonWidth,
+    var btnWidth = theme.bottom.buttonSize,
         bottomHeight = theme.bottom.height,
         progressMargin = theme.bottom.progress.margin,
         progressHeight = theme.bottom.progress.inactiveHeight;
@@ -596,9 +612,9 @@ var drawTime = function(ctx, theme, w, h, time, duration, progress, coords) {
                  && (coords.x > progressMargin) && (coords.x < w-progressMargin)
                  && (coords.y > (h - bottomHeight - 2))
                  && (coords.y < (h - bottomHeight + progressHeight + 2));
-    var timeX = btnWidth + 20,
+    var timeX = theme.bottom.marginX + btnWidth + 7,
         timeY = h - ((bottomHeight - progressHeight) / 2);
-    drawText(ctx, theme, timeX, timeY, 6, utils.fmt_time(time) + ' / ' + utils.fmt_time(duration));
+    drawText(ctx, theme, timeX, timeY, 10, utils.fmt_time(time) + ' / ' + utils.fmt_time(duration), null, 'left');
     if (inArea) {
         //calculate time at mouse position
         progress = (coords.x - progressMargin) / (w - 2 * progressMargin);
