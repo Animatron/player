@@ -23,7 +23,7 @@ function PlayerManager() {
     this.on(C.S_NEW_PLAYER, function(player) {
         this.hash[player.id] = player;
         this.instances.push(player);
-    });
+    }.bind(this));
 }
 
 events.provideEvents(PlayerManager, [ C.S_NEW_PLAYER, C.S_PLAYER_DETACH ]);
