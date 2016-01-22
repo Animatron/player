@@ -13,7 +13,7 @@
       "color": "rgba(0,0,0,0.7)"
     },
     "bottom": {
-        "height": 25,
+        "height": 35,
         "backGradient": [
             [ 0, "transparent"],
             [ 0.9, "transparent" ],
@@ -21,11 +21,12 @@
             [ 1, "rgba(0,0,0,0.6)" ],
         ],
         "hintBackColor": "rgba(0,0,0,0.7)",
-        "buttonWidth": 27,
-        "buttonY": 5,
+        "buttonSize": 16,
+        "marginX": 10,
+        "marginY": 10,
         "progress": {
             "margin": 5,
-            "activeColor": "red",
+            "activeColor": "#e0a200",
             "inactiveColor": "rgba(250,250,250,0.7)",
             "activeHeight": 5,
             "inactiveHeight": 3
