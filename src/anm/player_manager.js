@@ -20,18 +20,13 @@ var events = require('./events.js'),
 function PlayerManager() {
     this.hash = {};
     this.instances = [];
+    this.on(C.S_NEW_PLAYER, function(player) {
+        this.hash[player.id] = player;
+        this.instances.push(player);
+    });
 }
 
 events.provideEvents(PlayerManager, [ C.S_NEW_PLAYER, C.S_PLAYER_DETACH ]);
-
-PlayerManager.prototype.dispatch = function(type, event) {
-    if (type == C.S_NEW_PLAYER) {
-        var player = event;
-        this.hash[player.id] = player;
-        this.instances.push(player);
-    }
-    return event;
-};
 
 /**
  * @method getPlayer
