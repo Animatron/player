@@ -168,16 +168,15 @@ MouseEventsSupport.prototype.dispatch = function(event) {
         dispatchedByChild; // not handled myself, but found the matching child inside
 
     // here and below localEvent has properties `.x` and `.y`, so duck typing works
-    dispatchedByOwner = owner.inBounds(localEvent) && owner.inside(localEvent);
+    dispatchedByOwner = owner.inBounds && owner.inBounds(localEvent) && owner.inside && owner.inside(localEvent);
+    // scenes have no .inside or .inBounds methods
 
-    if (!dispatchedByOwner) {
-        owner.reverseEach(function(child) {
-            if (child.isActive()) {
-                dispatchedByChild = child.dispatchMouseEvent(localEvent);
-                if (dispatchedByChild) return false; // stop iteration of reverseEach
-            }
-        });
-    }
+    owner.reverseEach(function(child) {
+        if (child.isActive()) {
+            dispatchedByChild = child.dispatchMouseEvent(localEvent);
+            if (dispatchedByChild) return false; // stop iteration of reverseEach
+        }
+    });
 
     if (dispatchedByOwner && !dispatchedByChild) {
         if (localEvent.type === 'mousemove') {

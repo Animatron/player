@@ -242,10 +242,6 @@ Scene.prototype.getMouseSupport = function() {
     return this.mouseSupport;
 };
 
-Scene.prototype.inside = function(point) {
-    return true;
-};
-
 Scene._fromElement = function(elm, anim) {
     var scene = new Scene(anim || elm.anim, elm.name/*, elm.timeline.getDuration()*/);
     scene.timeline = elm.timeline.clone();
