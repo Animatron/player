@@ -165,7 +165,7 @@ MouseEventsSupport.prototype.dispatch = function(event) {
     }
 
     var dispatchedChild;  // found the matching child inside
-    if (owner.inside(localEvent)) {
+    if (owner.inside(localEvent)) { // localEvent has properties `.x` and `.y`, so duck typing works
         owner.reverseEach(function(child) {
             if (child.isActive()) {
                 dispatchedChild = child.dispatchMouseEvent(localEvent) ? child : null;
