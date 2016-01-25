@@ -1968,14 +1968,12 @@ Element.prototype.myBounds = function() {
  *
  * Test if a point given in local coordinate space is located inside the element's bounds.
  * For paths, also checks if point belongs to this path.
- * If element has children, they are *not* checked with this method, use {@link anm.Element#inBounds inBounds}
- * to test if point belongs to bounds (including children) first, and then use {@link anm.Element#inside inside} to test
- * if the particular child path includes this point (ensure it is adapted to child coordinate space).
+ * If element has children, they are *not* checked.
  *
  * @param {Object} pt point to check
  * @param {Number} pt.x
  * @param {Number} pt.y
- * @return {Boolean} is point inside of the bounds
+ * @return {Boolean} is point inside of the bounds or a path shape
  */
 Element.prototype.inside = function(local_pt) {
     if (this.myBounds().inside(local_pt)) {
@@ -1989,26 +1987,16 @@ Element.prototype.inside = function(local_pt) {
  * @method inBounds
  *
  * Test if a point given in local coordinate space is located inside the element's bounds.
- * For elements with children, it goes (in contrast with {@link anm.Element#inside inside})
- * through its children in reverse order and returns the first one which matched by bounds.
- * To test if point belongs to some path, first use this method, then use {@link anm.Element#inside inside} to test
- * if the particular child path includes this point (ensure it is adapted to child coordinate space).
- * Also, this method tests if child is currently visible, so it is useful for testing scenes.
+ * For paths, it doesn *not* checks if point belongs to this path, use `element.inside(pt)` instead.
+ * If element has children, they are *not* checked, you need to check them separately.
  *
  * @param {Object} pt point to check
  * @param {Number} pt.x
  * @param {Number} pt.y
- * @return {anm.Element|Null} the element itself, or first of its sub-children that matched this point
+ * @return {Boolean} is point inside of the bounds
  */
  Element.prototype.inBounds = function(local_pt) {
-    if (!this.isActive()) return null;
-    if (this.myBounds().inside(local_pt)) return this;
-    var found = null;
-    this.reverseEach(function(child) {
-        if (child.isActive()) found = child.inBounds(child.adapt(local_pt));
-        if (found) return false; // stop iteration
-    });
-    return found;
+    return this.myBounds().inside(local_pt);
  };
 
 /**
