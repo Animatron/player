@@ -1,4 +1,41 @@
 /*
+
+    buildSimpleAnimation:
+
+                                                            ∞
+    +-anim- - - - - - - - - - - - - - - - - - - - - - - - - -
+    |
+                                        (75,5)
+    |                                     +-rect--+
+                                          |     20|
+    |                                     |       |
+                                          +-------+
+    |                                         20
+
+  ∞ |
+
+    buildAnimationWithGroups:
+
+                                                           ∞
+    +-group- - - - - - - - - - - - - - - - - - - - - - - - -
+    |
+
+    |
+           (40,40) 20
+    |      +---------+
+           | (50,50) |
+    |   20 |   +---+--------+
+           |   +---+ 5 <------------ this small one is not in group !!
+    |      +---| 5          | 30
+               |            |
+    |          |            |
+               +------------+
+    |                30
+
+  ∞ |
+
+    buildLayeredAnimation:
+
                                 100
     +-root---------------------------------------------------+
     | +-e1-------------------------------------------------+ |
@@ -20,6 +57,7 @@
     | |                                                    | |
     | +----------------------------------------------------+ |
     +--------------------------------------------------------+
+
  */
 
 prettify();
@@ -33,6 +71,30 @@ describe('handling mouse in static objects', function() {
         rect.path(rectangle(0, 0, 20, 20)).move(75, 5).pivot(0, 0);
 
         anim.add(rect);
+        anim.setDuration(10);
+
+        return {
+            anim: anim,
+            rect: rect
+        }
+    }
+
+    function buildAnimationWithGroups() {
+        var anim = new anm.Animation(),
+            group = new anm.Element('group'),
+            child1 = new anm.Element('child1'),
+            child2 = new anm.Element('child2'),
+            notChild = new anm.Element('notChild');
+
+        child1.path(rectangle(0, 0, 20, 20)).move(40, 40).pivot(0, 0);
+        child2.path(rectangle(0, 0, 30, 30)).move(50, 50).pivot(0, 0);
+        notChild.path(rectangle(0, 0, 5, 5)).move(50, 50).pivot(0, 0);
+
+        group.add(child1);
+        group.add(child2);
+
+        anim.add(group);
+        anim.add(notChild);
         anim.setDuration(10);
 
         return {
@@ -390,8 +452,69 @@ describe('handling mouse in static objects', function() {
             var MARKER = '\n';
 
             beforeEach(function() {
-                useSimpleAnimation = true;
+                log = new EventLog([ rect ],
+                                   [ 'mouseclick', 'mouseenter', 'mouseexit' ]);
+                log.subscribe();
+            });
 
+            afterEach(function() {
+                log.unsubscribe();
+                log.clear();
+            });
+
+            it('properly fires click to the element', function() {
+                fireCanvasEvent('click', 76, 6);
+                expect(log.stringify(MARKER)).toEqual([ 'rect: mouseclick@1;1 -> rect' ].join(MARKER));
+            });
+
+            it('properly fires enter and exit for the element', function() {
+                fireCanvasEvent('mousemove', 10, 10);
+                fireCanvasEvent('mousemove', 76, 6);
+                fireCanvasEvent('mousemove', 10, 10);
+                expect(log.stringify(MARKER)).toEqual([ 'rect: mouseenter@null;null -> rect',
+                                                        'rect: mouseexit@null;null -> rect' ].join(MARKER));
+            });
+
+        });
+
+    });
+
+    describe('animation with grouped children', function() {
+
+        var anim,
+            group, child1, child2, notChild;
+
+        beforeEach(function(done) {
+
+            animData = buildAnimationWithGroups();
+
+            anim = animData.anim;
+            group = animData.group;
+            child1 = animData.child1;
+            child2 = animData.child2;
+            notChild = animData.notChild;
+
+            if (documentReady) {
+                setupPlayer(anim, done);
+            } else {
+                document.addEventListener('DOMContentLoaded', function() {
+                    setupPlayer(anim, done);
+                });
+            }
+
+        });
+
+        afterEach(function() {
+            anim.unsubscribeEvents(canvas);
+            player.stop();
+            anim.reset();
+        });
+
+        xdescribe('should properly handle events in groups', function() {
+
+            var MARKER = '\n';
+
+            beforeEach(function() {
                 log = new EventLog([ rect ],
                                    [ 'mouseclick', 'mouseenter', 'mouseexit' ]);
                 log.subscribe();
