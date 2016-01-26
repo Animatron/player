@@ -28,6 +28,9 @@ function Scene(anim, name, duration) {
 
     this.children = [];
     this.hash = {};
+
+    this.isScene = true; // temporary flag to use in anm.events, since using `instanceof`
+                         // there moves `require` into infinite loop
 }
 
 provideEvents(Scene, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,

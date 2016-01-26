@@ -178,7 +178,7 @@ MouseEventsSupport.prototype.dispatch = function(event) {
         }
     });
 
-    if (dispatchedByOwner && !dispatchedByChild) {
+    if ((dispatchedByOwner || owner.isScene) && !dispatchedByChild) {
         if (localEvent.type === 'mousemove') {
             this.processMove(localEvent); // fire mouseenter/mouseexit if required
         }
