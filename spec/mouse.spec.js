@@ -1,65 +1,3 @@
-/*
-
-    buildSimpleAnimation:
-
-                                                            ∞
-    +-anim- - - - - - - - - - - - - - - - - - - - - - - - - -
-    |
-                                        (75,5)
-    |                                     +-rect--+
-                                          |     20|
-    |                                     |       |
-                                          +-------+
-    |                                         20
-
-  ∞ |
-
-    buildAnimationWithGroups:
-
-                                                           ∞
-    +-group- - - - - - - - - - - - - - - - - - - - - - - - -
-    |
-
-    |
-           (40,40) 20
-    |      +---------+
-           | (50,50) |
-    |   20 |   +---+--------+
-           |   +---+ 5 <------------ this small one is not in group !!
-    |      +---| 5          | 30
-               |            |
-    |          |            |
-               +------------+
-    |                30
-
-  ∞ |
-
-    buildLayeredAnimation:
-
-                                100
-    +-root---------------------------------------------------+
-    | +-e1-------------------------------------------------+ |
-    | | +-e11--------------------+      (75,5)             | |
-    | | |                        |        +-e12--+         | |
-    | | |                        |        |     5|         | |
-    | | |                     50 |        +------+      50 | |
-    | | |                        |            5            | |
-    | | |          50            |                         | |
-    | | +------------------------+                         | |
-    | +----------------------------------------------------+ |  100
-    | +-e2 (0, 45) overlaps with e1------------------------+ |
-    | |                                                    | |
-    | |                                                    | |
-    | |                                                    | |
-    | |                                                 55 | |
-    | |                                                    | |
-    | |                                                    | |
-    | |                                                    | |
-    | +----------------------------------------------------+ |
-    +--------------------------------------------------------+
-
- */
-
 prettify();
 
 describe('handling mouse in static objects', function() {
@@ -71,30 +9,6 @@ describe('handling mouse in static objects', function() {
         rect.path(rectangle(0, 0, 20, 20)).move(75, 5).pivot(0, 0);
 
         anim.add(rect);
-        anim.setDuration(10);
-
-        return {
-            anim: anim,
-            rect: rect
-        }
-    }
-
-    function buildAnimationWithGroups() {
-        var anim = new anm.Animation(),
-            group = new anm.Element('group'),
-            child1 = new anm.Element('child1'),
-            child2 = new anm.Element('child2'),
-            notChild = new anm.Element('notChild');
-
-        child1.path(rectangle(0, 0, 20, 20)).move(40, 40).pivot(0, 0);
-        child2.path(rectangle(0, 0, 30, 30)).move(50, 50).pivot(0, 0);
-        notChild.path(rectangle(0, 0, 5, 5)).move(50, 50).pivot(0, 0);
-
-        group.add(child1);
-        group.add(child2);
-
-        anim.add(group);
-        anim.add(notChild);
         anim.setDuration(10);
 
         return {
@@ -139,6 +53,31 @@ describe('handling mouse in static objects', function() {
             root: root,
             e1: e1, e11: e11, e12: e12,
             e2: e2
+        }
+    }
+
+    function buildAnimationWithGroups() {
+        var anim = new anm.Animation(),
+            group = new anm.Element('group'),
+            child1 = new anm.Element('child1'),
+            child2 = new anm.Element('child2'),
+            notChild = new anm.Element('notChild');
+
+        child1.path(rectangle(0, 0, 20, 20)).move(40, 40).pivot(0, 0);
+        child2.path(rectangle(0, 0, 30, 30)).move(50, 50).pivot(0, 0);
+        notChild.path(rectangle(0, 0, 5, 5)).move(50, 50).pivot(0, 0);
+
+        group.add(child1);
+        group.add(child2);
+
+        anim.add(group);
+        anim.add(notChild);
+        anim.setDuration(10);
+
+        return {
+            anim: anim,
+            group: group, child1: child1, child2: child2,
+            notChild: notChild
         }
     }
 
@@ -203,6 +142,31 @@ describe('handling mouse in static objects', function() {
             //setTimeout(done, 100); // ensure at least one frame was rendered
         });
     }
+
+    /*
+                                    100
+        +-root---------------------------------------------------+
+        | +-e1-------------------------------------------------+ |
+        | | +-e11--------------------+      (75,5)             | |
+        | | |                        |        +-e12--+         | |
+        | | |                        |        |     5|         | |
+        | | |                     50 |        +------+      50 | |
+        | | |                        |            5            | |
+        | | |          50            |                         | |
+        | | +------------------------+                         | |
+        | +----------------------------------------------------+ |  100
+        | +-e2 (0, 45) overlaps with e1------------------------+ |
+        | |                                                    | |
+        | |                                                    | |
+        | |                                                    | |
+        | |                                                 55 | |
+        | |                                                    | |
+        | |                                                    | |
+        | |                                                    | |
+        | +----------------------------------------------------+ |
+        +--------------------------------------------------------+
+
+     */
 
     describe('layered animation', function() {
 
@@ -419,6 +383,18 @@ describe('handling mouse in static objects', function() {
 
     });
 
+    /*                                                          ∞
+        +-anim- - - - - - - - - - - - - - - - - - - - - - - - - -
+        |
+                                            (75,5)
+        |                                     +-rect--+
+                                              |     20|
+        |                                     |       |
+                                              +-------+
+        |                                         20
+
+      ∞ |                                                                    */
+
     describe('single-shape animation', function() {
 
         var anim,
@@ -479,6 +455,25 @@ describe('handling mouse in static objects', function() {
 
     });
 
+    /*
+                                                               ∞
+        +-group- - - - - - - - - - - - - - - - - - - - - - - - -
+        |
+
+        |
+               (40,40) 20
+        |      +---------+ <-- child1
+               | (50,50) |
+        |   20 |   +---+--------+
+               |   +---+ 5 <------------ this small one (`notChild`) is not in group !!
+        |      +---| 5          | 30
+                   |            | <-- child2
+        |          |            |
+                   +------------+
+        |                30
+
+      ∞ |                                                                    */
+
     describe('animation with grouped children', function() {
 
         var anim,
@@ -510,12 +505,12 @@ describe('handling mouse in static objects', function() {
             anim.reset();
         });
 
-        xdescribe('should properly handle events in groups', function() {
+        describe('should properly handle events in groups', function() {
 
             var MARKER = '\n';
 
             beforeEach(function() {
-                log = new EventLog([ rect ],
+                log = new EventLog([ group, child1, child2, notChild ],
                                    [ 'mouseclick', 'mouseenter', 'mouseexit' ]);
                 log.subscribe();
             });
@@ -525,18 +520,32 @@ describe('handling mouse in static objects', function() {
                 log.clear();
             });
 
-            it('properly fires click to the element', function() {
-                fireCanvasEvent('click', 76, 6);
-                expect(log.stringify(MARKER)).toEqual([ 'rect: mouseclick@1;1 -> rect' ].join(MARKER));
+            it('properly fires click to the elements in the group and outside', function() {
+                fireCanvasEvent('click', 56, 56);
+                expect(log.stringify(MARKER)).toEqual([ 'child2: mouseclick@6;6 -> child2' ].join(MARKER));
+
+                log.clear();
+
+                fireCanvasEvent('click', 10, 10);
+                expect(log.stringify(MARKER)).toEqual('');
+
+                log.clear();
+
+                fireCanvasEvent('click', 42, 45);
+                expect(log.stringify(MARKER)).toEqual([ 'child1: mouseclick@2;5 -> child1' ].join(MARKER));
+
+                log.clear();
+
+                fireCanvasEvent('click', 62, 65);
+                expect(log.stringify(MARKER)).toEqual([ 'child2: mouseclick@12;15 -> child2' ].join(MARKER));
+
+                log.clear();
+
+                fireCanvasEvent('click', 52, 53);
+                expect(log.stringify(MARKER)).toEqual([ 'notChild: mouseclick@2;3 -> notChild' ].join(MARKER));
             });
 
-            it('properly fires enter and exit for the element', function() {
-                fireCanvasEvent('mousemove', 10, 10);
-                fireCanvasEvent('mousemove', 76, 6);
-                fireCanvasEvent('mousemove', 10, 10);
-                expect(log.stringify(MARKER)).toEqual([ 'rect: mouseenter@null;null -> rect',
-                                                        'rect: mouseexit@null;null -> rect' ].join(MARKER));
-            });
+            xit('properly fires enter and exit for the element', function() { });
 
         });
 
