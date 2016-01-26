@@ -1967,12 +1967,13 @@ Element.prototype.myBounds = function() {
  * @method inside
  *
  * Test if a point given in local coordinate space is located inside the element's bounds.
- * For paths, also checks if point
+ * For paths, also checks if point belongs to this path.
+ * If element has children, they are *not* checked.
  *
  * @param {Object} pt point to check
  * @param {Number} pt.x
  * @param {Number} pt.y
- * @return {Boolean} is point inside of the bounds
+ * @return {Boolean} is point inside of the bounds or a path shape
  */
 Element.prototype.inside = function(local_pt) {
     if (this.myBounds().inside(local_pt)) {
@@ -1981,6 +1982,22 @@ Element.prototype.inside = function(local_pt) {
     }
     return false;
 };
+
+/**
+ * @method inBounds
+ *
+ * Test if a point given in local coordinate space is located inside the element's bounds.
+ * For paths, it doesn *not* checks if point belongs to this path, use `element.inside(pt)` instead.
+ * If element has children, they are *not* checked, you need to check them separately.
+ *
+ * @param {Object} pt point to check
+ * @param {Number} pt.x
+ * @param {Number} pt.y
+ * @return {Boolean} is point inside of the bounds
+ */
+ Element.prototype.inBounds = function(local_pt) {
+    return this.myBounds().inside(local_pt);
+ };
 
 /**
  * @method adapt

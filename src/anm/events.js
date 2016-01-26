@@ -164,28 +164,31 @@ MouseEventsSupport.prototype.dispatch = function(event) {
         return true;
     }
 
-    var dispatchedChild;  // found the matching child inside
-    if (owner.inside(localEvent)) {
-        owner.reverseEach(function(child) {
-            if (child.isActive()) {
-                dispatchedChild = child.dispatchMouseEvent(localEvent) ? child : null;
-                if (dispatchedChild) return false; // stop iteration of reverseEach
-            }
-        });
+    var dispatchedByOwner, // handled event myself
+        dispatchedByChild; // not handled myself, but found the matching child inside
 
-        if (!dispatchedChild) {
-            if (localEvent.type === 'mousemove') {
-                this.processMove(localEvent); // fire mouseenter/mouseexit if required
-            }
-            if ((localEvent.type === 'mouseclick') || (localEvent.type === 'mousedown')) {
-                state.pressedNode = this.owner;
-            }
-            this.owner.fire(localEvent.type, localEvent);
+    // here and below localEvent has properties `.x` and `.y`, so duck typing works
+    dispatchedByOwner = !owner.isScene && owner.inside(localEvent);
+    // scenes have no .inside or .inBounds methods
+
+    owner.reverseEach(function(child) {
+        if (child.isActive()) {
+            dispatchedByChild = child.dispatchMouseEvent(localEvent);
+            if (dispatchedByChild) return false; // stop iteration of reverseEach
         }
+    });
 
-        return true;
-    }
-    return false;
+    if ((dispatchedByOwner || owner.isScene) && !dispatchedByChild) {
+        if (localEvent.type === 'mousemove') {
+            this.processMove(localEvent); // fire mouseenter/mouseexit if required
+        }
+        if ((localEvent.type === 'mouseclick') || (localEvent.type === 'mousedown')) {
+            state.pressedNode = this.owner;
+        }
+        this.owner.fire(localEvent.type, localEvent);
+    };
+
+    return dispatchedByOwner || dispatchedByChild;
 }
 MouseEventsSupport.prototype.processOver = function(commonChild, moveEvent) {
     var inPath = [];

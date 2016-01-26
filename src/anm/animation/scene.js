@@ -28,6 +28,9 @@ function Scene(anim, name, duration) {
 
     this.children = [];
     this.hash = {};
+
+    this.isScene = true; // temporary flag to use in anm.events, since using `instanceof`
+                         // there moves `require` into infinite loop
 }
 
 provideEvents(Scene, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
@@ -240,10 +243,6 @@ Scene.prototype.reset = function() {
 Scene.prototype.getMouseSupport = function() {
     if (!this.mouseSupport) this.mouseSupport = new events.MouseEventsSupport(this, this.anim.mouseState);
     return this.mouseSupport;
-};
-
-Scene.prototype.inside = function(point) {
-    return true;
 };
 
 Scene._fromElement = function(elm, anim) {
