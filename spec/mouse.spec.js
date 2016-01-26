@@ -545,7 +545,26 @@ describe('handling mouse in static objects', function() {
                 expect(log.stringify(MARKER)).toEqual([ 'notChild: mouseclick@2;3 -> notChild' ].join(MARKER));
             });
 
-            xit('properly fires enter and exit for the element', function() { });
+            it('properly fires enter and exit for the element', function() {
+                fireCanvasEvent('mousemove', 53, 53);
+                fireCanvasEvent('mousemove', 60, 60);
+                fireCanvasEvent('mousemove', 56, 56);
+                expect(log.stringify(MARKER)).toEqual([ 'notChild: mouseenter@null;null -> notChild',
+                                                        'notChild: mouseexit@null;null -> notChild',
+                                                        'group: mouseenter@null;null -> child2',
+                                                        'child2: mouseenter@null;null -> child2' ].join(MARKER));
+
+                log.clear()
+
+                fireCanvasEvent('mousemove', 53, 53);
+                fireCanvasEvent('mousemove', 45, 45);
+                expect(log.stringify(MARKER)).toEqual([ 'child2: mouseexit@null;null -> child2',
+                                                        'group: mouseexit@null;null -> child2',
+                                                        'notChild: mouseenter@null;null -> notChild',
+                                                        'notChild: mouseexit@null;null -> notChild',
+                                                        'group: mouseenter@null;null -> child1',
+                                                        'child1: mouseenter@null;null -> child1' ].join(MARKER));
+            });
 
         });
 
