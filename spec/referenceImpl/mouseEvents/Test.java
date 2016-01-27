@@ -93,33 +93,66 @@ public class Test extends TestCase {
         );
     }
 
-    public void testInOut() throws Exception {
+    public void testMoveDispatchToParent() throws Exception {
+        e11.inOuts.clear();
+        e1.inOuts.clear();
+        root.inOuts.clear();
+
+        assertDispatchMove(
+                25, 25,
+                "e11: move@25,25"
+        );
+
+        e11.moves.clear();
+        assertDispatchMove(
+                26, 26,
+                "e1: move@26,26"
+        );
+
+        e1.moves.clear();
+        assertDispatchMove(
+                25, 25,
+                "root: move@25,25"
+        );
+
+        root.moves.clear();
+        assertDispatchMove(
+                25, 25,
+                ""
+        );
+    }
+
+    public void testInOutMove() throws Exception {
         assertDispatchMove(25, 75,
                 "root: in\n" +
                 "e2: in\n" +
-                "e21: in");
+                "e21: in\n" +
+                "e21: move@25,30");
 
         assertDispatchMove(25, 75,
                 "");
 
         assertDispatchMove(26, 76,
-                "");
+                "e21: move@26,31");
 
         assertDispatchMove(25, 25,
                 "e21: out\n" +
                 "e2: out\n" +
                 "e1: in\n" +
-                "e11: in");
+                "e11: in\n" +
+                "e11: move@25,25");
 
         assertDispatchMove(76, 6,
                 "e11: out\n" +
-                 "e12: in");
+                 "e12: in\n" +
+                 "e12: move@1,1");
 
         assertDispatchMove(25, 75,
                 "e12: out\n" +
                 "e1: out\n" +
                 "e2: in\n" +
-                "e21: in");
+                "e21: in\n" +
+                "e21: move@25,30");
     }
 
     public void testRelease() throws Exception {
@@ -129,14 +162,16 @@ public class Test extends TestCase {
         root.dispatch(new MouseEvent(25, 6, MouseEvent.Type.release));
 
         assertEquals(
-                "root: in\n" +
-                        "e1: in\n" +
-                        "e12: in\n" +
-                        "e12: press@2,2\n" +
-                        "e12: out\n" +
-                        "e11: in\n" +
-                        "e12: release@-50,1"
-                , events);
+            "root: in\n" +
+            "e1: in\n" +
+            "e12: in\n" +
+            "e12: move@2,2\n" +
+            "e12: press@2,2\n" +
+            "e12: out\n" +
+            "e11: in\n" +
+            "e11: move@25,6\n" +
+            "e12: release@-50,1"
+            , events);
     }
 
     void assertDispatchPress(int x, int y, String expected) {
@@ -184,7 +219,7 @@ public class Test extends TestCase {
             }).onMove(new Listener.Move() {
                 @Override
                 public void onMove(Point point) {
-                    log("move", null);
+                    log("move", point);
                 }
             });
         }

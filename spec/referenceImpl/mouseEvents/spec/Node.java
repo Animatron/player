@@ -8,7 +8,10 @@ import java.util.Set;
 public abstract class Node {
 
     static long NULL = -1;
+
     static Node lastHoveredNode;
+    static Point lastHoveredPoint;
+
     static Node pressedNode;
 
     Node parent;
@@ -81,7 +84,7 @@ public abstract class Node {
                 pressedNode = deepestFound.node.notifyPress(deepestFound.point);
                 return true;
             case move:
-                deepestFound.node.processHover(event);
+                deepestFound.node.processHover(event, deepestFound.point);
                 return true;
         }
 
@@ -157,6 +160,21 @@ public abstract class Node {
         }
     }
 
+    private Node notifyMove(Point point) {
+        if (moves.size() == 0) {
+            if (parent != null) {
+                return parent.notifyMove(transformToParent(point));
+            } else {
+                return null;
+            }
+        } else {
+            for (Listener.Move each : moves) {
+                each.onMove(point);
+            }
+            return this;
+        }
+    }
+
     private void notifyRelease(Point point) {
         for (Listener.Release each : releases) {
             each.onRelease(point);
@@ -175,23 +193,25 @@ public abstract class Node {
         }
     }
 
-    void processHover(MouseEvent event) {
+    void processHover(MouseEvent event, Point point) {
         markAsHoveredTree(event.id);
         hoveredEventId = event.id;
 
-        if (lastHoveredNode == this) {
-            return;
+        if (lastHoveredNode != this) {
+            Node commonChild = null;
+            if (lastHoveredNode != null) {
+                commonChild = lastHoveredNode.processOut(event.id);
+            }
+
+            lastHoveredNode = this;
+
+            processIn(commonChild);
         }
 
-
-        Node commonChild = null;
-        if (lastHoveredNode != null) {
-            commonChild = lastHoveredNode.processOut(event.id);
+        if (lastHoveredPoint == null || (lastHoveredPoint.x != point.x || lastHoveredPoint.y != point.y)) {
+            lastHoveredPoint = point;
+            notifyMove(point);
         }
-
-        lastHoveredNode = this;
-
-        processIn(commonChild);
     }
 
     private void processIn(Node commonChild) {
