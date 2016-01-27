@@ -8,13 +8,20 @@ import java.util.Set;
 public abstract class Node {
 
     static long NULL = -1;
+
     static Node lastHoveredNode;
+    static Point lastHoveredPoint;
+
     static Node pressedNode;
 
     Node parent;
 
     protected final List<Node> children = new ArrayList<>();
-    public Set<Listener> listeners = new HashSet<>();
+
+    public Set<Listener.Press> presses = new HashSet<>();
+    public Set<Listener.Release> releases = new HashSet<>();
+    public Set<Listener.InOut> inOuts = new HashSet<>();
+    public Set<Listener.Move> moves = new HashSet<>();
 
     long hoveredEventId = NULL;
 
@@ -27,17 +34,40 @@ public abstract class Node {
     }
 
     public abstract Point transformToChild(Node child, Point point);
+    public abstract Point transformToParent(Point point);
 
     public abstract boolean contains(Point point);
 
-    public Node addListener(Listener listener) {
-        this.listeners.add(listener);
+    protected boolean isComposite() {
+        return children.size() > 0;
+    }
+
+
+    public Node onPress(Listener.Press press) {
+        this.presses.add(press);
         return this;
     }
+
+    public Node onRelease(Listener.Release release) {
+        this.releases.add(release);
+        return this;
+    }
+
+    public Node onInOut(Listener.InOut inOut) {
+        this.inOuts.add(inOut);
+        return this;
+    }
+
+    public Node onMove(Listener.Move move) {
+        this.moves.add(move);
+        return this;
+    }
+
 
     public boolean dispatch(MouseEvent event) {
         return dispatch(event, event.point);
     }
+
 
     private boolean dispatch(MouseEvent event, Point point) {
         if (event.type == MouseEvent.Type.release && pressedNode != null) {
@@ -46,29 +76,34 @@ public abstract class Node {
             return true;
         }
 
+        Hit deepestFound = findDeepestChildAt(point);
+        if (deepestFound == null) return false;
 
-        if (contains(point)) {
-            for (int i = children.size() - 1; i >=0; i--) {
-                Node each = children.get(i);
-                if (each.dispatch(event, transformToChild(each, point))) return true;
-            }
-
-            switch (event.type) {
-                case press:
-                    if (notifyPress(point)) {
-                        pressedNode = this;
-                        return true;
-                    } else {
-                        return false;
-                    }
-                case move:
-                    processHover(event);
-                    return true;
-            }
+        switch (event.type) {
+            case press:
+                pressedNode = deepestFound.node.notifyPress(deepestFound.point);
+                return true;
+            case move:
+                deepestFound.node.processHover(event, deepestFound.point);
+                return true;
         }
 
-
         return false;
+    }
+
+
+    private Hit findDeepestChildAt(Point point) {
+        if (isComposite()) {
+            for (int i = children.size() - 1; i >=0; i--) {
+                Node each = children.get(i);
+                Hit foundChildNode = each.findDeepestChildAt(transformToChild(each, point));
+                if (foundChildNode != null) return foundChildNode;
+            }
+        } else {
+            return contains(point) ? new Hit(this, point) : null;
+        }
+
+        return null;
     }
 
     private Point convertToChild(Point point, Node child) {
@@ -110,51 +145,73 @@ public abstract class Node {
         return this;
     }
 
-    private boolean notifyPress(Point point) {
-        if (listeners.size() == 0) return false;
-
-        for (Listener each : listeners) {
-            each.onPress(point);
+    private Node notifyPress(Point point) {
+        if (presses.size() == 0) {
+            if (parent != null) {
+                return parent.notifyPress(transformToParent(point));
+            } else {
+                return null;
+            }
+        } else {
+            for (Listener.Press each : presses) {
+                each.onPress(point);
+            }
+            return this;
         }
+    }
 
-        return true;
+    private Node notifyMove(Point point) {
+        if (moves.size() == 0) {
+            if (parent != null) {
+                return parent.notifyMove(transformToParent(point));
+            } else {
+                return null;
+            }
+        } else {
+            for (Listener.Move each : moves) {
+                each.onMove(point);
+            }
+            return this;
+        }
     }
 
     private void notifyRelease(Point point) {
-        for (Listener each : listeners) {
+        for (Listener.Release each : releases) {
             each.onRelease(point);
         }
     }
 
     private void notifyOut() {
-        for (Listener each : listeners) {
+        for (Listener.InOut each : inOuts) {
             each.onOut();
         }
     }
 
     private void notifyIn() {
-        for (Listener each : listeners) {
+        for (Listener.InOut each : inOuts) {
             each.onIn();
         }
     }
 
-    void processHover(MouseEvent event) {
+    void processHover(MouseEvent event, Point point) {
         markAsHoveredTree(event.id);
         hoveredEventId = event.id;
 
-        if (lastHoveredNode == this) {
-            return;
+        if (lastHoveredNode != this) {
+            Node commonChild = null;
+            if (lastHoveredNode != null) {
+                commonChild = lastHoveredNode.processOut(event.id);
+            }
+
+            lastHoveredNode = this;
+
+            processIn(commonChild);
         }
 
-
-        Node commonChild = null;
-        if (lastHoveredNode != null) {
-            commonChild = lastHoveredNode.processOut(event.id);
+        if (lastHoveredPoint == null || (lastHoveredPoint.x != point.x || lastHoveredPoint.y != point.y)) {
+            lastHoveredPoint = point;
+            notifyMove(point);
         }
-
-        lastHoveredNode = this;
-
-        processIn(commonChild);
     }
 
     private void processIn(Node commonChild) {
@@ -171,11 +228,35 @@ public abstract class Node {
         }
     }
 
+    class Hit {
+
+        final Node node;
+        final Point point;
+
+        public Hit(Node node, Point point) {
+            this.node = node;
+            this.point = point;
+        }
+    }
+
     public interface Listener {
-        void onPress(Point point);
-        void onRelease(Point point);
-        void onIn();
-        void onOut();
+
+        interface Press extends Listener {
+            void onPress(Point point);
+        }
+
+        interface Release extends Listener {
+            void onRelease(Point point);
+        }
+
+        interface Move extends Listener {
+            void onMove(Point point);
+        }
+
+        interface InOut extends Listener {
+            void onIn();
+            void onOut();
+        }
     }
 
 }
