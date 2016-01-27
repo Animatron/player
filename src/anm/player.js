@@ -1561,6 +1561,7 @@ Player.prototype.__onerror = function() {
 // Called when any error happens during player initialization or animation
 // Player should mute all non-system errors by default, and if it got a system error, it may show
 // this error in its UI
+// FIXME: why not a handler for error events?
 Player.prototype.__onerror_f = function(err) {
   var player = this;
   var doMute = player.muteErrors;

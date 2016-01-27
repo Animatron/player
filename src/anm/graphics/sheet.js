@@ -55,7 +55,7 @@ Sheet.prototype.load = function(uid, player, callback, errback) {
     if (this._image) throw errors.element('Image already loaded', uid); // just skip loading?
     var me = this;
     if (!me.src) {
-        log.error(errors.system('Empty source URL for image', player));
+        log.error(errors.animation('Empty source URL for image', player.anim));
         me.ready = true; me.wasError = true;
         if (errback) errback.call(me, 'Empty source');
         return;
@@ -92,8 +92,8 @@ Sheet.prototype.load = function(uid, player, callback, errback) {
             me.ready = true; // this flag is for users of the Sheet class
             if (callback) callback.call(me, image);
         },
-        function(err) { log.error(errors.system('Loading image failed ' + (err.srcElement || err.path) + '. ' +
-                                                  (err.message || err), player));
+        function(err) { log.error(errors.animation('Loading image failed ' + (err.srcElement || err.path) + '. ' +
+                                                  (err.message || err), player.anim));
                         me.ready = true;
                         me.wasError = true;
                         var doThrow = true;
