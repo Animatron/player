@@ -14,7 +14,7 @@ public abstract class Node {
     Node parent;
 
     protected final List<Node> children = new ArrayList<>();
-    Set<Listener> listeners = new HashSet<>();
+    public Set<Listener> listeners = new HashSet<>();
 
     long hoveredEventId = NULL;
 
@@ -55,9 +55,12 @@ public abstract class Node {
 
             switch (event.type) {
                 case press:
-                    notifyPress(point);
-                    pressedNode = this;
-                    return true;
+                    if (notifyPress(point)) {
+                        pressedNode = this;
+                        return true;
+                    } else {
+                        return false;
+                    }
                 case move:
                     processHover(event);
                     return true;
@@ -107,10 +110,14 @@ public abstract class Node {
         return this;
     }
 
-    private void notifyPress(Point point) {
+    private boolean notifyPress(Point point) {
+        if (listeners.size() == 0) return false;
+
         for (Listener each : listeners) {
             each.onPress(point);
         }
+
+        return true;
     }
 
     private void notifyRelease(Point point) {
