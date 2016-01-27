@@ -12,6 +12,7 @@ public class Test extends TestCase {
     private TestNode e11;
     private TestNode e12;
     private TestNode e2;
+    private TestNode e21;
 
 
 /*
@@ -46,7 +47,8 @@ public class Test extends TestCase {
         e11 = new TestNode("e11", 0, 0, 50, 50);
         e12 = new TestNode("e12", 75, 5, 5, 5);
         e2 = new TestNode("e2", 0, 45, 100, 55);
-        root.addChildren(e1.addChildren(e11, e12), e2);
+        e21 = new TestNode("e21", 0, 0, 100, 55);
+        root.addChildren(e1.addChildren(e11, e12), e2.addChildren(e21));
     }
 
     public void testPress() {
@@ -57,17 +59,12 @@ public class Test extends TestCase {
 
         assertDispatchPress(
                 75, 25,
-                "e1: press@75,25"
+                ""
         );
 
         assertDispatchPress(
                 25, 47,
-                "e2: press@25,2"
-        );
-
-        assertDispatchPress(
-                75, 47,
-                "e2: press@75,2"
+                "e21: press@25,2"
         );
     }
 
@@ -97,9 +94,13 @@ public class Test extends TestCase {
     }
 
     public void testMove() throws Exception {
+    }
+
+    public void testInOut() throws Exception {
         assertDispatchMove(25, 75,
                 "root: in\n" +
-                        "e2: in");
+                "e2: in\n" +
+                "e21: in");
 
         assertDispatchMove(25, 75,
                 "");
@@ -108,18 +109,20 @@ public class Test extends TestCase {
                 "");
 
         assertDispatchMove(25, 25,
+                "e21: out\n" +
                 "e2: out\n" +
-                        "e1: in\n" +
-                        "e11: in");
+                "e1: in\n" +
+                "e11: in");
 
         assertDispatchMove(76, 6,
                 "e11: out\n" +
-                        "e12: in");
+                 "e12: in");
 
         assertDispatchMove(25, 75,
                 "e12: out\n" +
-                        "e1: out\n" +
-                        "e2: in");
+                "e1: out\n" +
+                "e2: in\n" +
+                "e21: in");
     }
 
     public void testRelease() throws Exception {
@@ -182,6 +185,8 @@ public class Test extends TestCase {
                     log("out", null);
                 }
 
+                
+
                 private void log(String type, Point point) {
                     if (events == null) {
                         events = "";
@@ -207,6 +212,11 @@ public class Test extends TestCase {
         @Override
         public boolean contains(Point point) {
             return point.x >= 0 && point.x < boundsInParent.width && point.y >= 0 && point.y < boundsInParent.height;
+        }
+
+        @Override
+        public Point transformToParent(Point point) {
+            return new Point(boundsInParent.x + point.x, boundsInParent.y + point.y);
         }
     }
 }

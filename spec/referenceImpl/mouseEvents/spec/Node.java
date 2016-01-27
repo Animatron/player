@@ -27,8 +27,13 @@ public abstract class Node {
     }
 
     public abstract Point transformToChild(Node child, Point point);
+    public abstract Point transformToParent(Point point);
 
     public abstract boolean contains(Point point);
+
+    protected boolean isComposite() {
+        return children.size() > 0;
+    }
 
     public Node addListener(Listener listener) {
         this.listeners.add(listener);
@@ -39,6 +44,7 @@ public abstract class Node {
         return dispatch(event, event.point);
     }
 
+
     private boolean dispatch(MouseEvent event, Point point) {
         if (event.type == MouseEvent.Type.release && pressedNode != null) {
             Node.pressedNode.notifyRelease(convertToChild(point, Node.pressedNode));
@@ -46,29 +52,35 @@ public abstract class Node {
             return true;
         }
 
+        Hit deepestFound = findDeepestChildAt(point);
+        if (deepestFound == null) return false;
 
-        if (contains(point)) {
-            for (int i = children.size() - 1; i >=0; i--) {
-                Node each = children.get(i);
-                if (each.dispatch(event, transformToChild(each, point))) return true;
-            }
 
-            switch (event.type) {
-                case press:
-                    if (notifyPress(point)) {
-                        pressedNode = this;
-                        return true;
-                    } else {
-                        return false;
-                    }
-                case move:
-                    processHover(event);
-                    return true;
-            }
+        switch (event.type) {
+            case press:
+                pressedNode = deepestFound.node.notifyPress(deepestFound.point);
+                return true;
+            case move:
+                deepestFound.node.processHover(event);
+                return true;
         }
 
-
         return false;
+    }
+
+
+    private Hit findDeepestChildAt(Point point) {
+        if (isComposite()) {
+            for (int i = children.size() - 1; i >=0; i--) {
+                Node each = children.get(i);
+                Hit foundChildNode = each.findDeepestChildAt(transformToChild(each, point));
+                if (foundChildNode != null) return foundChildNode;
+            }
+        } else {
+            return contains(point) ? new Hit(this, point) : null;
+        }
+
+        return null;
     }
 
     private Point convertToChild(Point point, Node child) {
@@ -110,14 +122,19 @@ public abstract class Node {
         return this;
     }
 
-    private boolean notifyPress(Point point) {
-        if (listeners.size() == 0) return false;
-
-        for (Listener each : listeners) {
-            each.onPress(point);
+    private Node notifyPress(Point point) {
+        if (listeners.size() == 0) {
+            if (parent != null) {
+                return parent.notifyPress(transformToParent(point));
+            } else {
+                return null;
+            }
+        } else {
+            for (Listener each : listeners) {
+                each.onPress(point);
+            }
+            return this;
         }
-
-        return true;
     }
 
     private void notifyRelease(Point point) {
@@ -168,6 +185,17 @@ public abstract class Node {
 
         for (int i = inPath.size() - 1; i >=0; i--) {
             inPath.get(i).notifyIn();
+        }
+    }
+
+    class Hit {
+
+        final Node node;
+        final Point point;
+
+        public Hit(Node node, Point point) {
+            this.node = node;
+            this.point = point;
         }
     }
 
