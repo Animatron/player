@@ -14,7 +14,11 @@ public abstract class Node {
     Node parent;
 
     protected final List<Node> children = new ArrayList<>();
-    public Set<Listener> listeners = new HashSet<>();
+
+    public Set<Listener.Press> presses = new HashSet<>();
+    public Set<Listener.Release> releases = new HashSet<>();
+    public Set<Listener.InOut> inOuts = new HashSet<>();
+    public Set<Listener.Move> moves = new HashSet<>();
 
     long hoveredEventId = NULL;
 
@@ -35,10 +39,27 @@ public abstract class Node {
         return children.size() > 0;
     }
 
-    public Node addListener(Listener listener) {
-        this.listeners.add(listener);
+
+    public Node onPress(Listener.Press press) {
+        this.presses.add(press);
         return this;
     }
+
+    public Node onRelease(Listener.Release release) {
+        this.releases.add(release);
+        return this;
+    }
+
+    public Node onInOut(Listener.InOut inOut) {
+        this.inOuts.add(inOut);
+        return this;
+    }
+
+    public Node onMove(Listener.Move move) {
+        this.moves.add(move);
+        return this;
+    }
+
 
     public boolean dispatch(MouseEvent event) {
         return dispatch(event, event.point);
@@ -54,7 +75,6 @@ public abstract class Node {
 
         Hit deepestFound = findDeepestChildAt(point);
         if (deepestFound == null) return false;
-
 
         switch (event.type) {
             case press:
@@ -123,14 +143,14 @@ public abstract class Node {
     }
 
     private Node notifyPress(Point point) {
-        if (listeners.size() == 0) {
+        if (presses.size() == 0) {
             if (parent != null) {
                 return parent.notifyPress(transformToParent(point));
             } else {
                 return null;
             }
         } else {
-            for (Listener each : listeners) {
+            for (Listener.Press each : presses) {
                 each.onPress(point);
             }
             return this;
@@ -138,19 +158,19 @@ public abstract class Node {
     }
 
     private void notifyRelease(Point point) {
-        for (Listener each : listeners) {
+        for (Listener.Release each : releases) {
             each.onRelease(point);
         }
     }
 
     private void notifyOut() {
-        for (Listener each : listeners) {
+        for (Listener.InOut each : inOuts) {
             each.onOut();
         }
     }
 
     private void notifyIn() {
-        for (Listener each : listeners) {
+        for (Listener.InOut each : inOuts) {
             each.onIn();
         }
     }
@@ -200,10 +220,23 @@ public abstract class Node {
     }
 
     public interface Listener {
-        void onPress(Point point);
-        void onRelease(Point point);
-        void onIn();
-        void onOut();
+
+        interface Press extends Listener {
+            void onPress(Point point);
+        }
+
+        interface Release extends Listener {
+            void onRelease(Point point);
+        }
+
+        interface Move extends Listener {
+            void onMove(Point point);
+        }
+
+        interface InOut extends Listener {
+            void onIn();
+            void onOut();
+        }
     }
 
 }

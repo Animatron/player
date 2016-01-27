@@ -74,26 +74,23 @@ public class Test extends TestCase {
                 "e11: press@25,25"
         );
 
-        e11.listeners.clear();
+        e11.presses.clear();
         assertDispatchPress(
                 25, 25,
                 "e1: press@25,25"
         );
 
-        e1.listeners.clear();
+        e1.presses.clear();
         assertDispatchPress(
                 25, 25,
                 "root: press@25,25"
         );
 
-        root.listeners.clear();
+        root.presses.clear();
         assertDispatchPress(
                 25, 25,
                 ""
         );
-    }
-
-    public void testMove() throws Exception {
     }
 
     public void testInOut() throws Exception {
@@ -164,17 +161,17 @@ public class Test extends TestCase {
         public TestNode(final String name, int x, int y, int width, int height) {
             this.name = name;
             this.boundsInParent = new Rectangle(x, y, width, height);
-            addListener(new Listener() {
+            onPress(new Listener.Press() {
                 @Override
                 public void onPress(Point point) {
                     log("press", point);
                 }
-
+            }).onRelease(new Listener.Release() {
                 @Override
                 public void onRelease(Point point) {
                     log("release", point);
                 }
-
+            }).onInOut(new Listener.InOut() {
                 @Override
                 public void onIn() {
                     log("in", null);
@@ -184,18 +181,21 @@ public class Test extends TestCase {
                 public void onOut() {
                     log("out", null);
                 }
-
-                
-
-                private void log(String type, Point point) {
-                    if (events == null) {
-                        events = "";
-                    } else {
-                        events += "\n";
-                    }
-                    events = events + name + ": " + type + (point != null ? ("@" + point.x + "," + point.y) : "");
+            }).onMove(new Listener.Move() {
+                @Override
+                public void onMove(Point point) {
+                    log("move", null);
                 }
             });
+        }
+
+        private void log(String type, Point point) {
+            if (events == null) {
+                events = "";
+            } else {
+                events += "\n";
+            }
+            events = events + name + ": " + type + (point != null ? ("@" + point.x + "," + point.y) : "");
         }
 
         @Override
