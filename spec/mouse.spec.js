@@ -643,7 +643,6 @@ describe('handling mouse in static objects', function() {
                 fireCanvasEvent('mousemove', 56, 56);
                 expect(log.stringify(MARKER)).toEqual([ 'notChild: mouseenter@null;null -> notChild',
                                                         'notChild: mouseexit@null;null -> notChild',
-                                                        'group: mouseenter@null;null -> child2',
                                                         'child2: mouseenter@null;null -> child2' ].join(MARKER));
 
                 log.clear()
@@ -651,11 +650,25 @@ describe('handling mouse in static objects', function() {
                 fireCanvasEvent('mousemove', 53, 53);
                 fireCanvasEvent('mousemove', 45, 45);
                 expect(log.stringify(MARKER)).toEqual([ 'child2: mouseexit@null;null -> child2',
-                                                        'group: mouseexit@null;null -> child2',
                                                         'notChild: mouseenter@null;null -> notChild',
                                                         'notChild: mouseexit@null;null -> notChild',
-                                                        'group: mouseenter@null;null -> child1',
                                                         'child1: mouseenter@null;null -> child1' ].join(MARKER));
+            });
+
+            it('properly dispatches enter and exit to the parent elements', function() {
+                log.unsubscribe([ notChild, child2 ], [ 'mouseenter', 'mouseexit' ]);
+
+                fireCanvasEvent('mousemove', 53, 53);
+                fireCanvasEvent('mousemove', 60, 60);
+                fireCanvasEvent('mousemove', 56, 56);
+                expect(log.stringify(MARKER)).toEqual([ 'group: mouseenter@null;null -> child2' ].join(MARKER));
+
+                log.clear()
+
+                fireCanvasEvent('mousemove', 53, 53);
+                fireCanvasEvent('mousemove', 45, 45);
+                expect(log.stringify(MARKER)).toEqual([ 'group: mouseexit@null;null -> child2',
+                                                        'group: mouseenter@null;null -> child1' ].join(MARKER));
             });
 
         });
