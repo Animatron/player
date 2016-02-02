@@ -198,6 +198,7 @@ MouseEventsSupport.prototype.fireToTop = function(event, point) {
             return null;
         }
     } else {
+        //owner.fire(event.type, this.adaptEvent(event, point));
         owner.fire(event.type, this.adaptEvent(event, point));
         return owner;
     }

@@ -1997,9 +1997,9 @@ Element.prototype.contains = function(localPos) {
  */
 Element.prototype.findDeepestChildAt = function(localPos) {
     if (!this.isActive()) return null;
+    var adaptedPos = this.adapt(localPos);
     if (this.hasChildren()) {
         var childFound = null;
-        var adaptedPos = this.adapt(localPos);
         this.reverseEach(function(child) {
             if (child.isActive()) {
                 childFound = child.findDeepestChildAt(adaptedPos);
@@ -2008,7 +2008,7 @@ Element.prototype.findDeepestChildAt = function(localPos) {
         });
         return childFound;
     } else {
-        return this.contains(localPos) ? new events.Hit(this, localPos) : null;
+        return this.contains(adaptedPos) ? new events.Hit(this, adaptedPos) : null;
     }
 };
 
