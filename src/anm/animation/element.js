@@ -1964,7 +1964,7 @@ Element.prototype.myBounds = function() {
 };
 
 /**
- * @method inside
+ * @method contains
  *
  * Test if a point given in local coordinate space is located inside the element's bounds.
  * For paths, also checks if point belongs to this path.
@@ -1975,12 +1975,40 @@ Element.prototype.myBounds = function() {
  * @param {Number} pt.y
  * @return {Boolean} is point inside of the bounds or a path shape
  */
-Element.prototype.inside = function(local_pt) {
-    if (this.myBounds().inside(local_pt)) {
+Element.prototype.contains = function(local_pt) {
+    if (this.inBounds(local_pt)) {
         var subj = this.$path || this.$text || this.$image || this.$video;
-        return subj && subj.inside(local_pt);
+        return subj && subj.contains(local_pt);
     }
     return false;
+};
+
+/**
+ * @method findDeepestChildAt
+ *
+ * Find the top-most *visible* element which matches given point.
+ * Returns null, if nothing was found or the `events.Hit` instance,
+ * which the pair of matched element and the point converted to it's local space.
+ *
+ * @param {Object} pt point to check
+ * @param {Number} pt.x
+ * @param {Number} pt.y
+ * @return {events.Hit|Null} is point inside of the bounds or a path shape
+ */
+Element.prototype.findDeepestChildAt = function(local_pt) {
+    if (!this.isActive()) return null;
+    if (this.hasChildren()) {
+        var childFound = null;
+        this.reverseEach(function(child) {
+            if (child.isActive()) {
+                childFound = child.findDeepestChildAt(child.adapt(local_pt));
+            }
+            if (childFound) return false; // stop iteration
+        });
+        return childFound;
+    } else {
+        return this.contains(local_pt) ? new Events.Hit(this, local_pt) : null;
+    }
 };
 
 /**
@@ -1996,7 +2024,7 @@ Element.prototype.inside = function(local_pt) {
  * @return {Boolean} is point inside of the bounds
  */
  Element.prototype.inBounds = function(local_pt) {
-    return this.myBounds().inside(local_pt);
+    return this.myBounds().contains(local_pt);
  };
 
 /**
@@ -2011,6 +2039,20 @@ Element.prototype.inside = function(local_pt) {
  */
 Element.prototype.adapt = function(x, y) {
     return this.matrix.transformPointInverse(x, y);
+};
+
+/**
+ * @method adaptToParent
+ *
+ * Adapt a point to parent coordinate space.
+ *
+ * @param {Number} x
+ * @param {Number} y
+ *
+ * @return {Object} transformed point
+ */
+Element.prototype.adaptToParent = function(x, y) {
+    return this.matrix.transformPoint(x, y);
 };
 
 /**

@@ -63,6 +63,12 @@ function provideEvents(subj, events) {
     subj.prototype.disposeHandlers = function() {
         this.handlers = {};
     };
+    subj.prototype.getHandlersFor = function(type) {
+        return this.handlers[type];
+    };
+    subj.prototype.hasHandlersFor = function(type) {
+        return this.handlers[type] && (this.handlers[type].length > 0);
+    };
     /* subj.prototype.passEventsTo = function(other) {
         this.onAny(function() {
             other.call(other, arguments);
@@ -143,20 +149,22 @@ MouseEventsSupport.prototype.markAsHoveredTree = function(moveEvent) {
         this.owner.parent.getMouseSupport().markAsHoveredTree(moveEvent);
     }
 }
-MouseEventsSupport.prototype.adaptEvent = function(event) {
+MouseEventsSupport.prototype.adaptEvent = function(event, localPos) {
     if (!this.owner.adapt) return event;
-    var localPos = this.owner.adapt(event.x, event.y);
+    localPos = localPos || this.owner.adapt(event.x, event.y);
     return new MouseEvent(event.type,
                           localPos.x, localPos.y,
                           this.owner, // target
                           event); // source
 }
-MouseEventsSupport.prototype.dispatch = function(event) {
+MouseEventsSupport.prototype.dispatch = function(event, point) {
+    point = point || { x: event.x, y: event.y };
+
     var owner = this.owner;
-    var localEvent = this.adaptEvent(event);
     var state = this.state;
 
-    if ((localEvent.type === 'mouseup') && state.pressedNode) {
+    if ((event.type === 'mouseup') && state.pressedNode) {
+        var localEvent = this.adaptEvent(event);
         localEvent.target = state.pressedNode;
         var adaptedEvent = state.pressedNode.getMouseSupport().adaptEvent(localEvent);
         state.pressedNode.fire('mouseup', adaptedEvent);
@@ -164,31 +172,32 @@ MouseEventsSupport.prototype.dispatch = function(event) {
         return true;
     }
 
-    var dispatchedByOwner, // handled event myself
-        dispatchedByChild; // not handled myself, but found the matching child inside
+    var deepestHit = this.owner.findDeepestChildAt(point);
+    if (!deepestHit) return false;
 
-    // here and below localEvent has properties `.x` and `.y`, so duck typing works
-    dispatchedByOwner = !owner.isScene && owner.inside(localEvent);
-    // scenes have no .inside or .inBounds methods
+    if ((localEvent.type === 'mouseclick') || (localEvent.type === 'mousedown')) {
+        state.pressedNode = deepestHit.elm.getMouseSupport().fireToTop(localEvent, deepestHit.point);
+        return true;
+    } else if (localEvent.type === 'mousemove') {
+        deepestHit.elm.processMove(event, deepestHit.point); // fire mouseenter/mouseexit if required
+        return true;
+    }
 
-    owner.reverseEach(function(child) {
-        if (child.isActive()) {
-            dispatchedByChild = child.dispatchMouseEvent(localEvent);
-            if (dispatchedByChild) return false; // stop iteration of reverseEach
+    return false;
+}
+MouseEventsSupport.prototype.fireToTop = function(event, point) {
+    point = point || { x: event.x, y: event.y };
+    var owner = this;
+    if (!owner.hasHandlersFor(event.type)) {
+        if (owner.parent) {
+            return owner.parent.getMouseSupport().fireToTop(event, onwer.adaptToParent(point));
+        } else {
+            return null;
         }
-    });
-
-    if ((dispatchedByOwner || owner.isScene) && !dispatchedByChild) {
-        if (localEvent.type === 'mousemove') {
-            this.processMove(localEvent); // fire mouseenter/mouseexit if required
-        }
-        if ((localEvent.type === 'mouseclick') || (localEvent.type === 'mousedown')) {
-            state.pressedNode = this.owner;
-        }
-        this.owner.fire(localEvent.type, localEvent);
-    };
-
-    return dispatchedByOwner || dispatchedByChild;
+    } else {
+        onwer.fire(event.type, this.adaptEvent(event, point));
+        return owner;
+    }
 }
 MouseEventsSupport.prototype.processOver = function(commonChild, moveEvent) {
     var inPath = [];
@@ -269,7 +278,13 @@ MouseEvent.prototype.clone = function() {
                           this.target, this.source);
 }
 
+function Hit(elm, point) {
+    this.elm = elm;
+    this.point = point;
+}
+
 module.exports = {
+    Hit: Hit,
     isMouse: isMouseEvent,
     isKeyboard: isKeyboardEvent,
     mouseOrKeyboard: isMouseOrKeyboardEvent,

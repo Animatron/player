@@ -147,10 +147,10 @@ Video.prototype.bounds = function() {
     return (this.$bounds = bounds);
 };
 /**
- * @method inside
+ * @method contains
  *
  * Checks if point is inside the shape. _Does no test for bounds_, the point is
- * assumed to be already inside of the bounds, so check `video.bounds().inside(pt)`
+ * assumed to be already inside of the bounds, so check `video.bounds().contains(pt)`
  * before calling this method manually.
  *
  * @param {Object} pt point to check
@@ -158,7 +158,7 @@ Video.prototype.bounds = function() {
  * @param {Number} pt.y
  * @return {Boolean} is point inside
  */
-Video.prototype.inside = function(pt) {
+Video.prototype.contains = function(pt) {
     return true; // if point is inside of the bounds, point is considered to be
                  // inside the video shape
 };
