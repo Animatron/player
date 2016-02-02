@@ -1975,10 +1975,10 @@ Element.prototype.myBounds = function() {
  * @param {Number} pt.y
  * @return {Boolean} is point inside of the bounds or a path shape
  */
-Element.prototype.contains = function(local_pt) {
-    if (this.inBounds(local_pt)) {
+Element.prototype.contains = function(localPos) {
+    if (this.inBounds(localPos)) {
         var subj = this.$path || this.$text || this.$image || this.$video;
-        return subj && subj.contains(local_pt);
+        return subj && subj.contains(localPos);
     }
     return false;
 };
@@ -1995,19 +1995,20 @@ Element.prototype.contains = function(local_pt) {
  * @param {Number} pt.y
  * @return {events.Hit|Null} is point inside of the bounds or a path shape
  */
-Element.prototype.findDeepestChildAt = function(local_pt) {
+Element.prototype.findDeepestChildAt = function(localPos) {
     if (!this.isActive()) return null;
     if (this.hasChildren()) {
         var childFound = null;
+        var adaptedPos = this.adapt(localPos);
         this.reverseEach(function(child) {
             if (child.isActive()) {
-                childFound = child.findDeepestChildAt(child.adapt(local_pt.x, local_pt.y));
+                childFound = child.findDeepestChildAt(adaptedPos);
             }
             if (childFound) return false; // stop iteration
         });
         return childFound;
     } else {
-        return this.contains(local_pt) ? new events.Hit(this, local_pt) : null;
+        return this.contains(localPos) ? new events.Hit(this, localPos) : null;
     }
 };
 
@@ -2023,8 +2024,8 @@ Element.prototype.findDeepestChildAt = function(local_pt) {
  * @param {Number} pt.y
  * @return {Boolean} is point inside of the bounds
  */
- Element.prototype.inBounds = function(local_pt) {
-    return this.myBounds().contains(local_pt);
+ Element.prototype.inBounds = function(localPos) {
+    return this.myBounds().contains(localPos);
  };
 
 /**
@@ -2032,13 +2033,14 @@ Element.prototype.findDeepestChildAt = function(local_pt) {
  *
  * Adapt a point to element's local coordinate space (relative to parent).
  *
- * @param {Number} x
- * @param {Number} y
+ * @param {Object} pt point to check
+ * @param {Number} pt.x
+ * @param {Number} pt.y
  *
  * @return {Object} transformed point
  */
-Element.prototype.adapt = function(x, y) {
-    return this.matrix.transformPointInverse(x, y);
+Element.prototype.adapt = function(pt) {
+    return this.matrix.transformPointInverse(pt.x, pt.y);
 };
 
 /**
@@ -2046,13 +2048,14 @@ Element.prototype.adapt = function(x, y) {
  *
  * Adapt a point to parent coordinate space.
  *
- * @param {Number} x
- * @param {Number} y
+ * @param {Object} pt point to check
+ * @param {Number} pt.x
+ * @param {Number} pt.y
  *
  * @return {Object} transformed point
  */
-Element.prototype.adaptToParent = function(x, y) {
-    return this.matrix.transformPoint(x, y);
+Element.prototype.adaptToParent = function(pt) {
+    return this.matrix.transformPoint(pt.x, pt.y);
 };
 
 /**

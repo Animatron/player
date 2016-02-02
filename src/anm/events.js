@@ -64,9 +64,11 @@ function provideEvents(subj, events) {
         this.handlers = {};
     };
     subj.prototype.getHandlersFor = function(type) {
+        if (!this.handlers) return [];
         return this.handlers[type];
     };
     subj.prototype.hasHandlersFor = function(type) {
+        if (!this.handlers) return [];
         return this.handlers[type] && (this.handlers[type].length > 0);
     };
     /* subj.prototype.passEventsTo = function(other) {
@@ -152,7 +154,7 @@ MouseEventsSupport.prototype.markAsHoveredTree = function(moveEvent) {
 }
 MouseEventsSupport.prototype.adaptEvent = function(event, localPos) {
     if (!this.owner.adapt) return event;
-    localPos = localPos || this.owner.adapt(event.x, event.y);
+    localPos = localPos || this.owner.adapt(event);
     return new MouseEvent(event.type,
                           localPos.x, localPos.y,
                           this.owner, // target

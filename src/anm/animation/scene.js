@@ -111,7 +111,7 @@ Scene.prototype.findDeepestChildAt = function(local_pt) {
         var childFound = null;
         this.reverseEach(function(child) {
             if (child.isActive()) {
-                childFound = child.findDeepestChildAt(child.adapt(local_pt.x, local_pt.y));
+                childFound = child.findDeepestChildAt(local_pt);
             }
             if (childFound) return false; // stop iteration
         });
