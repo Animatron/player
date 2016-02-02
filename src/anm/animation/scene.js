@@ -81,6 +81,10 @@ Scene.prototype.reverseTraverse = function(visitor, data) {
     });
 };
 
+Scene.prototype.hasChildren = function() {
+    return (this.children.length > 0);
+};
+
 Scene.prototype.each = function(visitor, data) {
     for (var i = 0, clen = this.children.length; i < clen; i++) {
         if (visitor(this.children[i], data) === false) break;
@@ -99,6 +103,20 @@ Scene.prototype.reverseEachVisible = function(visitor, data) {
     while (i--) {
         if (this.children[i].isActive() && (visitor(this.children[i], data) === false)) break;
     }
+};
+
+Scene.prototype.findDeepestChildAt = function(local_pt) {
+    if (!this.isActive()) return null;
+    if (this.hasChildren()) {
+        var childFound = null;
+        this.reverseEach(function(child) {
+            if (child.isActive()) {
+                childFound = child.findDeepestChildAt(child.adapt(local_pt.x, local_pt.y));
+            }
+            if (childFound) return false; // stop iteration
+        });
+        return childFound;
+    } else return null;
 };
 
 Scene.prototype.iter = function(func, rfunc) {

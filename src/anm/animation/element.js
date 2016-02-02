@@ -2001,13 +2001,13 @@ Element.prototype.findDeepestChildAt = function(local_pt) {
         var childFound = null;
         this.reverseEach(function(child) {
             if (child.isActive()) {
-                childFound = child.findDeepestChildAt(child.adapt(local_pt));
+                childFound = child.findDeepestChildAt(child.adapt(local_pt.x, local_pt.y));
             }
             if (childFound) return false; // stop iteration
         });
         return childFound;
     } else {
-        return this.contains(local_pt) ? new Events.Hit(this, local_pt) : null;
+        return this.contains(local_pt) ? new events.Hit(this, local_pt) : null;
     }
 };
 

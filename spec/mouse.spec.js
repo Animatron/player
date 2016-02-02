@@ -222,10 +222,11 @@ describe('handling mouse in static objects', function() {
                 fireCanvasEvent('click', 25, 25);
                 expect(log.stringify(MARKER)).toEqual([ 'e11: mouseclick@25;25 -> e11' ].join(MARKER));
 
-                //log.clear();
+                log.clear();
 
-                //fireCanvasEvent('click', 75, 25);
-                //expect(log.stringify(MARKER)).toEqual([ ].join(MARKER));
+                fireCanvasEvent('click', 75, 25);
+                // e1 is an empty container so it fires no events
+                expect(log.stringify(MARKER)).toEqual([ ].join(MARKER));
 
                 log.clear();
 

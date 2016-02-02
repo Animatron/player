@@ -176,11 +176,11 @@ MouseEventsSupport.prototype.dispatch = function(event, point) {
     var deepestHit = this.owner.findDeepestChildAt(point);
     if (!deepestHit) return false;
 
-    if ((localEvent.type === 'mouseclick') || (localEvent.type === 'mousedown')) {
-        state.pressedNode = deepestHit.elm.getMouseSupport().fireToTop(localEvent, deepestHit.point);
+    if ((event.type === 'mouseclick') || (event.type === 'mousedown')) {
+        state.pressedNode = deepestHit.elm.getMouseSupport().fireToTop(event, deepestHit.point);
         return true;
-    } else if (localEvent.type === 'mousemove') {
-        deepestHit.elm.processMove(event, deepestHit.point); // fire mouseenter/mouseexit if required
+    } else if (event.type === 'mousemove') {
+        deepestHit.elm.getMouseSupport().processMove(event, deepestHit.point); // fire mouseenter/mouseexit if required
         return true;
     }
 
@@ -188,15 +188,15 @@ MouseEventsSupport.prototype.dispatch = function(event, point) {
 }
 MouseEventsSupport.prototype.fireToTop = function(event, point) {
     point = point || event;
-    var owner = this;
+    var owner = this.owner;
     if (!owner.hasHandlersFor(event.type)) {
         if (owner.parent) {
-            return owner.parent.getMouseSupport().fireToTop(event, onwer.adaptToParent(point));
+            return owner.parent.getMouseSupport().fireToTop(event, owner.adaptToParent(point));
         } else {
             return null;
         }
     } else {
-        onwer.fire(event.type, this.adaptEvent(event, point));
+        owner.fire(event.type, this.adaptEvent(event, point));
         return owner;
     }
 }
@@ -252,7 +252,7 @@ MouseEventsSupport.prototype.processMove = function(moveEvent, point) {
 
     if (!lastHoveredPoint ||
         ((lastHoveredPoint.x !== point.x) ||
-         (lastHoveredPoint.y !== point.y)) {
+         (lastHoveredPoint.y !== point.y))) {
         this.state.lastHoveredPoint = point;
         this.fireToTop(moveEvent, point);
     }
