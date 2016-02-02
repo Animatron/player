@@ -135,6 +135,7 @@ function isMouseOrKeyboardEvent(type) { return isMouseEvent(type) || isKeyboardE
 
 function MouseEventsState() {
     this.lastHoveredNode = null;
+    this.lastHoveredPoint = null;
     this.pressedNode = null;
 }
 
@@ -158,7 +159,7 @@ MouseEventsSupport.prototype.adaptEvent = function(event, localPos) {
                           event); // source
 }
 MouseEventsSupport.prototype.dispatch = function(event, point) {
-    point = point || { x: event.x, y: event.y };
+    point = point || event;
 
     var owner = this.owner;
     var state = this.state;
@@ -186,7 +187,7 @@ MouseEventsSupport.prototype.dispatch = function(event, point) {
     return false;
 }
 MouseEventsSupport.prototype.fireToTop = function(event, point) {
-    point = point || { x: event.x, y: event.y };
+    point = point || event;
     var owner = this;
     if (!owner.hasHandlersFor(event.type)) {
         if (owner.parent) {
@@ -229,22 +230,33 @@ MouseEventsSupport.prototype.processOut = function(moveEvent) {
 
     return this.owner;
 }
-MouseEventsSupport.prototype.processMove = function(moveEvent) {
+MouseEventsSupport.prototype.processMove = function(moveEvent, point) {
     this.markAsHoveredTree(moveEvent);
 
+    point = point || moveEvent;
+
     var lastHoveredNode = this.state.lastHoveredNode;
+    var lastHoveredPoint = this.state.lastHoveredPoint;
 
-    if (lastHoveredNode === this.owner) return;
+    if (lastHoveredNode !== this.owner) {
+        var commonChild = null;
+        if (lastHoveredNode) {
+            var hoveredSupport = lastHoveredNode.getMouseSupport();
+            commonChild = hoveredSupport.processOut(moveEvent);
+        }
 
-    var commonChild = null;
-    if (lastHoveredNode) {
-        var hoveredSupport = lastHoveredNode.getMouseSupport();
-        commonChild = hoveredSupport.processOut(moveEvent);
+        this.state.lastHoveredNode = this.owner;
+
+        this.processOver(commonChild, moveEvent);
     }
 
-    this.state.lastHoveredNode = this.owner;
+    if (!lastHoveredPoint ||
+        ((lastHoveredPoint.x !== point.x) ||
+         (lastHoveredPoint.y !== point.y)) {
+        this.state.lastHoveredPoint = point;
+        this.fireToTop(moveEvent, point);
+    }
 
-    this.processOver(commonChild, moveEvent);
 }
 MouseEventsSupport.prototype.makeExitEvent = function(moveEvent) {
     var exitEvent = moveEvent.clone();
