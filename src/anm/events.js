@@ -175,15 +175,29 @@ MouseEventsSupport.prototype.dispatch = function(event, point) {
         return true;
     }
 
-    var deepestHit = this.owner.findDeepestChildAt(point);
-    if (!deepestHit) return false;
+    var isPressEvent = (event.type === 'mouseclick') || (event.type === 'mousedown') || (event.type === 'mousedoubleclick'),
+        isMoveEvent = (event.type === 'mousemove');
 
-    if ((event.type === 'mouseclick') || (event.type === 'mousedown') || (event.type === 'mousedoubleclick')) {
-        state.pressedNode = deepestHit.elm.getMouseSupport().fireToTop(event, deepestHit.point);
-        return true;
-    } else if (event.type === 'mousemove') {
-        deepestHit.elm.getMouseSupport().processMove(event, deepestHit.point); // fire mouseenter/mouseexit if required
-        return true;
+    var deepestHit;
+
+    if (isPressEvent || isMoveEvent) {
+        var deepestHit = this.owner.findDeepestChildAt(point);
+        if (isPressEvent && deepestHit) {
+            state.pressedNode = deepestHit.elm.getMouseSupport().fireToTop(event, deepestHit.point);
+            return true;
+        } else if (isMoveEvent) {
+            if (deepestHit) {
+                deepestHit.elm.getMouseSupport()
+                              .processMove(event, deepestHit.point); // fire mouseenter/mouseexit if required
+                return true;
+            } else {
+                if (state.lastHoveredNode) {
+                    state.lastHoveredNode.getMouseSupport()
+                                         .processOut(event);
+                }
+                return false;
+            }
+        }
     }
 
     return false;
