@@ -1997,7 +1997,6 @@ Element.prototype.contains = function(localPos) {
  */
 Element.prototype.findDeepestChildAt = function(localPos) {
     if (!this.isActive()) return null;
-    //var adaptedPos = this.adapt(localPos);
     if (this.hasChildren()) {
         var childFound = null;
         this.reverseEach(function(child) {
@@ -2008,6 +2007,7 @@ Element.prototype.findDeepestChildAt = function(localPos) {
         });
         return childFound;
     } else {
+        //var adaptedPos = this.adapt(localPos);
         return this.contains(localPos) ? new events.Hit(this, localPos) : null;
     }
 };

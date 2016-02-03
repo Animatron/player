@@ -286,14 +286,14 @@ describe('handling mouse in static objects', function() {
 
         });
 
-        describe('handles moves and in/outs & move properly', function() {
+        describe('handles moves and enter/exits & move properly', function() {
 
             var MARKER = '\n';
 
             var log;
 
             beforeEach(function() {
-                log = new EventLog([ root, e1, e2, e11, e12 ],
+                log = new EventLog([ root, e1, e11, e12, e2, e21 ],
                                    [ 'mouseenter', 'mouseexit', 'mousemove' ]);
                 log.subscribe();
             });
@@ -303,21 +303,11 @@ describe('handling mouse in static objects', function() {
                 log.clear();
             });
 
-            it('transfers in/out event to the corresponding receivers', function() {
-                fireCanvasEvent('mousemove', 25, 75);
-                expect(log.stringify(MARKER)).toEqual([ 'root: mouseenter@null;null -> e2',
-                                                        'e2: mouseenter@null;null -> e2',
-                                                        'e21: mouseenter@null;null -> e21',
-                                                        'e21: mousemove@25;30 -> e21' ].join(MARKER));
-
-                fireCanvasEvent('mousemove', 10, 10);
-            });
-
             it('in/out events properly work in sequences', function() {
 
                 fireCanvasEvent('mousemove', 25, 75);
-                expect(log.stringify(MARKER)).toEqual([ 'root: mouseenter@null;null -> e2',
-                                                        'e2: mouseenter@null;null -> e2',
+                expect(log.stringify(MARKER)).toEqual([ 'root: mouseenter@null;null -> e21',
+                                                        'e2: mouseenter@null;null -> e21',
                                                         'e21: mouseenter@null;null -> e21',
                                                         'e21: mousemove@25;30 -> e21' ].join(MARKER));
 
@@ -333,7 +323,7 @@ describe('handling mouse in static objects', function() {
 
                 fireCanvasEvent('mousemove', 25, 25);
                 expect(log.stringify(MARKER)).toEqual([ 'e21: mouseexit@null;null -> e21',
-                                                        'e2: mouseexit@null;null -> e2',
+                                                        'e2: mouseexit@null;null -> e21',
                                                         'e1: mouseenter@null;null -> e11',
                                                         'e11: mouseenter@null;null -> e11',
                                                         'e11: mousemove@25;25 -> e11' ].join(MARKER));
@@ -350,7 +340,7 @@ describe('handling mouse in static objects', function() {
                 fireCanvasEvent('mousemove', 25, 75);
                 expect(log.stringify(MARKER)).toEqual([ 'e12: mouseexit@null;null -> e12',
                                                         'e1: mouseexit@null;null -> e12',
-                                                        'e2: mouseenter@null;null -> e2',
+                                                        'e2: mouseenter@null;null -> e21',
                                                         'e21: mouseenter@null;null -> e21',
                                                         'e21: mousemove@25;30 -> e21' ].join(MARKER));
 
@@ -365,7 +355,7 @@ describe('handling mouse in static objects', function() {
             var log;
 
             beforeEach(function() {
-                log = new EventLog([ root, e1, e2, e11, e12 ],
+                log = new EventLog([ root, e1, e11, e12, e2, e21 ],
                                    [ 'mouseenter', 'mouseexit', 'mouseup', 'mousedown', 'mousemove' ]);
                 log.subscribe();
             })
@@ -398,7 +388,7 @@ describe('handling mouse in static objects', function() {
             var MARKER = '\n';
 
             beforeEach(function() {
-                log = new EventLog([ root, e1, e2, e11, e12 ],
+                log = new EventLog([ root, e1, e11, e12, e2, e21 ],
                                    [ 'mousemove' ]);
                 log.subscribe();
             });
@@ -437,7 +427,7 @@ describe('handling mouse in static objects', function() {
             var MARKER = '\n';
 
             beforeEach(function() {
-                log = new EventLog([ root, e1, e2, e11, e12 ],
+                log = new EventLog([ e11 ],
                                    [ 'mousemove', 'mousedown', 'mouseup', 'mousedoubleclick' ]);
                 log.subscribe();
             });
