@@ -1,18 +1,18 @@
 import junit.framework.TestCase;
 import spec.MouseEvent;
-import spec.Node;
-import spec.Point;
-import spec.Rectangle;
+import test.TestLog;
+import test.TestNode;
 
-public class Test extends TestCase {
+public class TestLayeredScene extends TestCase {
 
     private TestNode root;
-    private String events;
     private TestNode e1;
     private TestNode e11;
     private TestNode e12;
     private TestNode e2;
     private TestNode e21;
+
+    private TestLog log = new TestLog();
 
 
 /*
@@ -49,6 +49,8 @@ public class Test extends TestCase {
         e2 = new TestNode("e2", 0, 45, 100, 55);
         e21 = new TestNode("e21", 0, 0, 100, 55);
         root.addChildren(e1.addChildren(e11, e12), e2.addChildren(e21));
+
+        log.addTo(root, e1, e11, e12, e2, e21);
     }
 
     public void testPress() {
@@ -171,87 +173,23 @@ public class Test extends TestCase {
             "e11: in\n" +
             "e11: move@25,6\n" +
             "e12: release@-50,1"
-            , events);
+            , log.get());
     }
 
     void assertDispatchPress(int x, int y, String expected) {
         MouseEvent event = new MouseEvent(x, y, MouseEvent.Type.press);
         root.dispatch(event);
-        assertEquals(expected, events != null ? events : "");
-        events = null;
+        assertEquals(expected, log.get());
+        log.clear();
     }
 
     void assertDispatchMove(int x, int y, String expected) {
         MouseEvent event = new MouseEvent(x, y, MouseEvent.Type.move);
         root.dispatch(event);
-        assertEquals(expected, events != null ? events : "");
-        events = null;
+        assertEquals(expected, log.get());
+        log.clear();
     }
 
-    class TestNode extends Node {
 
-        String name;
-        Rectangle boundsInParent;
 
-        public TestNode(final String name, int x, int y, int width, int height) {
-            this.name = name;
-            this.boundsInParent = new Rectangle(x, y, width, height);
-            onPress(new Listener.Press() {
-                @Override
-                public void onPress(Point point) {
-                    log("press", point);
-                }
-            }).onRelease(new Listener.Release() {
-                @Override
-                public void onRelease(Point point) {
-                    log("release", point);
-                }
-            }).onInOut(new Listener.InOut() {
-                @Override
-                public void onIn() {
-                    log("in", null);
-                }
-
-                @Override
-                public void onOut() {
-                    log("out", null);
-                }
-            }).onMove(new Listener.Move() {
-                @Override
-                public void onMove(Point point) {
-                    log("move", point);
-                }
-            });
-        }
-
-        private void log(String type, Point point) {
-            if (events == null) {
-                events = "";
-            } else {
-                events += "\n";
-            }
-            events = events + name + ": " + type + (point != null ? ("@" + point.x + "," + point.y) : "");
-        }
-
-        @Override
-        public String toString() {
-            return name;
-        }
-
-        @Override
-        public Point transformToChild(Node child, Point point) {
-            TestNode testChild = (TestNode) child;
-            return new Point(point.x - testChild.boundsInParent.x, point.y - testChild.boundsInParent.y);
-        }
-
-        @Override
-        public boolean contains(Point point) {
-            return point.x >= 0 && point.x < boundsInParent.width && point.y >= 0 && point.y < boundsInParent.height;
-        }
-
-        @Override
-        public Point transformToParent(Point point) {
-            return new Point(boundsInParent.x + point.x, boundsInParent.y + point.y);
-        }
-    }
 }

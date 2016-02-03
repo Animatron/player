@@ -7,6 +7,8 @@ import java.util.Set;
 
 public abstract class Node {
 
+    public final String name;
+
     static long NULL = -1;
 
     static Node lastHoveredNode;
@@ -24,6 +26,10 @@ public abstract class Node {
     public Set<Listener.Move> moves = new HashSet<>();
 
     long hoveredEventId = NULL;
+
+    protected Node(String name) {
+        this.name = name;
+    }
 
     public Node addChildren(Node... child) {
         for (Node each : child) {
