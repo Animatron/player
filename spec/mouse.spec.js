@@ -442,14 +442,10 @@ describe('handling mouse in static objects', function() {
                 expect(log.stringify(MARKER)).toEqual([ 'e11: mousemove@10;10 -> e11' ].join(MARKER));
             });
 
-            it('properly handles mousedown event', function() {
+            it('properly handles mousedown and mouseup events', function() {
                 fireCanvasEvent('mousedown', 10, 10);
-                expect(log.stringify(MARKER)).toEqual([ 'e11: mousedown@10;10 -> e11' ].join(MARKER));
-            });
-
-            it('properly handles mouseup event', function() {
                 fireCanvasEvent('mouseup', 10, 10);
-                expect(log.stringify(MARKER)).toEqual([ 'e11: mouseup@10;10 -> e11' ].join(MARKER));
+                expect(log.stringify(MARKER)).toEqual([ 'e11: mousedown@10;10 -> e11', 'e11: mouseup@10;10 -> e11' ].join(MARKER));
             });
 
             it('properly handles doubleclick event', function() {
@@ -640,7 +636,7 @@ describe('handling mouse in static objects', function() {
                                                         'group: mouseexit@null;null -> child2',
                                                         'notChild: mouseenter@null;null -> notChild',
                                                         'notChild: mouseexit@null;null -> notChild',
-                                                        'group: mouseenter@null;null -> child2',
+                                                        'group: mouseenter@null;null -> child1',
                                                         'child1: mouseenter@null;null -> child1' ].join(MARKER));
             });
 

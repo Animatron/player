@@ -178,7 +178,7 @@ MouseEventsSupport.prototype.dispatch = function(event, point) {
     var deepestHit = this.owner.findDeepestChildAt(point);
     if (!deepestHit) return false;
 
-    if ((event.type === 'mouseclick') || (event.type === 'mousedown')) {
+    if ((event.type === 'mouseclick') || (event.type === 'mousedown') || (event.type === 'mousedoubleclick')) {
         state.pressedNode = deepestHit.elm.getMouseSupport().fireToTop(event, deepestHit.point);
         return true;
     } else if (event.type === 'mousemove') {
