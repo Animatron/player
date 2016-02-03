@@ -17,7 +17,7 @@ public class TestLog {
     }
 
     public void addTo(Node... node) {
-        for (Node each : node) {
+        for (final Node each : node) {
             each.onPress(new Node.Listener.Press() {
                 @Override
                 public void onPress(Point point) {

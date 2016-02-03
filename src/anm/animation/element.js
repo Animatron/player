@@ -2008,6 +2008,7 @@ Element.prototype.findDeepestChildAt = function(localPos) {
         return childFound;
     } else {
         //var adaptedPos = this.adapt(localPos);
+        //return this.contains(adaptedPos) ? new events.Hit(this, adaptedPos) : null;
         return this.contains(localPos) ? new events.Hit(this, localPos) : null;
     }
 };

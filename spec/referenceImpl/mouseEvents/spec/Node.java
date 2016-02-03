@@ -32,7 +32,7 @@ public abstract class Node {
     }
 
     public Node addChildren(Node... child) {
-        for (Node each : child) {
+        for (final Node each : child) {
             this.children.add(each);
             each.parent = this;
         }
