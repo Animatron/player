@@ -1997,18 +1997,18 @@ Element.prototype.contains = function(localPos) {
  */
 Element.prototype.findDeepestChildAt = function(localPos) {
     if (!this.isActive()) return null;
-    var adaptedPos = this.adapt(localPos);
+    //var adaptedPos = this.adapt(localPos);
     if (this.hasChildren()) {
         var childFound = null;
         this.reverseEach(function(child) {
             if (child.isActive()) {
-                childFound = child.findDeepestChildAt(adaptedPos);
+                childFound = child.findDeepestChildAt(child.adapt(localPos));
             }
             if (childFound) return false; // stop iteration
         });
         return childFound;
     } else {
-        return this.contains(adaptedPos) ? new events.Hit(this, adaptedPos) : null;
+        return this.contains(localPos) ? new events.Hit(this, localPos) : null;
     }
 };
 

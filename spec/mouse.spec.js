@@ -31,7 +31,7 @@ describe('handling mouse in static objects', function() {
         e11.path(rectangle(0, 0, 50, 50)).pivot(0, 0);
         e12.path(rectangle(0, 0, 5, 5)).move(75, 5).pivot(0, 0);
         e2.path(rectangle(0, 0, 100, 55)).move(0, 45).pivot(0, 0);
-        e21.path(rectangle(0, 0, 100, 55)).move(0, 45).pivot(0, 0);
+        e21.path(rectangle(0, 0, 100, 55)).move(0, 0).pivot(0, 0);
 
         /* TODO: test with
         root.path(rectangle(0, 0, 100, 100)).pivot(0, 0);
@@ -740,7 +740,7 @@ EventLog.prototype.unsubscribe = function(targets, events) {
         if (!trg_handlers) continue;
         for (var j = 0; j < events.length; j++) {
             event_type = events[j];
-            if (!trg_handlers[event_type]) continue;
+            if (typeof trg_handlers[event_type] === 'undefined') continue;
             target.unbind(event_type, trg_handlers[event_type]);
             delete trg_handlers[event_type];
         }
