@@ -47,7 +47,7 @@ public class TestSimpleScene extends TestCase {
         assertEquals(
                 "rect: in\n" +
                 "rect: move@1,1\n" +
-                "rect: out\n"
+                "rect: out"
                 , log.get());
     }
 
