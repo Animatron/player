@@ -83,15 +83,26 @@ public abstract class Node {
         }
 
         Hit deepestFound = findDeepestChildAt(point);
-        if (deepestFound == null) return false;
 
         switch (event.type) {
             case press:
-                pressedNode = deepestFound.node.notifyPress(deepestFound.point);
-                return true;
+                if (deepestFound != null) {
+                    pressedNode = deepestFound.node.notifyPress(deepestFound.point);
+                    return true;
+                } else {
+                    return false;
+                }
+
             case move:
-                deepestFound.node.processHover(event, deepestFound.point);
-                return true;
+                if (deepestFound != null) {
+                    deepestFound.node.processHover(event, deepestFound.point);
+                    return true;
+                } else {
+                    if (lastHoveredNode != null) {
+                        lastHoveredNode.processOut(event.id);
+                    }
+                    return false;
+                }
         }
 
         return false;
