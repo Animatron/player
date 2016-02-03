@@ -39,19 +39,6 @@ public class TestSimpleScene extends TestCase {
         );
     }
 
-    /*public void testPressDispatchToParent() throws Exception {
-        assertDispatchPress(
-                76, 6,
-                "rect: press@1,1"
-        );
-
-        rect.presses.clear();
-        assertDispatchPress(
-                76, 6,
-                "root: press@76,6"
-        );
-    } */
-
     public void testInOut() {
         root.dispatch(new MouseEvent(10, 10, MouseEvent.Type.move));
         root.dispatch(new MouseEvent(76, 6,  MouseEvent.Type.move));
