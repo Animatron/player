@@ -708,9 +708,9 @@ Animation.prototype.findById = function(id) {
  *
  * @return {Object} transformed point
  */
-Animation.prototype.adapt = function(x, y) {
-    return { x: x / this.factor,
-             y: y / this.factor };
+Animation.prototype.adapt = function(pt) {
+    return { x: pt.x / this.factor,
+             y: pt.y / this.factor };
 };
 
 /*

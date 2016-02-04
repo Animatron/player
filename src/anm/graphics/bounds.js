@@ -119,7 +119,7 @@ Bounds.prototype.exist = function() {
     return !is.nan(this.x);
 };
 /**
- * @method inside
+ * @method contains
  *
  * Is given point inside
  *
@@ -128,7 +128,7 @@ Bounds.prototype.exist = function() {
  * @param {Number} pt.y
  * @return {Boolean}
  */
-Bounds.prototype.inside = function(pt) {
+Bounds.prototype.contains = function(pt) {
     if (!this.exist()) return false;
     return (pt.x >= this.x) && ((pt.x - this.x) <= this.width) &&
            (pt.y >= this.y) && ((pt.y - this.y) <= this.height);

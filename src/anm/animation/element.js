@@ -1964,7 +1964,7 @@ Element.prototype.myBounds = function() {
 };
 
 /**
- * @method inside
+ * @method contains
  *
  * Test if a point given in local coordinate space is located inside the element's bounds.
  * For paths, also checks if point belongs to this path.
@@ -1975,12 +1975,42 @@ Element.prototype.myBounds = function() {
  * @param {Number} pt.y
  * @return {Boolean} is point inside of the bounds or a path shape
  */
-Element.prototype.inside = function(local_pt) {
-    if (this.myBounds().inside(local_pt)) {
+Element.prototype.contains = function(localPos) {
+    if (this.inBounds(localPos)) {
         var subj = this.$path || this.$text || this.$image || this.$video;
-        return subj && subj.inside(local_pt);
+        return subj && subj.contains(localPos);
     }
     return false;
+};
+
+/**
+ * @method findDeepestChildAt
+ *
+ * Find the top-most *visible* element which matches given point.
+ * Returns null, if nothing was found or the `events.Hit` instance,
+ * which the pair of matched element and the point converted to it's local space.
+ *
+ * @param {Object} pt point to check
+ * @param {Number} pt.x
+ * @param {Number} pt.y
+ * @return {events.Hit|Null} is point inside of the bounds or a path shape
+ */
+Element.prototype.findDeepestChildAt = function(localPos) {
+    if (!this.isActive()) return null;
+    if (this.hasChildren()) {
+        var childFound = null;
+        this.reverseEach(function(child) {
+            if (child.isActive()) {
+                childFound = child.findDeepestChildAt(child.adapt(localPos));
+            }
+            if (childFound) return false; // stop iteration
+        });
+        return childFound;
+    } else {
+        //var adaptedPos = this.adapt(localPos);
+        //return this.contains(adaptedPos) ? new events.Hit(this, adaptedPos) : null;
+        return this.contains(localPos) ? new events.Hit(this, localPos) : null;
+    }
 };
 
 /**
@@ -1995,8 +2025,8 @@ Element.prototype.inside = function(local_pt) {
  * @param {Number} pt.y
  * @return {Boolean} is point inside of the bounds
  */
- Element.prototype.inBounds = function(local_pt) {
-    return this.myBounds().inside(local_pt);
+ Element.prototype.inBounds = function(localPos) {
+    return this.myBounds().contains(localPos);
  };
 
 /**
@@ -2004,13 +2034,29 @@ Element.prototype.inside = function(local_pt) {
  *
  * Adapt a point to element's local coordinate space (relative to parent).
  *
- * @param {Number} x
- * @param {Number} y
+ * @param {Object} pt point to check
+ * @param {Number} pt.x
+ * @param {Number} pt.y
  *
  * @return {Object} transformed point
  */
-Element.prototype.adapt = function(x, y) {
-    return this.matrix.transformPointInverse(x, y);
+Element.prototype.adapt = function(pt) {
+    return this.matrix.transformPointInverse(pt.x, pt.y);
+};
+
+/**
+ * @method adaptToParent
+ *
+ * Adapt a point to parent coordinate space.
+ *
+ * @param {Object} pt point to check
+ * @param {Number} pt.x
+ * @param {Number} pt.y
+ *
+ * @return {Object} transformed point
+ */
+Element.prototype.adaptToParent = function(pt) {
+    return this.matrix.transformPoint(pt.x, pt.y);
 };
 
 /**

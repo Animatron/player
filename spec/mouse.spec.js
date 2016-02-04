@@ -24,12 +24,14 @@ describe('handling mouse in static objects', function() {
         var e11 = new anm.Element('e11');
         var e12 = new anm.Element('e12');
         var e2 = new anm.Element('e2');
+        var e21 = new anm.Element('e21');
 
         root.path(rectangle(0, 0, 100, 100)).pivot(0, 0);
         e1.path(rectangle(0, 0, 100, 50)).pivot(0, 0);
         e11.path(rectangle(0, 0, 50, 50)).pivot(0, 0);
         e12.path(rectangle(0, 0, 5, 5)).move(75, 5).pivot(0, 0);
         e2.path(rectangle(0, 0, 100, 55)).move(0, 45).pivot(0, 0);
+        e21.path(rectangle(0, 0, 100, 55)).move(0, 0).pivot(0, 0);
 
         /* TODO: test with
         root.path(rectangle(0, 0, 100, 100)).pivot(0, 0);
@@ -41,6 +43,7 @@ describe('handling mouse in static objects', function() {
 
         e1.add(e11);
         e1.add(e12);
+        e2.add(e21);
         root.add(e1)
         root.add(e2);
 
@@ -52,7 +55,7 @@ describe('handling mouse in static objects', function() {
             anim: anim,
             root: root,
             e1: e1, e11: e11, e12: e12,
-            e2: e2
+            e2: e2, e21: e21
         }
     }
 
@@ -156,13 +159,13 @@ describe('handling mouse in static objects', function() {
         | | +------------------------+                         | |
         | +----------------------------------------------------+ |  100
         | +-e2 (0, 45) overlaps with e1------------------------+ |
-        | |                                                    | |
-        | |                                                    | |
-        | |                                                    | |
-        | |                                                 55 | |
-        | |                                                    | |
-        | |                                                    | |
-        | |                                                    | |
+        | |  +- e21 fully covers e2 --                         | |
+        | |  |                                                 | |
+        | |  |                                                 | |
+        | |  |                                              55 | |
+        | |  |                                                 | |
+        | |  |                                                 | |
+        | |  +-----------------------                          | |
         | +----------------------------------------------------+ |
         +--------------------------------------------------------+
 
@@ -171,7 +174,7 @@ describe('handling mouse in static objects', function() {
     describe('layered animation', function() {
 
         var anim;
-        var root, e1, e11, e12, e2;
+        var root, e1, e11, e12, e2, e21;
 
         beforeEach(function(done) {
 
@@ -180,7 +183,7 @@ describe('handling mouse in static objects', function() {
             anim = animData.anim;
             root = animData.root;
             e1 = animData.e1; e11 = animData.e11; e12 = animData.e12;
-            e2 = animData.e2;
+            e2 = animData.e2; e21 = animData.e21;
 
             if (documentReady) {
                 setupPlayer(anim, done);
@@ -205,18 +208,30 @@ describe('handling mouse in static objects', function() {
             var log;
 
             beforeEach(function() {
-                log = new EventLog([ root, e1, e2, e11, e12 ], [ 'mouseclick' ]);
+                log = new EventLog([ root, e1, e2, e11, e12, e21 ], [ 'mouseclick' ]);
                 log.subscribe();
             });
 
             afterEach(function() {
                 log.unsubscribe();
+                log.clear();
             });
 
             it('passes click event to the appropriate element', function() {
 
-                fireCanvasEvent('click', 10, 10);
-                expect(log.stringify(MARKER)).toEqual([ 'e11: mouseclick@10;10 -> e11' ].join(MARKER));
+                fireCanvasEvent('click', 25, 25);
+                expect(log.stringify(MARKER)).toEqual([ 'e11: mouseclick@25;25 -> e11' ].join(MARKER));
+
+                log.clear();
+
+                fireCanvasEvent('click', 75, 25);
+                // e1 is an empty container so it fires no events
+                expect(log.stringify(MARKER)).toEqual([ ].join(MARKER));
+
+                log.clear();
+
+                fireCanvasEvent('click', 25, 47);
+                expect(log.stringify(MARKER)).toEqual([ 'e21: mouseclick@25;2 -> e21' ].join(MARKER));
 
             });
 
@@ -234,57 +249,67 @@ describe('handling mouse in static objects', function() {
 
             it('properly passes click events to corresponding handlers, according to overlaps', function() {
 
-                fireCanvasEvent('click', 75, 25);
-                expect(log.stringify(MARKER)).toEqual([ 'e1: mouseclick@75;25 -> e1' ].join(MARKER));
-
-                log.clear();
-
                 fireCanvasEvent('click', 76, 7);
                 expect(log.stringify(MARKER)).toEqual([ 'e12: mouseclick@1;2 -> e12' ].join(MARKER));
 
                 log.clear();
 
                 fireCanvasEvent('click', 25, 47);
-                expect(log.stringify(MARKER)).toEqual([ 'e2: mouseclick@25;2 -> e2' ].join(MARKER));
+                expect(log.stringify(MARKER)).toEqual([ 'e21: mouseclick@25;2 -> e21' ].join(MARKER));
 
                 log.clear();
 
                 fireCanvasEvent('click', 75, 47);
-                expect(log.stringify(MARKER)).toEqual([ 'e2: mouseclick@75;2 -> e2' ].join(MARKER));
+                expect(log.stringify(MARKER)).toEqual([ 'e21: mouseclick@75;2 -> e21' ].join(MARKER));
 
+            });
+
+            it('properly dispatches click events to the parent', function() {
+                fireCanvasEvent('click', 25, 25);
+                expect(log.stringify(MARKER)).toEqual([ 'e11: mouseclick@25;25 -> e11' ].join(MARKER));
+
+                log.clear(); log.unsubscribe([e11], ['mouseclick']);
+
+                fireCanvasEvent('click', 25, 25);
+                expect(log.stringify(MARKER)).toEqual([ 'e1: mouseclick@25;25 -> e1' ].join(MARKER));
+
+                log.clear(); log.unsubscribe([e1], ['mouseclick']);
+
+                fireCanvasEvent('click', 25, 25);
+                expect(log.stringify(MARKER)).toEqual([ 'root: mouseclick@25;25 -> root' ].join(MARKER));
+
+                log.clear(); log.unsubscribe([root], ['mouseclick']);
+
+                fireCanvasEvent('click', 25, 25);
+                expect(log.stringify(MARKER)).toEqual([ ].join(MARKER));
             });
 
         });
 
-        describe('handles moves and in/outs properly', function() {
+        describe('handles moves and enter/exits & move properly', function() {
 
             var MARKER = '\n';
 
             var log;
 
             beforeEach(function() {
-                log = new EventLog([ root, e1, e2, e11, e12 ],
-                                   [ 'mouseenter', 'mouseexit' ]);
+                log = new EventLog([ root, e1, e11, e12, e2, e21 ],
+                                   [ 'mouseenter', 'mouseexit', 'mousemove' ]);
                 log.subscribe();
             });
 
             afterEach(function() {
                 log.unsubscribe();
-            });
-
-            it('transfers in/out event to the corresponding receivers', function() {
-                fireCanvasEvent('mousemove', 25, 75);
-                expect(log.stringify(MARKER)).toEqual([ 'root: mouseenter@null;null -> e2',
-                                                        'e2: mouseenter@null;null -> e2' ].join(MARKER));
-
-                fireCanvasEvent('mousemove', 10, 10);
+                log.clear();
             });
 
             it('in/out events properly work in sequences', function() {
 
                 fireCanvasEvent('mousemove', 25, 75);
-                expect(log.stringify(MARKER)).toEqual([ 'root: mouseenter@null;null -> e2',
-                                                        'e2: mouseenter@null;null -> e2' ].join(MARKER));
+                expect(log.stringify(MARKER)).toEqual([ 'root: mouseenter@null;null -> e21',
+                                                        'e2: mouseenter@null;null -> e21',
+                                                        'e21: mouseenter@null;null -> e21',
+                                                        'e21: mousemove@25;30 -> e21' ].join(MARKER));
 
                 log.clear();
 
@@ -292,25 +317,32 @@ describe('handling mouse in static objects', function() {
                 expect(log.stringify(MARKER)).toEqual('');
 
                 fireCanvasEvent('mousemove', 26, 76);
-                expect(log.stringify(MARKER)).toEqual('');
+                expect(log.stringify(MARKER)).toEqual([ 'e21: mousemove@26;31 -> e21' ].join(MARKER));
+
+                log.clear();
 
                 fireCanvasEvent('mousemove', 25, 25);
-                expect(log.stringify(MARKER)).toEqual([ 'e2: mouseexit@null;null -> e2',
+                expect(log.stringify(MARKER)).toEqual([ 'e21: mouseexit@null;null -> e21',
+                                                        'e2: mouseexit@null;null -> e21',
                                                         'e1: mouseenter@null;null -> e11',
-                                                        'e11: mouseenter@null;null -> e11' ].join(MARKER));
+                                                        'e11: mouseenter@null;null -> e11',
+                                                        'e11: mousemove@25;25 -> e11' ].join(MARKER));
 
                 log.clear();
 
                 fireCanvasEvent('mousemove', 76, 6);
                 expect(log.stringify(MARKER)).toEqual([ 'e11: mouseexit@null;null -> e11',
-                                                        'e12: mouseenter@null;null -> e12' ].join(MARKER));
+                                                        'e12: mouseenter@null;null -> e12',
+                                                        'e12: mousemove@1;1 -> e12' ].join(MARKER));
 
                 log.clear();
 
                 fireCanvasEvent('mousemove', 25, 75);
                 expect(log.stringify(MARKER)).toEqual([ 'e12: mouseexit@null;null -> e12',
                                                         'e1: mouseexit@null;null -> e12',
-                                                        'e2: mouseenter@null;null -> e2' ].join(MARKER));
+                                                        'e2: mouseenter@null;null -> e21',
+                                                        'e21: mouseenter@null;null -> e21',
+                                                        'e21: mousemove@25;30 -> e21' ].join(MARKER));
 
             });
 
@@ -323,10 +355,15 @@ describe('handling mouse in static objects', function() {
             var log;
 
             beforeEach(function() {
-                log = new EventLog([ root, e1, e2, e11, e12 ],
-                                   [ 'mouseenter', 'mouseexit', 'mouseup', 'mousedown' ]);
+                log = new EventLog([ root, e1, e11, e12, e2, e21 ],
+                                   [ 'mouseenter', 'mouseexit', 'mouseup', 'mousedown', 'mousemove' ]);
                 log.subscribe();
             })
+
+            afterEach(function() {
+                log.unsubscribe();
+                log.clear();
+            });
 
             it('handles mouse release and corresponding events in proper order', function() {
                 fireCanvasEvent('mousemove', 77, 7);
@@ -336,10 +373,51 @@ describe('handling mouse in static objects', function() {
                 expect(log.stringify(MARKER)).toEqual([ 'root: mouseenter@null;null -> e12',
                                                         'e1: mouseenter@null;null -> e12',
                                                         'e12: mouseenter@null;null -> e12',
+                                                        'e12: mousemove@2;2 -> e12',
                                                         'e12: mousedown@2;2 -> e12',
                                                         'e12: mouseexit@null;null -> e12',
                                                         'e11: mouseenter@null;null -> e11',
+                                                        'e11: mousemove@25;6 -> e11',
                                                         'e12: mouseup@-50;1 -> e12' ].join(MARKER));
+            });
+
+        });
+
+        describe('properly passes mousemove events to parent', function() {
+
+            var MARKER = '\n';
+
+            beforeEach(function() {
+                log = new EventLog([ root, e1, e11, e12, e2, e21 ],
+                                   [ 'mousemove' ]);
+                log.subscribe();
+            });
+
+            afterEach(function() {
+                log.unsubscribe();
+                log.clear();
+            });
+
+            it('dispatches mousemove event to parent', function() {
+
+                fireCanvasEvent('mousemove', 25, 25);
+                expect(log.stringify(MARKER)).toEqual([ 'e11: mousemove@25;25 -> e11' ].join(MARKER));
+
+                log.clear(); log.unsubscribe([e11], ['mousemove']);
+
+                fireCanvasEvent('mousemove', 26, 26);
+                expect(log.stringify(MARKER)).toEqual([ 'e1: mousemove@26;26 -> e1' ].join(MARKER));
+
+                log.clear(); log.unsubscribe([e1], ['mousemove']);
+
+                fireCanvasEvent('mousemove', 25, 25);
+                expect(log.stringify(MARKER)).toEqual([ 'root: mousemove@25;25 -> root' ].join(MARKER));
+
+                log.clear(); log.unsubscribe([root], ['mousemove']);
+
+                fireCanvasEvent('mousemove', 25, 25);
+                expect(log.stringify(MARKER)).toEqual([ ].join(MARKER));
+
             });
 
         });
@@ -349,7 +427,7 @@ describe('handling mouse in static objects', function() {
             var MARKER = '\n';
 
             beforeEach(function() {
-                log = new EventLog([ root, e1, e2, e11, e12 ],
+                log = new EventLog([ e11 ],
                                    [ 'mousemove', 'mousedown', 'mouseup', 'mousedoubleclick' ]);
                 log.subscribe();
             });
@@ -364,14 +442,10 @@ describe('handling mouse in static objects', function() {
                 expect(log.stringify(MARKER)).toEqual([ 'e11: mousemove@10;10 -> e11' ].join(MARKER));
             });
 
-            it('properly handles mousedown event', function() {
+            it('properly handles mousedown and mouseup events', function() {
                 fireCanvasEvent('mousedown', 10, 10);
-                expect(log.stringify(MARKER)).toEqual([ 'e11: mousedown@10;10 -> e11' ].join(MARKER));
-            });
-
-            it('properly handles mouseup event', function() {
                 fireCanvasEvent('mouseup', 10, 10);
-                expect(log.stringify(MARKER)).toEqual([ 'e11: mouseup@10;10 -> e11' ].join(MARKER));
+                expect(log.stringify(MARKER)).toEqual([ 'e11: mousedown@10;10 -> e11', 'e11: mouseup@10;10 -> e11' ].join(MARKER));
             });
 
             it('properly handles doubleclick event', function() {
@@ -545,7 +619,43 @@ describe('handling mouse in static objects', function() {
                 expect(log.stringify(MARKER)).toEqual([ 'notChild: mouseclick@2;3 -> notChild' ].join(MARKER));
             });
 
-            xit('properly fires enter and exit for the element', function() { });
+            it('properly fires enter and exit for the element', function() {
+                fireCanvasEvent('mousemove', 53, 53);
+                fireCanvasEvent('mousemove', 60, 60);
+                fireCanvasEvent('mousemove', 56, 56);
+                expect(log.stringify(MARKER)).toEqual([ 'notChild: mouseenter@null;null -> notChild',
+                                                        'notChild: mouseexit@null;null -> notChild',
+                                                        'group: mouseenter@null;null -> child2',
+                                                        'child2: mouseenter@null;null -> child2' ].join(MARKER));
+
+                log.clear()
+
+                fireCanvasEvent('mousemove', 53, 53);
+                fireCanvasEvent('mousemove', 45, 45);
+                expect(log.stringify(MARKER)).toEqual([ 'child2: mouseexit@null;null -> child2',
+                                                        'group: mouseexit@null;null -> child2',
+                                                        'notChild: mouseenter@null;null -> notChild',
+                                                        'notChild: mouseexit@null;null -> notChild',
+                                                        'group: mouseenter@null;null -> child1',
+                                                        'child1: mouseenter@null;null -> child1' ].join(MARKER));
+            });
+
+            it('properly dispatches enter and exit to the parent elements', function() {
+                log.unsubscribe([ notChild, child2 ], [ 'mouseenter', 'mouseexit' ]);
+
+                fireCanvasEvent('mousemove', 53, 53);
+                fireCanvasEvent('mousemove', 60, 60);
+                fireCanvasEvent('mousemove', 56, 56);
+                expect(log.stringify(MARKER)).toEqual([ 'group: mouseenter@null;null -> child2' ].join(MARKER));
+
+                log.clear()
+
+                fireCanvasEvent('mousemove', 53, 53);
+                fireCanvasEvent('mousemove', 45, 45);
+                expect(log.stringify(MARKER)).toEqual([ 'group: mouseexit@null;null -> child2',
+                                                        'group: mouseenter@null;null -> child1',
+                                                        'child1: mouseenter@null;null -> child1' ].join(MARKER));
+            });
 
         });
 
@@ -609,17 +719,20 @@ EventLog.prototype.subscribe = function() {
         }
     }
 }
-EventLog.prototype.unsubscribe = function() {
+EventLog.prototype.unsubscribe = function(targets, events) {
     var handlers = this.handlers,
-        targets = this.targets,
-        events = this.events;
+        targets = targets || this.targets,
+        events = events || this.events;
     var target, event_type;
     for (var i = 0; i < targets.length; i++) {
         target = targets[i];
         var trg_handlers = handlers[target.id];
+        if (!trg_handlers) continue;
         for (var j = 0; j < events.length; j++) {
             event_type = events[j];
+            if (typeof trg_handlers[event_type] === 'undefined') continue;
             target.unbind(event_type, trg_handlers[event_type]);
+            delete trg_handlers[event_type];
         }
     }
 }

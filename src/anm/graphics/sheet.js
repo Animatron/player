@@ -169,10 +169,10 @@ Sheet.prototype.bounds = function() {
     return new Bounds(0, 0, r[2], r[3]);
 };
 /**
- * @method inside
+ * @method contains
  *
  * Checks if point is inside the image. _Does no test for bounds_, the point is
- * assumed to be already inside of the bounds, so check `image.bounds().inside(pt)`
+ * assumed to be already inside of the bounds, so check `image.bounds().contains(pt)`
  * before calling this method manually.
  *
  * @param {Object} pt point to check
@@ -180,7 +180,7 @@ Sheet.prototype.bounds = function() {
  * @param {Number} pt.y
  * @return {Boolean} is point inside
  */
-Sheet.prototype.inside = function(pt) {
+Sheet.prototype.contains = function(pt) {
     return true; // if point is inside of the bounds, point is considered to be
                  // inside the image shape
 };

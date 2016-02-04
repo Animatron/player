@@ -63,6 +63,14 @@ function provideEvents(subj, events) {
     subj.prototype.disposeHandlers = function() {
         this.handlers = {};
     };
+    subj.prototype.getHandlersFor = function(type) {
+        if (!this.handlers) return [];
+        return this.handlers[type];
+    };
+    subj.prototype.hasHandlersFor = function(type) {
+        if (!this.handlers) return [];
+        return this.handlers[type] && (this.handlers[type].length > 0);
+    };
     /* subj.prototype.passEventsTo = function(other) {
         this.onAny(function() {
             other.call(other, arguments);
@@ -129,6 +137,7 @@ function isMouseOrKeyboardEvent(type) { return isMouseEvent(type) || isKeyboardE
 
 function MouseEventsState() {
     this.lastHoveredNode = null;
+    this.lastHoveredPoint = null;
     this.pressedNode = null;
 }
 
@@ -143,20 +152,22 @@ MouseEventsSupport.prototype.markAsHoveredTree = function(moveEvent) {
         this.owner.parent.getMouseSupport().markAsHoveredTree(moveEvent);
     }
 }
-MouseEventsSupport.prototype.adaptEvent = function(event) {
+MouseEventsSupport.prototype.adaptEvent = function(event, localPos) {
     if (!this.owner.adapt) return event;
-    var localPos = this.owner.adapt(event.x, event.y);
+    localPos = localPos || this.owner.adapt(event);
     return new MouseEvent(event.type,
                           localPos.x, localPos.y,
                           this.owner, // target
                           event); // source
 }
-MouseEventsSupport.prototype.dispatch = function(event) {
+MouseEventsSupport.prototype.dispatch = function(event, point) {
+    point = point || event;
+
     var owner = this.owner;
-    var localEvent = this.adaptEvent(event);
     var state = this.state;
 
-    if ((localEvent.type === 'mouseup') && state.pressedNode) {
+    if ((event.type === 'mouseup') && state.pressedNode) {
+        var localEvent = this.adaptEvent(event);
         localEvent.target = state.pressedNode;
         var adaptedEvent = state.pressedNode.getMouseSupport().adaptEvent(localEvent);
         state.pressedNode.fire('mouseup', adaptedEvent);
@@ -164,31 +175,47 @@ MouseEventsSupport.prototype.dispatch = function(event) {
         return true;
     }
 
-    var dispatchedByOwner, // handled event myself
-        dispatchedByChild; // not handled myself, but found the matching child inside
+    var isPressEvent = (event.type === 'mouseclick') || (event.type === 'mousedown') || (event.type === 'mousedoubleclick'),
+        isMoveEvent = (event.type === 'mousemove');
 
-    // here and below localEvent has properties `.x` and `.y`, so duck typing works
-    dispatchedByOwner = !owner.isScene && owner.inside(localEvent);
-    // scenes have no .inside or .inBounds methods
+    var deepestHit;
 
-    owner.reverseEach(function(child) {
-        if (child.isActive()) {
-            dispatchedByChild = child.dispatchMouseEvent(localEvent);
-            if (dispatchedByChild) return false; // stop iteration of reverseEach
+    if (isPressEvent || isMoveEvent) {
+        var deepestHit = this.owner.findDeepestChildAt(point);
+        if (isPressEvent && deepestHit) {
+            state.pressedNode = deepestHit.elm.getMouseSupport().fireToTop(event, deepestHit.point);
+            return true;
+        } else if (isMoveEvent) {
+            if (deepestHit) {
+                deepestHit.elm.getMouseSupport()
+                              .processMove(event, deepestHit.point); // fire mouseenter/mouseexit if required
+                return true;
+            } else {
+                if (state.lastHoveredNode) {
+                    state.lastHoveredNode.getMouseSupport()
+                                         .processOut(event);
+                }
+                return false;
+            }
         }
-    });
+    }
 
-    if ((dispatchedByOwner || owner.isScene) && !dispatchedByChild) {
-        if (localEvent.type === 'mousemove') {
-            this.processMove(localEvent); // fire mouseenter/mouseexit if required
+    return false;
+}
+MouseEventsSupport.prototype.fireToTop = function(event, point) {
+    point = point || event;
+    var owner = this.owner;
+    if (!owner.hasHandlersFor(event.type)) {
+        if (owner.parent) {
+            return owner.parent.getMouseSupport().fireToTop(event, owner.adaptToParent(point));
+        } else {
+            return null;
         }
-        if ((localEvent.type === 'mouseclick') || (localEvent.type === 'mousedown')) {
-            state.pressedNode = this.owner;
-        }
-        this.owner.fire(localEvent.type, localEvent);
-    };
-
-    return dispatchedByOwner || dispatchedByChild;
+    } else {
+        //owner.fire(event.type, this.adaptEvent(event, point));
+        owner.fire(event.type, this.adaptEvent(event, point));
+        return owner;
+    }
 }
 MouseEventsSupport.prototype.processOver = function(commonChild, moveEvent) {
     var inPath = [];
@@ -220,22 +247,33 @@ MouseEventsSupport.prototype.processOut = function(moveEvent) {
 
     return this.owner;
 }
-MouseEventsSupport.prototype.processMove = function(moveEvent) {
+MouseEventsSupport.prototype.processMove = function(moveEvent, point) {
     this.markAsHoveredTree(moveEvent);
 
+    point = point || moveEvent;
+
     var lastHoveredNode = this.state.lastHoveredNode;
+    var lastHoveredPoint = this.state.lastHoveredPoint;
 
-    if (lastHoveredNode === this.owner) return;
+    if (lastHoveredNode !== this.owner) {
+        var commonChild = null;
+        if (lastHoveredNode) {
+            var hoveredSupport = lastHoveredNode.getMouseSupport();
+            commonChild = hoveredSupport.processOut(moveEvent);
+        }
 
-    var commonChild = null;
-    if (lastHoveredNode) {
-        var hoveredSupport = lastHoveredNode.getMouseSupport();
-        commonChild = hoveredSupport.processOut(moveEvent);
+        this.state.lastHoveredNode = this.owner;
+
+        this.processOver(commonChild, moveEvent);
     }
 
-    this.state.lastHoveredNode = this.owner;
+    if (!lastHoveredPoint ||
+        ((lastHoveredPoint.x !== point.x) ||
+         (lastHoveredPoint.y !== point.y))) {
+        this.state.lastHoveredPoint = point;
+        this.fireToTop(moveEvent, point);
+    }
 
-    this.processOver(commonChild, moveEvent);
 }
 MouseEventsSupport.prototype.makeExitEvent = function(moveEvent) {
     var exitEvent = moveEvent.clone();
@@ -269,7 +307,13 @@ MouseEvent.prototype.clone = function() {
                           this.target, this.source);
 }
 
+function Hit(elm, point) {
+    this.elm = elm;
+    this.point = point;
+}
+
 module.exports = {
+    Hit: Hit,
     isMouse: isMouseEvent,
     isKeyboard: isKeyboardEvent,
     mouseOrKeyboard: isMouseOrKeyboardEvent,
