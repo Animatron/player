@@ -12,7 +12,7 @@ public class TestLayeredScene extends TestCase {
     private TestNode e2;
     private TestNode e21;
 
-    private TestLog log = new TestLog();
+    private TestLog log;
 
 
 /*
@@ -41,6 +41,8 @@ public class TestLayeredScene extends TestCase {
 
     @Override
     protected void setUp() throws Exception {
+        log = new TestLog();
+
         root = new TestNode("root", 0, 0, 100, 100);
 
         e1 = new TestNode("e1", 0, 0, 100, 50);
@@ -51,6 +53,11 @@ public class TestLayeredScene extends TestCase {
         root.addChildren(e1.addChildren(e11, e12), e2.addChildren(e21));
 
         log.addTo(root, e1, e11, e12, e2, e21);
+    }
+
+    @Override
+    protected void tearDown() throws Exception {
+        log.unsubscribe(root, e1, e11, e12, e2, e21);
     }
 
     public void testPress() {
