@@ -163,7 +163,7 @@ public class TestSimpleScene extends TestCase {
                      "rect: move@2,2", log.get());
     }
 
-    public void testHandlingPressOnRoot() {
+    public void testPressOnRoot() {
         rect.presses.clear();
 
         assertDispatchPress(
