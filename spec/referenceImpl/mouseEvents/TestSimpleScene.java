@@ -104,6 +104,15 @@ public class TestSimpleScene extends TestCase {
                      "rect: move@2,2", log.get());
     }
 
+    public void testHandlingPressOnRoot() {
+        rect.presses.clear();
+
+        assertDispatchPress(
+                76, 6,
+                "root: press@76,6"
+        );
+    }
+
     void assertDispatchPress(int x, int y, String expected) {
         MouseEvent event = new MouseEvent(x, y, MouseEvent.Type.press);
         root.dispatch(event);

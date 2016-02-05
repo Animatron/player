@@ -517,6 +517,13 @@ describe('handling mouse in static objects', function() {
                 expect(log.stringify(MARKER)).toEqual([ 'rect: mouseclick@1;1 -> rect' ].join(MARKER));
             });
 
+            it('properly passes click to the parent if element is not subscribed to click', function() {
+                log.unsubscribe([ rect ], [ 'mouseclick' ]);
+
+                fireCanvasEvent('click', 76, 6);
+                expect(log.stringify(MARKER)).toEqual([ 'root: mouseclick@76;6 -> root' ].join(MARKER));
+            });
+
             it('properly fires enter and exit for the element', function() {
                 fireCanvasEvent('mousemove', 10, 10);
                 fireCanvasEvent('mousemove', 76, 6);
