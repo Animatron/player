@@ -497,13 +497,12 @@ describe('handling mouse in static objects', function() {
             anim.reset();
         });
 
-        describe('should properly handle events in one-element animation', function() {
-
+        describe('should properly handle click events in one-element animation', function() {
             var MARKER = '\n';
 
             beforeEach(function() {
                 log = new EventLog([ rect ],
-                                   [ 'mouseclick', 'mouseenter', 'mouseexit' ]);
+                                   [ 'mouseclick' ]);
                 log.subscribe();
             });
 
@@ -517,11 +516,34 @@ describe('handling mouse in static objects', function() {
                 expect(log.stringify(MARKER)).toEqual([ 'rect: mouseclick@1;1 -> rect' ].join(MARKER));
             });
 
-            it('properly passes click to the parent if element is not subscribed to click', function() {
+            it('properly fires click to the element twice', function() {
+                fireCanvasEvent('click', 76, 6);
+                fireCanvasEvent('click', 77, 7);
+                expect(log.stringify(MARKER)).toEqual([ 'rect: mouseclick@1;1 -> rect',
+                                                        'rect: mouseclick@2;2 -> rect' ].join(MARKER));
+            });
+
+            xit('properly passes click to the parent if element is not subscribed to click', function() {
                 log.unsubscribe([ rect ], [ 'mouseclick' ]);
 
                 fireCanvasEvent('click', 76, 6);
                 expect(log.stringify(MARKER)).toEqual([ 'root: mouseclick@76;6 -> root' ].join(MARKER));
+            });
+        });
+
+        describe('should properly handle enter/exit events in one-element animation', function() {
+
+            var MARKER = '\n';
+
+            beforeEach(function() {
+                log = new EventLog([ rect ],
+                                   [ 'mouseenter', 'mouseexit' ]);
+                log.subscribe();
+            });
+
+            afterEach(function() {
+                log.unsubscribe();
+                log.clear();
             });
 
             it('properly fires enter and exit for the element', function() {
