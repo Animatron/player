@@ -99,6 +99,8 @@ public abstract class Node {
                 } else {
                     if (lastHoveredNode != null) {
                         lastHoveredNode.processOut(event.id);
+                        lastHoveredNode = null;
+                        lastHoveredPoint = null;
                     }
                     return false;
                 }
@@ -273,6 +275,12 @@ public abstract class Node {
             void onIn();
             void onOut();
         }
+    }
+
+    public static void clear() {
+        lastHoveredNode = null;
+        lastHoveredPoint = null;
+        pressedNode = null;
     }
 
 }
