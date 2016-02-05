@@ -66,9 +66,10 @@ public class TestSimpleScene extends TestCase {
 
         log.clear();
 
+        // clicking empty space of the root should not be logged
         assertDispatchPress(
                 10, 10,
-                "root: press@10,10"
+                ""
         );
     }
 
@@ -152,9 +153,7 @@ public class TestSimpleScene extends TestCase {
         root.dispatch(new MouseEvent(76, 6,  MouseEvent.Type.move));
         root.dispatch(new MouseEvent(10, 10, MouseEvent.Type.move));
 
-        assertEquals("root: move@10,10\n" +
-                     "root: move@76,6\n" +
-                     "root: move@10,10", log.get());
+        assertEquals("root: move@76,6", log.get());
     }
 
     public void testOnlyMouseMoveButTwice() {

@@ -194,6 +194,8 @@ MouseEventsSupport.prototype.dispatch = function(event, point) {
                 if (state.lastHoveredNode) {
                     state.lastHoveredNode.getMouseSupport()
                                          .processOut(event);
+                    state.lastHoveredNode = null;
+                    state.lastHoveredPoint = null;
                 }
                 return false;
             }
