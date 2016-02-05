@@ -69,7 +69,6 @@ public abstract class Node {
         return this;
     }
 
-
     public boolean dispatch(MouseEvent event) {
         return dispatch(event, event.point);
     }

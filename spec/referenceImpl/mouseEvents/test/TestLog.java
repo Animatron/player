@@ -62,4 +62,13 @@ public class TestLog {
         this.events = "";
     }
 
+    public void unsubscribe(Node... node) {
+        for (Node each: node) {
+            each.moves.clear();
+            each.releases.clear();
+            each.presses.clear();
+            each.inOuts.clear();
+        }
+    }
+
 }

@@ -11,7 +11,7 @@ public class TestGroupsScene extends TestCase {
     private TestNode child2;
     private TestNode notChild;
 
-    private TestLog log = new TestLog();
+    private TestLog log;
 
 
     /*
@@ -35,6 +35,8 @@ public class TestGroupsScene extends TestCase {
 
     @Override
     protected void setUp() throws Exception {
+        log = new TestLog();
+
         root = new TestNode("root", 0, 0, 1000, 1000);
         group = new TestNode("group", 0, 0, 1000, 1000);
         child1 = new TestNode("child1", 40, 40, 20, 20);
@@ -44,6 +46,11 @@ public class TestGroupsScene extends TestCase {
         root.addChildren(group);
         root.addChildren(notChild);
         log.addTo(root, group, child1, child2, notChild);
+    }
+
+    @Override
+    protected void tearDown() throws Exception {
+        log.unsubscribe(root, group, child1, child2, notChild);
     }
 
     public void testPress() {

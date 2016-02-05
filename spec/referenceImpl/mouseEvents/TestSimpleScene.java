@@ -9,7 +9,7 @@ public class TestSimpleScene extends TestCase {
     private TestNode root;
     private TestNode rect;
 
-    private TestLog log = new TestLog();
+    private TestLog log;
 
 
     /*                                                          ∞
@@ -27,12 +27,19 @@ public class TestSimpleScene extends TestCase {
 
     @Override
     protected void setUp() throws Exception {
+        log = new TestLog();
+
         scene = new TestNode("scene", 0, 0, 1000, 1000);
         root = new TestNode("root", 0, 0, 1000, 1000);
         rect = new TestNode("rect", 75, 5, 20, 20);
         root.addChildren(rect);
         scene.addChildren(root);
         log.addTo(root, rect);
+    }
+
+    @Override
+    protected void tearDown() throws Exception {
+        log.unsubscribe(root, rect);
     }
 
     public void testPress() {
