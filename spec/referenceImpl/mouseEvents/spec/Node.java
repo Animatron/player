@@ -277,4 +277,10 @@ public abstract class Node {
         }
     }
 
+    public static void clear() {
+        lastHoveredNode = null;
+        lastHoveredPoint = null;
+        pressedNode = null;
+    }
+
 }

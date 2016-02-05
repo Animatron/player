@@ -1,5 +1,6 @@
 import junit.framework.TestCase;
 import spec.MouseEvent;
+import spec.Node;
 import test.TestLog;
 import test.TestNode;
 
@@ -40,6 +41,8 @@ public class TestSimpleScene extends TestCase {
     @Override
     protected void tearDown() throws Exception {
         log.unsubscribe(root, rect);
+        log.clear();
+        Node.clear();
     }
 
     public void testPress() {
@@ -57,16 +60,11 @@ public class TestSimpleScene extends TestCase {
                 "root: press@76,6"
         );
 
-        log.clear();
-
         assertDispatchPress(
                 77, 7,
                 "root: press@77,7"
         );
 
-        log.clear();
-
-        // clicking empty space of the root should not be logged
         assertDispatchPress(
                 10, 10,
                 ""
@@ -102,20 +100,22 @@ public class TestSimpleScene extends TestCase {
 
     public void testInMoveOutTwice() {
         root.inOuts.clear();
-        root.dispatch(new MouseEvent(10, 10, MouseEvent.Type.move));
-        root.dispatch(new MouseEvent(76, 6,  MouseEvent.Type.move));
-        root.dispatch(new MouseEvent(10, 10, MouseEvent.Type.move));
-        root.dispatch(new MouseEvent(76, 6,  MouseEvent.Type.move));
-        root.dispatch(new MouseEvent(10, 10, MouseEvent.Type.move));
 
-        assertEquals(
+        assertDispatchMove(10, 10, "");
+        assertDispatchMove(76, 6,
                 "rect: in\n" +
-                "rect: move@1,1\n" +
-                "rect: out\n" +
+                "rect: move@1,1");
+
+
+        assertDispatchMove(10, 10,
+                "rect: out");
+
+        assertDispatchMove(76, 6,
                 "rect: in\n" +
-                "rect: move@1,1\n" +
-                "rect: out"
-                , log.get());
+                "rect: move@1,1");
+
+        assertDispatchMove(10, 10,
+                "rect: out");
     }
 
     public void testInMoveTwiceOut() {
@@ -149,11 +149,12 @@ public class TestSimpleScene extends TestCase {
         rect.inOuts.clear();
         rect.moves.clear();
 
-        root.dispatch(new MouseEvent(10, 10, MouseEvent.Type.move));
-        root.dispatch(new MouseEvent(76, 6,  MouseEvent.Type.move));
-        root.dispatch(new MouseEvent(10, 10, MouseEvent.Type.move));
-
-        assertEquals("root: move@76,6", log.get());
+        assertDispatchMove(10, 10,
+                "");
+        assertDispatchMove(76, 6,
+                "root: move@76,6");
+        assertDispatchMove(10, 10,
+                "");
     }
 
     public void testOnlyMouseMoveButTwice() {
@@ -166,7 +167,7 @@ public class TestSimpleScene extends TestCase {
         root.dispatch(new MouseEvent(10, 10, MouseEvent.Type.move));
 
         assertEquals("rect: move@1,1\n" +
-                     "rect: move@2,2", log.get());
+                "rect: move@2,2", log.get());
     }
 
     public void testPressOnRoot() {
