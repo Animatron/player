@@ -584,16 +584,6 @@ describe('handling mouse in static objects', function() {
                                                         'rect: mouseexit@null;null -> rect' ].join(MARKER));
             });
 
-            it('properly fires mousemove when element is not subscribed to in/outs', function() {
-                fireCanvasEvent('mousemove', 10, 10);
-                fireCanvasEvent('mousemove', 76, 6);
-                fireCanvasEvent('mousemove', 10, 10);
-                expect(log.stringify(MARKER)).toEqual([ 'rect: mouseenter@null;null -> rect',
-                                                        'rect: mouseexit@null;null -> rect',
-                                                        'rect: mouseenter@null;null -> rect',
-                                                        'rect: mouseexit@null;null -> rect' ].join(MARKER));
-            });
-
         });
 
         describe('should properly fire mousemove events together with in/outs', function() {
@@ -759,16 +749,6 @@ describe('handling mouse in static objects', function() {
             it('properly fires enter and exit for the element several times', function() {
                 fireCanvasEvent('mousemove', 10, 10);
                 fireCanvasEvent('mousemove', 76, 6);
-                fireCanvasEvent('mousemove', 10, 10);
-                fireCanvasEvent('mousemove', 76, 6);
-                fireCanvasEvent('mousemove', 10, 10);
-                expect(log.stringify(MARKER)).toEqual([ 'rect: mouseenter@null;null -> rect',
-                                                        'rect: mouseexit@null;null -> rect',
-                                                        'rect: mouseenter@null;null -> rect',
-                                                        'rect: mouseexit@null;null -> rect' ].join(MARKER));
-            });
-
-            it('properly fires mousemove when element is not subscribed to in/outs', function() {
                 fireCanvasEvent('mousemove', 10, 10);
                 fireCanvasEvent('mousemove', 76, 6);
                 fireCanvasEvent('mousemove', 10, 10);
