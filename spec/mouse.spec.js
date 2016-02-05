@@ -537,6 +537,75 @@ describe('handling mouse in static objects', function() {
                                                         'rect: mouseexit@null;null -> rect' ].join(MARKER));
             });
 
+            it('properly fires mousemove when element is not subscribed to in/outs', function() {
+                fireCanvasEvent('mousemove', 10, 10);
+                fireCanvasEvent('mousemove', 76, 6);
+                fireCanvasEvent('mousemove', 10, 10);
+                expect(log.stringify(MARKER)).toEqual([ 'rect: mouseenter@null;null -> rect',
+                                                        'rect: mouseexit@null;null -> rect',
+                                                        'rect: mouseenter@null;null -> rect',
+                                                        'rect: mouseexit@null;null -> rect' ].join(MARKER));
+            });
+
+        });
+
+        describe('should properly fire mousemove events together with in/outs', function() {
+            var MARKER = '\n';
+
+            beforeEach(function() {
+                log = new EventLog([ rect ],
+                                   [ 'mousemove', 'mouseenter', 'mouseexit' ]);
+                log.subscribe();
+            });
+
+            afterEach(function() {
+                log.unsubscribe();
+                log.clear();
+            });
+
+            it('properly fires enter and exit with move for the element', function() {
+                fireCanvasEvent('mousemove', 10, 10);
+                fireCanvasEvent('mousemove', 76, 6);
+                fireCanvasEvent('mousemove', 10, 10);
+                expect(log.stringify(MARKER)).toEqual([ 'rect: mouseenter@null;null -> rect',
+                                                        'rect: mousemove@1;1 -> rect',
+                                                        'rect: mouseexit@null;null -> rect' ].join(MARKER));
+            });
+
+            it('properly fires enter and exit for the element several times', function() {
+                fireCanvasEvent('mousemove', 10, 10);
+                fireCanvasEvent('mousemove', 76, 6);
+                fireCanvasEvent('mousemove', 10, 10);
+                fireCanvasEvent('mousemove', 76, 6);
+                fireCanvasEvent('mousemove', 10, 10);
+                expect(log.stringify(MARKER)).toEqual([ 'rect: mouseenter@null;null -> rect',
+                                                        'rect: mousemove@1;1 -> rect',
+                                                        'rect: mouseexit@null;null -> rect',
+                                                        'rect: mouseenter@null;null -> rect',
+                                                        'rect: mousemove@1;1 -> rect',
+                                                        'rect: mouseexit@null;null -> rect' ].join(MARKER));
+            });
+
+            it('properly fires only mousemove event at least once', function() {
+                log.unsubscribe([ rect ], [ 'mouseenter', 'mouseexit' ]);
+
+                fireCanvasEvent('mousemove', 10, 10);
+                fireCanvasEvent('mousemove', 76, 6);
+                fireCanvasEvent('mousemove', 10, 10);
+                expect(log.stringify(MARKER)).toEqual([ 'rect: mousemove@1;1 -> rect' ].join(MARKER));
+            });
+
+            it('properly fires only mousemove event several times', function() {
+                log.unsubscribe([ rect ], [ 'mouseenter', 'mouseexit' ]);
+
+                fireCanvasEvent('mousemove', 10, 10);
+                fireCanvasEvent('mousemove', 76, 6);
+                fireCanvasEvent('mousemove', 77, 7);
+                fireCanvasEvent('mousemove', 10, 10);
+                expect(log.stringify(MARKER)).toEqual([ 'rect: mousemove@1;1 -> rect',
+                                                        'rect: mousemove@2;2 -> rect' ].join(MARKER));
+            });
+
         });
 
     });

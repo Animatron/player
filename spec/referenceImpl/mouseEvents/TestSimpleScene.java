@@ -68,6 +68,42 @@ public class TestSimpleScene extends TestCase {
                 , log.get());
     }
 
+    public void testMouseMoveTwice() {
+        root.dispatch(new MouseEvent(10, 10, MouseEvent.Type.move));
+        root.dispatch(new MouseEvent(76, 6,  MouseEvent.Type.move));
+        root.dispatch(new MouseEvent(77, 7,  MouseEvent.Type.move));
+        root.dispatch(new MouseEvent(10, 10, MouseEvent.Type.move));
+
+        assertEquals(
+                "rect: in\n" +
+                "rect: move@1,1\n" +
+                "rect: move@2,2\n" +
+                "rect: out"
+                , log.get());
+    }
+
+    public void testOnlyMouseMove() {
+        rect.inOuts.clear();
+
+        root.dispatch(new MouseEvent(10, 10, MouseEvent.Type.move));
+        root.dispatch(new MouseEvent(76, 6,  MouseEvent.Type.move));
+        root.dispatch(new MouseEvent(10, 10, MouseEvent.Type.move));
+
+        assertEquals("rect: move@1,1", log.get());
+    }
+
+    public void testOnlyMouseMoveButTwice() {
+        rect.inOuts.clear();
+
+        root.dispatch(new MouseEvent(10, 10, MouseEvent.Type.move));
+        root.dispatch(new MouseEvent(76, 6,  MouseEvent.Type.move));
+        root.dispatch(new MouseEvent(77, 7,  MouseEvent.Type.move));
+        root.dispatch(new MouseEvent(10, 10, MouseEvent.Type.move));
+
+        assertEquals("rect: move@1,1\n" +
+                     "rect: move@2,2", log.get());
+    }
+
     void assertDispatchPress(int x, int y, String expected) {
         MouseEvent event = new MouseEvent(x, y, MouseEvent.Type.press);
         root.dispatch(event);
