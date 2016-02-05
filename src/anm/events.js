@@ -68,7 +68,7 @@ function provideEvents(subj, events) {
         return this.handlers[type];
     };
     subj.prototype.hasHandlersFor = function(type) {
-        if (!this.handlers) return [];
+        if (!this.handlers) return false;
         return this.handlers[type] && (this.handlers[type].length > 0);
     };
     /* subj.prototype.passEventsTo = function(other) {
