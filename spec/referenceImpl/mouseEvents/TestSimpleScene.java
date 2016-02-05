@@ -51,6 +51,23 @@ public class TestSimpleScene extends TestCase {
                 , log.get());
     }
 
+    public void testInOutTwice() {
+        root.dispatch(new MouseEvent(10, 10, MouseEvent.Type.move));
+        root.dispatch(new MouseEvent(76, 6,  MouseEvent.Type.move));
+        root.dispatch(new MouseEvent(10, 10, MouseEvent.Type.move));
+        root.dispatch(new MouseEvent(76, 6,  MouseEvent.Type.move));
+        root.dispatch(new MouseEvent(10, 10, MouseEvent.Type.move));
+
+        assertEquals(
+                "rect: in\n" +
+                "rect: move@1,1\n" +
+                "rect: out\n" +
+                "rect: in\n" +
+                "rect: move@1,1\n" +
+                "rect: out"
+                , log.get());
+    }
+
     void assertDispatchPress(int x, int y, String expected) {
         MouseEvent event = new MouseEvent(x, y, MouseEvent.Type.press);
         root.dispatch(event);
