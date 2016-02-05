@@ -16,3 +16,6 @@ deploy-www.sh
 *sublime*
 idea-files.zip
 js-player.iml
+spec/referenceImpl.zip
+spec/referenceImpl/mouseEvents/mouseEvents.iml
+spec/referenceImpl/mouseEvents/out
