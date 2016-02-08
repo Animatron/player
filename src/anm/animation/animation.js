@@ -359,7 +359,7 @@ Animation.prototype.render = function(ctx) {
 
 Animation.prototype.tick = function(dt) {
     var currentScene = this.currentScene;
-    if ((currentScene.getTime() + dt) < currentScene.getDuration()) {
+    if ((currentScene.getTime() + dt) <= currentScene.getDuration()) {
         currentScene.tick(dt);
         this.timeline.tick(dt);
     } else {
@@ -368,17 +368,23 @@ Animation.prototype.tick = function(dt) {
 }
 
 Animation.prototype._changeToNextScene = function(dt) {
-    var nextScene = (this.currentSceneIdx < this.scenes.length)
-                    ? this.scenes[this.currentSceneIdx + 1] : null;
     var currentScene = this.currentScene;
+    var currentSceneIdx = this.currentSceneIdx;
     var left = (currentScene.getDuration() - currentScene.getTime());
     currentScene.tick(left);
-    if (nextScene) {
-        this.currentSceneIdx++;
-        this.currentScene = nextScene;
+    if (this.currentSceneIdx === currentSceneIdx) { // user performed no jumps between scenes during previous line execution
+        var nextScene = (this.currentSceneIdx < this.scenes.length)
+                        ? this.scenes[this.currentSceneIdx + 1] : null;
+        if (nextScene) { // set current scene to the one following next
+            this.currentSceneIdx++;
+            this.currentScene = nextScene;
+        }
+    }
+
+    if (this.currentScene) {
         this.currentScene.tick(dt - left); // tick the remainder in the next scene
-    } else {
-        if (this.endOnLastScene) this.timeline.endNow();
+    } else if (this.endOnLastScene) { // if next scene is null, then we should stop and treat it was last scene
+        this.timeline.endNow();
     }
 };
 
@@ -402,7 +408,6 @@ Animation.prototype.continue = function() {
  * @param {Number} time global animation time
  */
 Animation.prototype.jump = function(t) {
-    var prev_time = this.getTime();
     this.timeline.jump(t);
     this.goToSceneAt(t);
 };
