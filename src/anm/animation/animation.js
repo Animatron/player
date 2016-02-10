@@ -388,16 +388,20 @@ Animation.prototype._changeToNextScene = function(dt) {
     var currentSceneIdx = this.currentSceneIdx;
     var left = (currentScene.getDuration() - currentScene.getTime());
     currentScene.tick(left);
+    var nextSceneExists = true;
     if (this.currentSceneIdx === currentSceneIdx) { // user performed no jumps between scenes during previous line execution
         var nextScene = (this.currentSceneIdx < this.scenes.length)
                         ? this.scenes[this.currentSceneIdx + 1] : null;
-        if (nextScene) this.currentSceneIdx++; // set current scene to the one following next
-        this.currentScene = nextScene;
+        if (nextScene) {
+            this.currentSceneIdx++; // set current scene to the one following next
+            this.currentScene = nextScene;
+        } else {
+            nextSceneExists = false;
+        }
     }
 
-    if (this.currentScene) {
-        this.currentScene.tick(dt - left); // tick the remainder in the next scene
-    } else if (this.endOnLastScene) { // if next scene is null, then we should stop and treat it was last scene
+    this.currentScene.tick(dt - left); // tick the remainder in the next (or current) scene
+    if (!nextSceneExists && this.endOnLastScene) {
         this.timeline.endNow();
     }
 };
@@ -458,7 +462,7 @@ Animation.prototype.getTime = function() {
 };
 
 Animation.prototype.isActive = function() {
-    return this.currentScene && this.currentScene.isActive();
+    return this.timeline.isActive() && this.currentScene && this.currentScene.isActive();
 };
 
 Animation.prototype.setDuration = function(duration) {
