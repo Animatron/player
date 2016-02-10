@@ -457,6 +457,10 @@ Animation.prototype.getTime = function() {
     return this.timeline.getLastPosition();
 };
 
+Animation.prototype.isActive = function() {
+    return this.currentScene && this.currentScene.isActive();
+};
+
 Animation.prototype.setDuration = function(duration) {
     if (this.scenes.length === 1) this.scenes[0].setDuration(duration);
     this.timeline.setDuration(duration);

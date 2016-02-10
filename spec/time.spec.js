@@ -31,6 +31,7 @@ describe('time', function() {
             expect(endSpy).not.toHaveBeenCalled();
             anim.tick(25);
             expect(endSpy).toHaveBeenCalled();
+            expect(anim.getTime()).toBe(anm.Timeline.NO_TIME);
         });
 
         it('ends when all scenes were finished', function() {
@@ -44,6 +45,7 @@ describe('time', function() {
             expect(endSpy).not.toHaveBeenCalled();
             anim.tick(9);
             expect(endSpy).toHaveBeenCalled();
+            expect(anim.getTime()).toBe(anm.Timeline.NO_TIME);
         });
 
         xit('properly advances to a next scene', function() {

@@ -97,8 +97,10 @@ function r_next(dt, ctx, anim, width, height, zoom, rib_color, before, after) {
         if (before) before(anim.getTime(), ctx);
         if (zoom != 1) { ctx.scale(zoom, zoom); }
         anim.tick(dt);
-        anim.render(ctx);
-        if (after) after(anim.getTime(), ctx);
+        if (anim.isActive()) {
+            anim.render(ctx);
+            if (after) after(anim.getTime(), ctx);
+        }
         ctx.restore();
     } else {
         r_with_ribbons(ctx, anim,
@@ -110,8 +112,10 @@ function r_next(dt, ctx, anim, width, height, zoom, rib_color, before, after) {
                 if (before) before(anim.getTime(), ctx);
                 if (zoom != 1) { ctx.scale(zoom, zoom); }
                 anim.tick(dt);
-                anim.render(ctx);
-                if (after) after(anim.getTime(), ctx);
+                if (anim.isActive()) {
+                    anim.render(ctx);
+                    if (after) after(anim.getTime(), ctx);
+                }
                 ctx.restore();
             });
     }

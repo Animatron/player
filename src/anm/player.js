@@ -1529,7 +1529,7 @@ Player.prototype.__beforeFrame = function(anim) {
         return function(time) {
             anim.clearAllLaters();
             if (player.happens !== C.PLAYING) return false;
-            if (player.anim && (!player.anim.timeline.isActive() || // FIXME: do using subscription anim.on(C.X_END, ...)
+            if (player.anim && (!player.anim.isActive() || // FIXME: do using subscription anim.on(C.X_END, ...)
                                 player.anim.timeline.isAfter(player.stopAfter))) {
                 player._complete();
                 return false;
