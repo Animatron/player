@@ -19,7 +19,8 @@ module.exports = function(config) {
       './dist/bundle/animatron.min.js',
 
       './spec/search.spec.js',
-      './spec/mouse.spec.js'
+      './spec/mouse.spec.js',
+      './spec/time.spec.js'
     ],
 
 

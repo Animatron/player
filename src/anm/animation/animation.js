@@ -152,6 +152,10 @@ Animation.prototype.getScenes = function() {
     return this.scenes;
 };
 
+Animation.prototype.getScenesCount = function() {
+    return this.scenes.length;
+};
+
 Animation.prototype.setCurrentScene = function(idx) {
     this.currentSceneIdx = idx;
     this.currentScene = this.scenes[this.currentSceneIdx];
@@ -170,6 +174,18 @@ Animation.prototype.replaceScene = function(idx, scene) {
         this.currentScene.continue(); // ensure it's not paused
     }
     return this;
+};
+
+Animation.prototype.replaceFirstScene = function(name, duration) {
+    var scene;
+    if (!(name instanceof Scene)) {
+        scene = new Scene(this, name, duration);
+    } else {
+        scene = name;
+        scene.anim = this;
+    }
+    this.scenes[0] = scene;
+    return scene;
 };
 
 /**
@@ -375,10 +391,8 @@ Animation.prototype._changeToNextScene = function(dt) {
     if (this.currentSceneIdx === currentSceneIdx) { // user performed no jumps between scenes during previous line execution
         var nextScene = (this.currentSceneIdx < this.scenes.length)
                         ? this.scenes[this.currentSceneIdx + 1] : null;
-        if (nextScene) { // set current scene to the one following next
-            this.currentSceneIdx++;
-            this.currentScene = nextScene;
-        }
+        if (nextScene) this.currentSceneIdx++; // set current scene to the one following next
+        this.currentScene = nextScene;
     }
 
     if (this.currentScene) {
