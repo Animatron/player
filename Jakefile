@@ -776,8 +776,7 @@ task('_minify', [ '_log_compiler_version' ], { async: true }, function() {
           '--compilation_level SIMPLE_OPTIMIZATIONS',
           '--warning_level ' + (COMPILER_WARNINGS ? 'DEFAULT' : 'QUIET'),
           '--js', src,
-          '--js_output_file', dst,
-          src
+          '--js_output_file', dst
         ].join(' ');
     }
 
