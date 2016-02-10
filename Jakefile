@@ -750,14 +750,36 @@ task('_bundles', ['browserify'], function() {
 
     _print(DONE_MARKER);
 });
+
 // _minify =====================================================================
+
+task('_log_compiler_version', { async: true }, function() {
+    _print('---------');
+    _print('Using Compiler: ');
+    _print('');
+    jake.exec([ Binaries.CLOSURECOMPILER, '--version' ].join(' '), { stdout: true }, function() {
+        _print('---------');
+        _print('');
+        complete();
+    });
+});
 
 desc(_dfit(['Internal. Create a minified copy of all the sources and bundles '+
                'from '+Dirs.DIST+' folder and append a .min suffix to them']));
-task('_minify', { async: true }, function() {
+task('_minify', [ '_log_compiler_version' ], { async: true }, function() {
     _print('Minify all the files and put them in ' + Dirs.DIST + ' folder');
 
     var BUILD_TIME = _build_time();
+
+    function makeClosureCompilerCommand(src, dst) {
+        return [ Binaries.CLOSURECOMPILER,
+          '--compilation_level SIMPLE_OPTIMIZATIONS',
+          '--warning_level ' + (COMPILER_WARNINGS ? 'DEFAULT' : 'QUIET'),
+          '--js', src,
+          '--js_output_file', dst,
+          src
+        ].join(' ');
+    }
 
     // TODO: use Jake new Rules technique for that (http://jakejs.com/#rules)
     function minify(src, cb) {
@@ -767,15 +789,10 @@ task('_minify', { async: true }, function() {
           cb(dst);
           return;
         }
-        jake.exec([
-          [ Binaries.CLOSURECOMPILER,
-            '--compilation_level SIMPLE_OPTIMIZATIONS',
-            '--warning_level ' + (COMPILER_WARNINGS ? 'DEFAULT' : 'QUIET'),
-            '--js', src,
-            '--js_output_file', dst,
-            src
-          ].join(' ')
-        ], EXEC_OPTS, function() { cb(dst); _print('min -> ' + src + ' -> ' + dst + ' ✓'); });
+        var buildCommand = makeClosureCompilerCommand(src, dst);
+        _print('Build Command: ' + buildCommand);
+        jake.exec(buildCommand, EXEC_OPTS,
+            function() { cb(dst); _print('min -> ' + src + ' -> ' + dst + ' ✓'); });
         _print('min -> ' + src + ' -> ' + dst + ' …');
     }
 
