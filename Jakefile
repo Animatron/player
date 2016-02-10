@@ -179,6 +179,7 @@ var PRODUCTION_TAG = 'production',
     DEVELOPMENT_TAG = 'development';
 
 var MOCK_MINIFICATION = false; // it's for debugging purposes, when we need full version in minified files
+var COMPILER_WARNINGS = false;
 
 var _print = !jake.program.opts.quiet ? console.log : function() { };
 
@@ -769,12 +770,13 @@ task('_minify', { async: true }, function() {
         jake.exec([
           [ Binaries.CLOSURECOMPILER,
             '--compilation_level SIMPLE_OPTIMIZATIONS',
+            '--warning_level ' + (COMPILER_WARNINGS ? 'DEFAULT' : 'QUIET'),
             '--js', src,
             '--js_output_file', dst,
             src
           ].join(' ')
-        ], EXEC_OPTS, function() { cb(dst); });
-        _print('min -> ' + src + ' -> ' + dst);
+        ], EXEC_OPTS, function() { cb(dst); _print('min -> ' + src + ' -> ' + dst + ' ✓'); });
+        _print('min -> ' + src + ' -> ' + dst + ' …');
     }
 
     function copyrightize(src) {
@@ -782,49 +784,43 @@ task('_minify', { async: true }, function() {
                                            .concat(jake.cat(src).trim()  + '\n');
         jake.rmRf(src);
         jake.echo(new_content, src);
-        _print('(c) -> ' + src);
+        _print('(c) -> ' + src + ' ✓');
     }
 
-    // since there is only one thread, it will [hopefully] work ok
-    var queue = {};
+    var minifyQueue = [ ];
 
-    function minifyInQueue(src) {
-        var task_id = _guid();
-        queue[task_id] = {};
-        minify(src, function(dst) {
-            _print(DONE_MARKER);
-            delete queue[task_id];
-            if (!Object.keys(queue).length) complete();
+    function runMinifyQueue(cb) {
+        if (minifyQueue.length === 0) {
+            complete();
+            return;
+        }
+        var next = minifyQueue.shift();
+        minify(next, function(dst) {
+            if (cb) cb(dst);
+            runMinifyQueue(cb);
         });
     }
 
-    function minifyInQueueWithCopyright(src) {
-        var task_id = _guid();
-        queue[task_id] = {};
-        minify(src, function(dst) {
-            copyrightize(dst);
-            _print(DONE_MARKER);
-            delete queue[task_id];
-            if (!Object.keys(queue).length) complete();
-        });
-    }
-    /*
-    _print('.. Vendor Files');
+    /* _print('.. Vendor Files');
 
     Files.Ext.VENDOR.forEach(function(vendorFile) {
-        minifyInQueue(_loc(Dirs.DIST + '/' + SubDirs.VENDOR + '/' + vendorFile));
-    });
-    */
+        minifyQueue.push(_loc(Dirs.DIST + '/' + SubDirs.VENDOR + '/' + vendorFile));
+    }); */
+
     _print('.. Main files');
 
-    //minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.INIT));
-    minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.PLAYER));
+    minifyQueue.push(_loc(Dirs.DIST + '/' + Files.Main.PLAYER));
 
     _print('.. Bundles');
 
     Bundles.forEach(function(bundle) {
-        minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
+        minifyQueue.push(_loc(Dirs.DIST + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
     });
+
+    runMinifyQueue(function(dst) {
+        copyrightize(dst);
+    });
+
 });
 
 // _build-file =================================================================
