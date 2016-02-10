@@ -18,7 +18,7 @@
             [ 0, "transparent"],
             [ 0.9, "transparent" ],
             [ 0.95, "rgba(0,0,0,0.3)" ],
-            [ 1, "rgba(0,0,0,0.6)" ],
+            [ 1, "rgba(0,0,0,0.6)" ]
         ],
         "hintBackColor": "rgba(0,0,0,0.7)",
         "buttonSize": 16,
