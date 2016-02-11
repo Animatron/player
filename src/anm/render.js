@@ -95,7 +95,7 @@ function r_next(dt, ctx, anim, width, height, zoom, rib_color, stretch, before, 
     var scaleX = stretch ? (width / anim.width) * zoom : zoom,
         scaleY = stretch ? (height / anim.height) * zoom : zoom;
     if (!size_differs || stretch) {
-        if ((scaleX != 1) && (scaleY != 1)) { ctx.scale(scaleX, scaleY); }
+        if ((scaleX != 1) || (scaleY != 1)) { ctx.scale(scaleX, scaleY); }
         ctx.clearRect(0, 0, anim.width,
                             anim.height);
         if (before) before(anim.getTime(), ctx);
@@ -109,7 +109,7 @@ function r_next(dt, ctx, anim, width, height, zoom, rib_color, stretch, before, 
                        anim.width, anim.height,
                        rib_color,
             function(_scale) {
-                if ((scaleX != 1) && (scaleY != 1)) { ctx.scale(scaleX, scaleY); }
+                if ((scaleX != 1) || (scaleY != 1)) { ctx.scale(scaleX, scaleY); }
                 ctx.clearRect(0, 0, anim.width, anim.height);
                 if (before) before(anim.getTime(), ctx);
                 anim.tick(dt);
