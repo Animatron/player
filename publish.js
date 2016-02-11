@@ -120,6 +120,7 @@
     if (loop) initOptions.repeat = true;
 
     if (params.ver || params.version) { PLAYER_VERSION_ID = (params.ver || params.version); }
+    if (params.stretch) initOptions.stretchToCanvas = true;
 
     var snapshotUrl = amazonDomain + '/' + filename + '?' +
         utils.serializeToQueryString(params);

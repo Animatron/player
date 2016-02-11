@@ -56,8 +56,9 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
     pl_state.__redraws++;
 
     r_at(time, dt, ctx, anim,
-           player.width, player.height, player.zoom, player.ribbonsColor,
-           before_render, after_render);
+         player.width, player.height, player.zoom,
+         player.ribbonsColor, player.stretchToCanvas,
+         before_render, after_render);
 
     // show fps
     if (player.debug) {
@@ -80,7 +81,7 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
     }));
 }
 
-function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, after) {
+function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, stretch, before, after) {
     ctx.save();
     var ratio = engine.PX_RATIO;
     if (ratio !== 1) { ctx.scale(ratio, ratio); }
@@ -89,11 +90,13 @@ function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, after
     var size_differs = (width  != anim.width) ||
                        (height != anim.height);
     anim.factor = 1 * (zoom || 1) * (anim.zoom || 1);
-    if (!size_differs) {
+    var scaleX = stretch ? (width / anim.width) * zoom : zoom,
+        scaleY = stretch ? (height / anim.height) * zoom : zoom;
+    if (!size_differs || stretch) {
         ctx.clearRect(0, 0, anim.width,
                             anim.height);
         if (before) before(time, ctx);
-        if (zoom != 1) { ctx.scale(zoom, zoom); }
+        if ((scaleX != 1) && (scaleY != 1)) { ctx.scale(scaleX, scaleY); }
         anim.render(ctx, time, dt);
         if (after) after(time, ctx);
         ctx.restore();
@@ -105,7 +108,7 @@ function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, after
             function(_scale) {
                 ctx.clearRect(0, 0, anim.width, anim.height);
                 if (before) before(time, ctx);
-                if (zoom != 1) { ctx.scale(zoom, zoom); }
+                if ((scaleX != 1) && (scaleY != 1)) { ctx.scale(scaleX, scaleY); }
                 anim.render(ctx, time, dt);
                 if (after) after(time, ctx);
                 ctx.restore();

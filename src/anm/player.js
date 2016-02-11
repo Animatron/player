@@ -131,6 +131,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'bgColor': undefined,
                                  'ribbonsColor': undefined,
                                  'forceAnimationSize': false,
+                                 'stretchToCanvas': false,
                                  'muteErrors': false
                                };
 
@@ -175,6 +176,7 @@ Player.EMPTY_BG = 'rgba(0,0,0,.05)';
  *       loadingMode: undefined, // undefined means 'auto'
  *       thumbnail: undefined,
  *       forceAnimationSize: false,
+ *       stretchToCanvas: true,
  *       muteErrors: false
  *     }
  *
@@ -745,6 +747,8 @@ Player.prototype._addOpts = function(opts) {
                         opts.infiniteDuration : this.infiniteDuration;
     this.forceAnimationSize = is.defined(opts.forceAnimationSize) ?
                         opts.forceAnimationSize : this.forceAnimationSize;
+    this.stretchToCanvas = is.defined(opts.stretchToCanvas) ?
+                        opts.stretchToCanvas : this.stretchToCanvas;
     this.muteErrors = is.defined(opts.muteErrors) ?
                         opts.muteErrors : this.muteErrors;
 
@@ -898,7 +902,8 @@ Player.prototype.drawAt = function(time) {
     ctx_props.factor = this.factor();
 
     anim.__informEnabled = false;
-    Render.at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor, u_before, ext_after);
+    Render.at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom,
+              this.ribbonsColor, this.stretchToCanvas, u_before, ext_after);
     return this;
 };
 
