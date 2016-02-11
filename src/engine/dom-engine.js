@@ -583,7 +583,8 @@ $DE.extractUserOptions = function(elm) {
              'infoEnabled': __boolAttr(elm.getAttribute('anm-info') || elm.getAttribute('anm-info-enabled')),
              'handleEvents': __boolAttr(elm.getAttribute('anm-events') || elm.getAttribute('anm-handle-events')),
              'infiniteDuration': __boolAttr(elm.getAttribute('anm-infinite') || elm.getAttribute('anm-infinite-duration')),
-             'forceSceneSize': __boolAttr(elm.getAttribute('anm-scene-size') || elm.getAttribute('anm-force-scene-size')),
+             'forceAnimationSize': __boolAttr(elm.getAttribute('anm-animation-size') || elm.getAttribute('anm-force-animation-size')),
+             'stretchToCanvas': __boolAttr(elm.getAttribute('anm-stretch') || elm.getAttribute('anm-stretch-to-canvas')),
              'inParent': undefined, // TODO: check if we're in tag?
              'muteErrors': __boolAttr(elm.getAttribute('anm-mute-errors')),
              'loadingMode': elm.getAttribute('anm-loading-mode'),
