@@ -58,7 +58,8 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
     player.__redraws++;
 
     r_next(dt, ctx, anim,
-           player.width, player.height, player.zoom, player.ribbonsColor,
+           player.width, player.height, player.zoom,
+           player.ribbonsColor, player.stretchToCanvas,
            before_render, after_render);
 
     // show fps
@@ -82,7 +83,7 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
     }));
 }
 
-function r_next(dt, ctx, anim, width, height, zoom, rib_color, before, after) {
+function r_next(dt, ctx, anim, width, height, zoom, rib_color, stretch, before, after) {
     ctx.save();
     var ratio = engine.PX_RATIO;
     if (ratio !== 1) { ctx.scale(ratio, ratio); }
@@ -91,11 +92,13 @@ function r_next(dt, ctx, anim, width, height, zoom, rib_color, before, after) {
     var size_differs = (width  != anim.width) ||
                        (height != anim.height);
     anim.factor = 1 * (zoom || 1) * (anim.zoom || 1);
-    if (!size_differs) {
+    var scaleX = stretch ? (width / anim.width) * zoom : zoom,
+        scaleY = stretch ? (height / anim.height) * zoom : zoom;
+    if (!size_differs || stretch) {
+        if ((scaleX != 1) && (scaleY != 1)) { ctx.scale(scaleX, scaleY); }
         ctx.clearRect(0, 0, anim.width,
                             anim.height);
         if (before) before(anim.getTime(), ctx);
-        if (zoom != 1) { ctx.scale(zoom, zoom); }
         anim.tick(dt);
         anim.render(ctx);
         if (after) after(anim.getTime(), ctx);
@@ -106,9 +109,9 @@ function r_next(dt, ctx, anim, width, height, zoom, rib_color, before, after) {
                        anim.width, anim.height,
                        rib_color,
             function(_scale) {
+                if ((scaleX != 1) && (scaleY != 1)) { ctx.scale(scaleX, scaleY); }
                 ctx.clearRect(0, 0, anim.width, anim.height);
                 if (before) before(anim.getTime(), ctx);
-                if (zoom != 1) { ctx.scale(zoom, zoom); }
                 anim.tick(dt);
                 anim.render(ctx);
                 if (after) after(anim.getTime(), ctx);
