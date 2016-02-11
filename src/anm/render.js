@@ -96,7 +96,7 @@ function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, stretch, befo
         ctx.clearRect(0, 0, anim.width,
                             anim.height);
         if (before) before(time, ctx);
-        if ((scaleX != 1) && (scaleY != 1)) { ctx.scale(scaleX, scaleY); }
+        if ((scaleX != 1) || (scaleY != 1)) { ctx.scale(scaleX, scaleY); }
         anim.render(ctx, time, dt);
         if (after) after(time, ctx);
         ctx.restore();
@@ -108,7 +108,7 @@ function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, stretch, befo
             function(_scale) {
                 ctx.clearRect(0, 0, anim.width, anim.height);
                 if (before) before(time, ctx);
-                if ((scaleX != 1) && (scaleY != 1)) { ctx.scale(scaleX, scaleY); }
+                if ((scaleX != 1) || (scaleY != 1)) { ctx.scale(scaleX, scaleY); }
                 anim.render(ctx, time, dt);
                 if (after) after(time, ctx);
                 ctx.restore();

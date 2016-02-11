@@ -176,7 +176,7 @@ Player.EMPTY_BG = 'rgba(0,0,0,.05)';
  *       loadingMode: undefined, // undefined means 'auto'
  *       thumbnail: undefined,
  *       forceAnimationSize: false,
- *       stretchToCanvas: true,
+ *       stretchToCanvas: false,
  *       muteErrors: false
  *     }
  *

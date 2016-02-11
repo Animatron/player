@@ -770,8 +770,7 @@ task('_minify', { async: true }, function() {
           [ Binaries.CLOSURECOMPILER,
             '--compilation_level SIMPLE_OPTIMIZATIONS',
             '--js', src,
-            '--js_output_file', dst,
-            src
+            '--js_output_file', dst
           ].join(' ')
         ], EXEC_OPTS, function() { cb(dst); });
         _print('min -> ' + src + ' -> ' + dst);
