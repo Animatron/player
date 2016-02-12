@@ -77,7 +77,6 @@ function Animation() {
     this.scenes.push(defaultScene);
 
     this.currentSceneIdx = 0;
-    this.currentScene = this.scenes[this.currentSceneIdx];
 
     this.endOnLastScene = true;
     this.listensMouse = false;
@@ -107,7 +106,7 @@ provideEvents(Animation, [ C.X_KPRESS, C.X_KUP, C.X_KDOWN, C.X_ERROR ]);
  */
 Animation.prototype.add = function(arg1, arg2, arg3) {
     // this method only adds an element to a top-level
-    this.currentScene.add(arg1, arg2, arg3);
+    this.getCurrentScene().add(arg1, arg2, arg3);
     return this;
 };
 
@@ -158,8 +157,7 @@ Animation.prototype.getScenesCount = function() {
 
 Animation.prototype.setCurrentScene = function(idx) {
     this.currentSceneIdx = idx;
-    this.currentScene = this.scenes[this.currentSceneIdx];
-    this.currentScene.continue(); // ensure it's not paused
+    this.getCurrentScene().continue(); // ensure it's not paused
     return this;
 };
 
@@ -170,8 +168,7 @@ Animation.prototype.getCurrentScene = function() {
 Animation.prototype.replaceScene = function(idx, scene) {
     this.scenes[idx] = scene;
     if (this.currentSceneIdx === idx) {
-        this.currentScene = scene;
-        this.currentScene.continue(); // ensure it's not paused
+        this.getCurrentScene().continue(); // ensure it's not paused
     }
     return this;
 };
@@ -216,8 +213,9 @@ Animation.prototype.traverse = function(visitor, data) {
  * @param {Object} [data]
  */
 Animation.prototype.traverseVisible = function(visitor, data) {
-    if (this.currentScene && this.currentScene.isActive()) {
-        this.currentScene.traverse(function(child) {
+    var currentScene = this.getCurrentScene();
+    if (currentScene && currentScene.isActive()) {
+        currentScene.traverse(function(child) {
             return (child.isActive() && (visitor(child, data) === false)) ? false : true;
         });
     }
@@ -239,8 +237,9 @@ Animation.prototype.traverseVisible = function(visitor, data) {
  * @param {Object} [data]
  */
 Animation.prototype.reverseTraverseVisible = function(visitor, data) {
-    if (this.currentScene && this.currentScene.isActive()) {
-        this.currentScene.reverseTraverse(function(child) {
+    var currentScene = this.getCurrentScene();
+    if (currentScene && currentScene.isActive()) {
+        currentScene.reverseTraverse(function(child) {
             return (child.isActive() && (visitor(child, data) === false)) ? false : true;
         });
     }
@@ -275,8 +274,9 @@ Animation.prototype.each = function(visitor, data) {
  * @param {Object} [data]
  */
 Animation.prototype.eachVisible = function(visitor, data) {
-    if (this.currentScene && this.currentScene.isActive()) {
-        this.currentScene.each(function(child) {
+    var currentScene = this.getCurrentScene();
+    if (currentScene && currentScene.isActive()) {
+        currentScene.each(function(child) {
             return (child.isActive() && (visitor(child, data) === false)) ? false : true;
         });
     }
@@ -317,8 +317,9 @@ Animation.prototype.reverseEach = function(visitor, data) {
  * @param {Object} [data]
  */
 Animation.prototype.reverseEachVisible = function(visitor, data) {
-    if (this.currentScene && this.currentScene.isActive()) {
-        this.currentScene.reverseEach(function(child) {
+    var currentScene = this.getCurrentScene();
+    if (currentScene && currentScene.isActive()) {
+        currentScene.reverseEach(function(child) {
             return (child.isActive() && (visitor(child, data) === false)) ? false : true;
         });
     }
@@ -369,51 +370,47 @@ Animation.prototype.render = function(ctx) {
         this.bgfill.apply(ctx);
         ctx.fillRect(0, 0, this.width, this.height);
     }
-    this.currentScene.render(ctx);
+    this.getCurrentScene().render(ctx);
     ctx.restore();
 };
 
 Animation.prototype.tick = function(dt) {
-    var currentScene = this.currentScene;
+    var currentScene = this.getCurrentScene();
     if ((currentScene.getTime() + dt) < currentScene.getDuration()) {
         currentScene.tick(dt);
         this.timeline.tick(dt);
     } else {
-        this._changeToNextScene(dt);
+        var previousScene = this.getCurrentScene();
+        var previousSceneIdx = this.currentSceneIdx;
+        var left = (previousScene.getDuration() - previousScene.getTime());
+        previousScene.tick(left);
+        var nextScene =
+           (this.currentSceneIdx !== previousSceneIdx) // check if user performed jumps between scenes during currentScene.tick above
+           ? this.getCurrentScene() : this.advanceToNextScene(); // if no jumps performed, advance to next scene
+
+        if (nextScene) nextScene.tick(dt - left); // tick the remainder in the next scene
+        if (!nextScene && this.endOnLastScene) {
+            this.timeline.endNow();
+        }
     }
 }
 
-Animation.prototype._changeToNextScene = function(dt) {
-    var currentScene = this.currentScene;
-    var currentSceneIdx = this.currentSceneIdx;
-    var left = (currentScene.getDuration() - currentScene.getTime());
-    currentScene.tick(left);
-    var nextSceneExists = true;
-    if (this.currentSceneIdx === currentSceneIdx) { // user performed no jumps between scenes during previous line execution
-        var nextScene = (this.currentSceneIdx < this.scenes.length)
-                        ? this.scenes[this.currentSceneIdx + 1] : null;
-        if (nextScene) {
-            this.currentSceneIdx++; // set current scene to the one following next
-            this.currentScene = nextScene;
-        } else {
-            nextSceneExists = false;
-        }
-    }
-
-    this.currentScene.tick(dt - left); // tick the remainder in the next (or current) scene
-    if (!nextSceneExists && this.endOnLastScene) {
-        this.timeline.endNow();
-    }
+Animation.prototype.advanceToNextScene = function() {
+    var curSceneIdx = this.currentSceneIdx;
+    if (((curSceneIdx + 1) >= this.scenes.length) ||
+        !this.scenes[curSceneIdx + 1]) return null;
+    this.currentSceneIdx++;
+    return this.getCurrentScene();
 };
 
 Animation.prototype.pause = function() {
     this.timeline.pause();
-    this.currentScene.pause();
+    this.getCurrentScene().pause();
 };
 
 Animation.prototype.continue = function() {
     this.timeline.continue();
-    this.currentScene.continue();
+    this.getCurrentScene().continue();
 };
 
 /**
@@ -454,7 +451,7 @@ Animation.prototype.jumpTo = function(selector) {
 Animation.prototype.jumpToStart = function() {
     this.timeline.jumpToStart();
     this.setCurrentScene(0);
-    this.currentScene.jumpToStart();
+    this.getCurrentScene().jumpToStart();
 };
 
 Animation.prototype.getTime = function() {
@@ -462,7 +459,7 @@ Animation.prototype.getTime = function() {
 };
 
 Animation.prototype.isActive = function() {
-    return this.timeline.isActive() && this.currentScene && this.currentScene.isActive();
+    return this.timeline.isActive() && this.getCurrentScene() && this.getCurrentScene().isActive();
 };
 
 Animation.prototype.setDuration = function(duration) {
@@ -498,11 +495,11 @@ Animation.prototype.goToSceneAt = function(t) {
             this.setCurrentScene(i);
         } else {
             this.setCurrentScene(0);
-            this.currentScene.jump(t);
+            this.getCurrentScene().jump(t);
         }
     } else {
         this.setCurrentScene(this.scenes.length - 1);
-        this.currentScene.jumpToEnd();
+        this.getCurrentScene().jumpToEnd();
     }
 };
 
@@ -603,7 +600,7 @@ Animation.prototype.subscribeEvents = function(canvas) {
     engine.subscribeAnimationToEvents(canvas, this, function(domType, domEvent) {
         var anmEventType = DOM_TO_EVT_MAP[domType];
         if (events.isMouse(anmEventType)) {
-            var currentScene = anim.currentScene;
+            var currentScene = anim.getCurrentScene();
             if (currentScene && currentScene.isActive()) {
                 var anmEvent = new events.MouseEvent(anmEventType, domEvent.x, domEvent.y,
                                                      anim, domEvent); // target, source

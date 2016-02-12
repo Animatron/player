@@ -48,7 +48,7 @@ describe('time', function() {
             expect(anim.getTime()).toBe(anm.Timeline.NO_TIME);
         });
 
-        xit('properly advances to a next scene', function() {
+        it('properly advances to a next scene', function() {
 
             var anim = new anm.Animation();
 
@@ -61,6 +61,124 @@ describe('time', function() {
             anim.tick(5.1);
             expect(anim.getCurrentScene().name).toBe('Bar');
 
+        });
+
+    });
+
+    describe('adding actions', function() {
+
+        it('calls actions in requested time', function() {
+            var anim = new anm.Animation();
+            var root = new anm.Element();
+            anim.setDuration(10);
+            anim.add(root);
+            var actionSpy = jasmine.createSpy('action');
+            root.at(0.5, actionSpy);
+            anim.tick(0.2);
+            expect(actionSpy).not.toHaveBeenCalled();
+            anim.tick(0.4); // 0.2 + 0.4 == 0.6
+            expect(actionSpy).toHaveBeenCalled();
+        });
+
+        it('passes call time to the action', function() {
+            var anim = new anm.Animation();
+            var root = new anm.Element();
+            anim.setDuration(10);
+            anim.add(root);
+            var actionSpy = jasmine.createSpy('action');
+            root.at(0.5, actionSpy);
+            anim.tick(0.6);
+            expect(actionSpy).toHaveBeenCalledWith(0.6);
+        });
+
+        it('passes call time to the action according to the band', function() {
+            var anim = new anm.Animation();
+            var root = new anm.Element();
+            anim.setDuration(10);
+            root.changeBand(0.3, 5);
+            anim.add(root);
+            var actionSpy = jasmine.createSpy('action');
+            root.at(0.5, actionSpy); // 0.3 + 0.5 == 0.8
+            anim.tick(0.6);
+            expect(actionSpy).not.toHaveBeenCalled();
+            anim.tick(0.6); // 0.6 + 0.6 == 1.2
+            expect(actionSpy).toHaveBeenCalledWith(1.2 - 0.3);
+        });
+
+        it('passes owner as `this` to the action', function() {
+            var anim = new anm.Animation();
+            var root = new anm.Element();
+            anim.setDuration(10);
+            anim.add(root);
+            var actionSpy = jasmine.createSpy('action');
+            root.at(0.5, actionSpy.and.callFake(function() {
+                expect(this).toBe(root);
+            }));
+            anim.tick(0.6);
+            expect(actionSpy).toHaveBeenCalled();
+        });
+
+    });
+
+    describe('jumps in time', function() {
+
+        it('jumps forward in time', function() {
+
+            var anim = new anm.Animation();
+            var root = new anm.Element();
+            anim.setDuration(10);
+            anim.add(root);
+            root.at(2.0, function() {
+                this.jump(3.0);
+            });
+
+            anim.tick(1.0);
+            expect(root.getTime()).toBe(1.0);
+            anim.tick(1.0); // jump performed here
+            expect(root.getTime()).toBe(3.0);
+            anim.tick(2.0);
+            expect(root.getTime()).toBe(5.0);
+
+        });
+
+        it('jumps backward in time', function() {
+
+            var anim = new anm.Animation();
+            var root = new anm.Element();
+            anim.setDuration(10);
+            anim.add(root);
+            root.at(2.0, function() {
+                this.jump(1.0);
+            });
+
+            anim.tick(1.0);
+            expect(root.getTime()).toBe(1.0);
+            anim.tick(1.0); // jump performed here
+            expect(root.getTime()).toBe(1.0);
+            anim.tick(2.0);
+            expect(root.getTime()).toBe(3.0);
+
+        });
+
+        it('jumps time is relative to the owner time', function() {
+            var anim = new anm.Animation();
+            var root = new anm.Element();
+            anim.setDuration(10);
+            root.changeBand(1.0, 10);
+            anim.add(root);
+            root.at(2.0, function() {
+                this.jump(4.0);
+            });
+
+            anim.tick(1.0);
+            expect(root.getTime()).toBe(0.0); // root band started
+            anim.tick(1.0);
+            expect(root.getTime()).toBe(1.0);
+            anim.tick(2.0); // jump performed here + 1.0sec
+            // animation time now: 4sec
+            // root jumped at animation time == 3sec (root's own 2sec)
+            // to its own 4sec, and then 1sec more passed after a jump
+            expect(root.getTime()).toBe(5.0);
         });
 
     });

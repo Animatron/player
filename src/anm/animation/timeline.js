@@ -27,7 +27,8 @@ function Timeline(owner) {
     this.actions = [];
     this.paused = false;
     this.position = -this.start || 0;
-    this.actualPosition = -this.start || 0;
+    this.actualPosition = -this.start || 0; // actual time passed, excluding any jumps
+    this.currentDiff = 0; // current difference between actual position and position
     this.easing = null;
     this.speed = 1; // TODO: use speed
     this.lastDelta = 0;
@@ -110,10 +111,11 @@ Timeline.prototype.tick = function(dt) {
             if ((previous >= 0) && (previous <= this.duration) && (next >= this.duration) && !this.passedEnd) {
                 this.fire(C.X_END, next); this.passedEnd = true;
             }
+        } else {
+            this.currentDiff = this.position - this.actualPosition;
         }
     }
 
-    //console.log('tick', this.owner.name, this.position, dt, next);
     if (!positionAdjusted) this.position = next;
 
     return this.position;
@@ -125,7 +127,7 @@ Timeline.prototype.tickRelative = function(other, dt) {
 };
 
 Timeline.prototype.tickRelativeToPosition = function(pos, dt) {
-    this.position = pos - this.start - dt; // we subtract dt to add it later with this.tick
+    this.position = this.currentDiff + pos - this.start - dt; // we subtract dt to add it later with this.tick
     this.actualPosition = this.position;
     return this.tick(dt);
 };
@@ -293,7 +295,7 @@ Timeline.prototype._performActionsBetween = function(previous, next, dt) {
            (curAction.time <= next) &&
            ((curAction.time > previous) ||
             ((dt > 0) && (curAction.time == previous)))) {
-        curAction.func(next);
+        curAction.func.call(this.owner, next);
         actionsPos++; curAction = this.actions[actionsPos];
     }
 }
