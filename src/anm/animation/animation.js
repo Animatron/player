@@ -403,6 +403,10 @@ Animation.prototype.advanceToNextScene = function() {
     return this.getCurrentScene();
 };
 
+Animation.prototype.at = function(t, f) {
+    return this.timeline.addAction(t, f);
+};
+
 Animation.prototype.pause = function() {
     this.timeline.pause();
     this.getCurrentScene().pause();

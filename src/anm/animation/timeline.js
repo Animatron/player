@@ -111,10 +111,10 @@ Timeline.prototype.tick = function(dt) {
             if ((previous >= 0) && (previous <= this.duration) && (next >= this.duration) && !this.passedEnd) {
                 this.fire(C.X_END, next); this.passedEnd = true;
             }
-        } else {
-            this.currentDiff = this.position - this.actualPosition;
         }
     }
+
+    this.currentDiff = this.position - this.actualPosition;
 
     if (!positionAdjusted) this.position = next;
 
@@ -208,7 +208,7 @@ Timeline.prototype.pause = function() {
 };
 
 Timeline.prototype.pauseAt = function(at) {
-    var me = this; this.addAction(at, function() { me.pause(); });
+    this.addAction(at, function() { this.pause(); });
 };
 
 Timeline.prototype.continue = function() {
@@ -219,7 +219,7 @@ Timeline.prototype.continue = function() {
 };
 
 Timeline.prototype.countinueAt = function(at) {
-    var me = this; this.addAction(at, function() { me.continue(); });
+    this.addAction(at, function() { this.continue(); });
 };
 
 Timeline.prototype.jump = function(t) {
@@ -228,7 +228,7 @@ Timeline.prototype.jump = function(t) {
 };
 
 Timeline.prototype.jumpAt = function(at, t) {
-    var me = this; this.addAction(at, function() { me.jump(t); });
+    this.addAction(at, function() { this.jump(t); });
 };
 
 Timeline.prototype.jumpTo = function(child) {

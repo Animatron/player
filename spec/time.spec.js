@@ -1,6 +1,6 @@
 describe('time', function() {
 
-    describe('animation', function() {
+    describe('animation and scene sequences', function() {
 
         it('has one scene by default', function() {
 
@@ -120,6 +120,75 @@ describe('time', function() {
 
     });
 
+    describe('pausing and continuing', function() {
+
+        it('time just flows if there are no pauses', function() {
+            var anim = new anm.Animation();
+            var root = new anm.Element();
+            anim.setDuration(10);
+            anim.add(root);
+            anim.tick(1.5);
+            expect(root.getTime()).toBe(1.5);
+        });
+
+        it('time pauses properly', function() {
+            var anim = new anm.Animation();
+            var root = new anm.Element();
+            anim.setDuration(10);
+            anim.add(root);
+            root.timeline.pauseAt(1.0);
+            anim.tick(1.5);
+            expect(root.getTime()).toBe(1.0);
+        });
+
+        it('time pauses and continues', function() {
+            var anim = new anm.Animation();
+            var root = new anm.Element();
+            anim.setDuration(10);
+            anim.add(root);
+            anim.at(1.0, function() { root.pause(); });
+            anim.at(2.0, function() { root.continue(); });
+            anim.tick(1.5);
+            expect(root.getTime()).toBe(1.0);
+            anim.tick(1.0);
+            expect(root.getTime()).toBe(1.5);
+        });
+
+        it('`affectsChildren` (`true` by default) flag stops time both in the element and it\'s children', function() {
+            var anim = new anm.Animation();
+            var root = new anm.Element();
+            var child = new anm.Element();
+            anim.setDuration(10);
+            root.add(child);
+            anim.add(root);
+            anim.at(1.0, function() { root.pause(); });
+            anim.at(2.0, function() { root.continue(); });
+            anim.tick(1.5);
+            expect(child.getTime()).toBe(1.0);
+            anim.tick(1.0);
+            expect(child.getTime()).toBe(1.5);
+        });
+
+        it('when `affectsChildren` is `false`, it stops time in the element, but not and it\'s children', function() {
+            var anim = new anm.Animation();
+            var root = new anm.Element();
+            root.affectsChildren = false;
+            var child = new anm.Element();
+            anim.setDuration(10);
+            root.add(child);
+            anim.add(root);
+            anim.at(1.0, function() { root.pause(); });
+            anim.at(2.0, function() { root.continue(); });
+            anim.tick(1.5);
+            expect(child.getTime()).toBe(1.5);
+            anim.tick(1.0);
+            expect(child.getTime()).toBe(2.5);
+        });
+
+        // TODO: with repeat modes, several pauses, ...
+
+    });
+
     describe('jumps in time', function() {
 
         it('jumps forward in time', function() {
@@ -151,16 +220,16 @@ describe('time', function() {
                 this.jump(1.0);
             });
 
-            anim.tick(1.0);
+            anim.tick(1.0); // anim.getTime() == 1.0
             expect(root.getTime()).toBe(1.0);
-            anim.tick(1.0); // jump performed here
+            anim.tick(1.0); // anim.getTime() == 2.0 // jump performed here
             expect(root.getTime()).toBe(1.0);
-            anim.tick(2.0);
+            anim.tick(2.0); // anim.getTime() == 4.0
             expect(root.getTime()).toBe(3.0);
 
         });
 
-        it('jumps time is relative to the owner time', function() {
+        it('jump\'s time is relative to the owner\'s time', function() {
             var anim = new anm.Animation();
             var root = new anm.Element();
             anim.setDuration(10);
@@ -180,6 +249,10 @@ describe('time', function() {
             // to its own 4sec, and then 1sec more passed after a jump
             expect(root.getTime()).toBe(5.0);
         });
+
+        // TODO: jumps with `affectsChildren` == `false`
+
+        // TODO: with repeat modes, several jumps, ...
 
     });
 
