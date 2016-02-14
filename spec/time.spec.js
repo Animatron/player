@@ -169,7 +169,7 @@ describe('time', function() {
             expect(child.getTime()).toBe(1.5);
         });
 
-        it('when `affectsChildren` is `false`, it stops time in the element, but not and it\'s children', function() {
+        it('when `affectsChildren` is `false`, it stops time in the element, but not in it\'s children', function() {
             var anim = new anm.Animation();
             var root = new anm.Element();
             root.affectsChildren = false;
