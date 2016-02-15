@@ -168,7 +168,7 @@ describe('time', function() {
             anim.tick(1.0); // 1.0
             expect(actionSpy).not.toHaveBeenCalled();
             anim.tick(1.0); // 2.0
-            expect(actionSpy).toHaveBeenCalledWith(2 - 1.7);
+            expect(actionSpy).toHaveBeenCalledWith(2 - 1.2);
         });
 
         it('passes owner as `this` to the action', function() {
@@ -220,9 +220,30 @@ describe('time', function() {
             // root: 0-----1·······························
 
             root.timeline.pauseAt(1.0);
+            anim.tick(1.0); // 1.0
+            expect(root.getTime()).toBe(1.0);
+            anim.tick(1.0); // 2.0
+            expect(root.getTime()).toBe(1.0);
+            anim.tick(0.2); // 2.2
+            expect(root.getTime()).toBe(1.0);
+        });
+
+        it('pause time is not affected with time of a tick when pause was actually performed', function() {
+            var anim = new anm.Animation();
+            var root = new anm.Element('root');
+            anim.add(root);
+
+            anim.setDuration(10);
+
+            // anim: 0-----1-----2-----3-----4-----5-----6-
+            // root: 0-----1·······························
+
+            root.timeline.pauseAt(1.0);
             anim.tick(1.5); // 1.5
             expect(root.getTime()).toBe(1.0);
             anim.tick(1.0); // 2.5
+            expect(root.getTime()).toBe(1.0);
+            anim.tick(0.2); // 2.7
             expect(root.getTime()).toBe(1.0);
         });
 
@@ -238,9 +259,9 @@ describe('time', function() {
             anim.at(1.0, function() { root.pause(); });
             anim.at(2.0, function() { root.continue(); });
             anim.tick(1.5); // 1.5
-            expect(root.getTime()).toBe(1.0);
-            anim.tick(1.0); // 2.5
-            expect(root.getTime()).toBe(1.5);
+            expect(root.getTime()).toBe(1.0); // actual pause is time position when pause was called first time
+            anim.tick(1.1); // 2.6
+            expect(root.getTime()).toBe(1.6);
         });
 
         it('`affectsChildren` (`true` by default) flag stops time both in the element and it\'s children', function() {
