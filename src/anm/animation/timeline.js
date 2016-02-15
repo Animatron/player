@@ -129,7 +129,7 @@ Timeline.prototype.tickRelative = function(other, dt) {
 };
 
 Timeline.prototype.tickRelativeToPosition = function(pos, dt) {
-    console.log('tickrel', this.owner.name, 'dt', dt, 'start', this.start, 'actualPos', this.actualPosition, 'pos', this.position, 'diff', this.currentDiff, 'new pos', this.currentDiff + pos - this.start);
+    //console.log('tickrel', this.owner.name, 'dt', dt, 'start', this.start, 'actualPos', this.actualPosition, 'pos', this.position, 'diff', this.currentDiff, 'new pos', this.currentDiff + pos - this.start);
     if (!this.paused) {
         this.position = this.currentDiff + pos - this.start - dt; // we subtract dt to add it later with this.tick
         this.actualPosition = this.position;
