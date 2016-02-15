@@ -23,6 +23,7 @@ describe('time', function() {
         });
 
         it('ends when default scene was finished', function() {
+
             var anim = new anm.Animation();
             anim.getCurrentScene().setDuration(5);
 
@@ -36,9 +37,11 @@ describe('time', function() {
             anim.tick(25);
             expect(endSpy).toHaveBeenCalled();
             expect(anim.getTime()).toBe(anm.Timeline.NO_TIME);
+
         });
 
         it('ends when all scenes were finished', function() {
+
             var anim = new anm.Animation();
             anim.getCurrentScene().setDuration(5);
             anim.addScene('Bar', 10);
@@ -54,6 +57,7 @@ describe('time', function() {
             anim.tick(9);  // 21
             expect(endSpy).toHaveBeenCalled();
             expect(anim.getTime()).toBe(anm.Timeline.NO_TIME);
+
         });
 
         it('properly advances to a next scene', function() {
@@ -79,33 +83,34 @@ describe('time', function() {
     describe('time bands', function() {
 
         it('bands work properly for children', function() {
+
             var anim = new anm.Animation();
-            var root = new anm.Element();
-            var child = new anm.Element();
+            var root = new anm.Element('root');
+            var child = new anm.Element('child');
+            root.add(child);
+            anim.add(root);
+
             anim.setDuration(10);
             root.changeBand(1.0, 10);
             child.changeBand(1.0, 10);
-            anim.add(root);
-            root.at(3.0, function() {
-                this.jump(1.0);
-            });
 
             // anim: 0-----1-----2-----3-----4-----5-----6-
             // root:       0-----1-----2-----3-----4-----5-
             // chld:             0-----1-----2-----3-----4-
 
             anim.tick(0.5); // 0.5
-            expect(root.getTime()).toBe(anm.Timeline.NO_TIME);
-            expect(child.getTime()).toBe(anm.Timeline.NO_TIME);
+            expect(root.getTime()).toBeLessThan(0);
+            expect(child.getTime()).toBeLessThan(0);
             anim.tick(0.5); // 1.0
             expect(root.getTime()).toBe(0.0);
-            expect(child.getTime()).toBe(anm.Timeline.NO_TIME);
+            expect(child.getTime()).toBeLessThan(0);
             anim.tick(1.0); // 2.0
             expect(root.getTime()).toBe(1.0);
-            expect(root.getTime()).toBe(0.0);
+            expect(child.getTime()).toBe(0.0);
             anim.tick(1.0); // 3.0
             expect(root.getTime()).toBe(2.0);
-            expect(root.getTime()).toBe(1.0);
+            expect(child.getTime()).toBe(1.0);
+
         });
 
     });
@@ -114,14 +119,15 @@ describe('time', function() {
 
         it('calls actions in requested time', function() {
             var anim = new anm.Animation();
-            var root = new anm.Element();
-            anim.setDuration(10);
+            var root = new anm.Element('root');
             anim.add(root);
-            var actionSpy = jasmine.createSpy('action');
+
+            anim.setDuration(10);
 
             // anim: 0-----1-----2-----3-----
             // root: 0--○--1-----2-----3-----
 
+            var actionSpy = jasmine.createSpy('action');
             root.at(0.5, actionSpy);
             anim.tick(0.2); // 0.2
             expect(actionSpy).not.toHaveBeenCalled();
@@ -131,9 +137,10 @@ describe('time', function() {
 
         it('passes call time to the action', function() {
             var anim = new anm.Animation();
-            var root = new anm.Element();
-            anim.setDuration(10);
+            var root = new anm.Element('root');
             anim.add(root);
+
+            anim.setDuration(10);
 
             // anim: 0---●-1-----2-----3-----
             // root: 0--○--1-----2-----3-----
@@ -146,10 +153,11 @@ describe('time', function() {
 
         it('passes call time to the action according to the band', function() {
             var anim = new anm.Animation();
-            var root = new anm.Element();
+            var root = new anm.Element('root');
+            anim.add(root);
+
             anim.setDuration(10);
             root.changeBand(1.2, 5);
-            anim.add(root);
 
             //                   2
             // anim: 0-----1-----●-----3-----4-----5-----6-
@@ -165,9 +173,10 @@ describe('time', function() {
 
         it('passes owner as `this` to the action', function() {
             var anim = new anm.Animation();
-            var root = new anm.Element();
-            anim.setDuration(10);
+            var root = new anm.Element('root');
             anim.add(root);
+
+            anim.setDuration(10);
 
             // anim: 0-----1-----2-----3-----4-----5-----6-
             // root: 0--○--1-----2-----3-----4-----5-----6-
@@ -186,9 +195,10 @@ describe('time', function() {
 
         it('time just flows if there are no pauses', function() {
             var anim = new anm.Animation();
-            var root = new anm.Element();
-            anim.setDuration(10);
+            var root = new anm.Element('root');
             anim.add(root);
+
+            anim.setDuration(10);
 
             // anim: 0-----1-----2-----3-----4-----5-----6-
             // root: 0-----1-----2-----3-----4-----5-----6-
@@ -201,9 +211,10 @@ describe('time', function() {
 
         it('time pauses properly', function() {
             var anim = new anm.Animation();
-            var root = new anm.Element();
-            anim.setDuration(10);
+            var root = new anm.Element('root');
             anim.add(root);
+
+            anim.setDuration(10);
 
             // anim: 0-----1-----2-----3-----4-----5-----6-
             // root: 0-----1·······························
@@ -217,7 +228,7 @@ describe('time', function() {
 
         it('time pauses and continues', function() {
             var anim = new anm.Animation();
-            var root = new anm.Element();
+            var root = new anm.Element('root');
             anim.setDuration(10);
             anim.add(root);
 
@@ -234,11 +245,12 @@ describe('time', function() {
 
         it('`affectsChildren` (`true` by default) flag stops time both in the element and it\'s children', function() {
             var anim = new anm.Animation();
-            var root = new anm.Element();
-            var child = new anm.Element();
-            anim.setDuration(10);
+            var root = new anm.Element('root');
+            var child = new anm.Element('child');
             root.add(child);
             anim.add(root);
+
+            anim.setDuration(10);
 
             // anim: 0-----1-----2-----3-----4-----5-----6-
             // root: 0-----1·····1-----2-----3-----4-----5-
@@ -254,11 +266,12 @@ describe('time', function() {
 
         it('`affectsChildren` (`true` by default) flag stops time both in the element and it\'s children, with bands', function() {
             var anim = new anm.Animation();
-            var root = new anm.Element();
-            var child = new anm.Element();
-            anim.setDuration(10);
+            var root = new anm.Element('root');
+            var child = new anm.Element('child');
             root.add(child);
             anim.add(root);
+
+            anim.setDuration(10);
 
             // anim: 0-----1-----2-----3-----4-----5-----6-
             // root:       0-----1·····1-----2-----3-----4-
@@ -276,12 +289,13 @@ describe('time', function() {
 
         it('when `affectsChildren` is `false`, it stops time in the element, but not in it\'s children', function() {
             var anim = new anm.Animation();
-            var root = new anm.Element();
-            root.affectsChildren = false;
-            var child = new anm.Element();
-            anim.setDuration(10);
+            var root = new anm.Element('root');
+            var child = new anm.Element('child');
             root.add(child);
             anim.add(root);
+
+            anim.setDuration(10);
+            root.affectsChildren = false;
 
             // anim: 0-----1-----2-----3-----4-----5-----6-
             // root: 0-----1·····1-----2-----3-----4-----5-
@@ -297,14 +311,15 @@ describe('time', function() {
 
         it('when `affectsChildren` is `false`, it stops time in the element, but not in it\'s children, relatively to parent band', function() {
             var anim = new anm.Animation();
-            var root = new anm.Element();
-            root.affectsChildren = false;
-            var child = new anm.Element();
-            anim.setDuration(10);
-            root.changeBand(1.0, 10);
-            child.changeBand(1.0, 10);
+            var root = new anm.Element('root');
+            var child = new anm.Element('child');
             root.add(child);
             anim.add(root);
+
+            anim.setDuration(10);
+            root.affectsChildren = false;
+            root.changeBand(1.0, 10);
+            child.changeBand(1.0, 10);
 
             // anim: 0-----1-----2-----3-----4-----5-----6-
             // root:       0-----1·····1-----2-----3-----4-
@@ -327,9 +342,11 @@ describe('time', function() {
         it('jumps forward in time', function() {
 
             var anim = new anm.Animation();
-            var root = new anm.Element();
-            anim.setDuration(10);
+            var root = new anm.Element('root');
             anim.add(root);
+
+            anim.setDuration(10);
+
             root.at(2.0, function() {
                 this.jump(3.0);
             });
@@ -349,9 +366,11 @@ describe('time', function() {
         it('jumps backward in time', function() {
 
             var anim = new anm.Animation();
-            var root = new anm.Element();
-            anim.setDuration(10);
+            var root = new anm.Element('root');
             anim.add(root);
+
+            anim.setDuration(10);
+
             root.at(2.0, function() {
                 this.jump(1.0);
             });
@@ -370,10 +389,12 @@ describe('time', function() {
 
         it('jump\'s time is relative to the owner\'s time', function() {
             var anim = new anm.Animation();
-            var root = new anm.Element();
+            var root = new anm.Element('root');
+            anim.add(root);
+
             anim.setDuration(10);
             root.changeBand(1.0, 10);
-            anim.add(root);
+
             root.at(2.0, function() {
                 this.jump(4.0);
             });
@@ -391,9 +412,11 @@ describe('time', function() {
 
         it('jumps several times', function() {
             var anim = new anm.Animation();
-            var root = new anm.Element();
-            anim.setDuration(10);
+            var root = new anm.Element('root');
             anim.add(root);
+
+            anim.setDuration(10);
+
             root.at(3.0, function() {
                 this.jump(1.0);
             });
@@ -407,12 +430,15 @@ describe('time', function() {
 
         it('also jumps twice in a child when jumps are done in parent', function() {
             var anim = new anm.Animation();
-            var root = new anm.Element();
-            var child = new anm.Element();
+            var root = new anm.Element('root');
+            var child = new anm.Element('child');
+            root.add(child);
+            anim.add(root);
+
             anim.setDuration(10);
             root.changeBand(1.0, 10);
             child.changeBand(1.0, 10);
-            anim.add(root);
+
             root.at(3.0, function() {
                 this.jump(1.0);
             });
@@ -434,13 +460,16 @@ describe('time', function() {
 
         it('also jumps twice in a child when jumps are done in parent with `affectsChildren` == `false`', function() {
             var anim = new anm.Animation();
-            var root = new anm.Element();
-            var child = new anm.Element();
+            var root = new anm.Element('root');
+            var child = new anm.Element('child');
+            root.add(child);
+            anim.add(root);
+
             anim.setDuration(10);
             root.affectsChildren = false;
             root.changeBand(1.0, 10);
             child.changeBand(1.0, 10);
-            anim.add(root);
+
             root.at(3.0, function() {
                 this.jump(1.0);
             });
@@ -463,5 +492,9 @@ describe('time', function() {
         // TODO: with repeat modes, several jumps, ...
 
     });
+
+    // TODO: speed
+
+    // TODO: position manually adjusted
 
 });
