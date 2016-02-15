@@ -125,13 +125,15 @@ Timeline.prototype.tick = function(dt) {
 
 Timeline.prototype.tickRelative = function(other, dt) {
     if (!other || !Timeline.isKnownTime(other.position)) { /*this.endNow();*/ return NO_TIME; }
-    return this.tickRelativeToPosition(other.position, dt)
+    return this.tickRelativeToPosition(other.position, dt);
 };
 
 Timeline.prototype.tickRelativeToPosition = function(pos, dt) {
-    //console.log('tickrel', this.owner.name, 'dt', dt, 'start', this.start, 'actualPos', this.actualPosition, 'pos', this.position, 'diff', this.currentDiff, 'new pos', this.currentDiff + pos - this.start);
-    this.position = this.currentDiff + pos - this.start - dt; // we subtract dt to add it later with this.tick
-    this.actualPosition = this.position;
+    console.log('tickrel', this.owner.name, 'dt', dt, 'start', this.start, 'actualPos', this.actualPosition, 'pos', this.position, 'diff', this.currentDiff, 'new pos', this.currentDiff + pos - this.start);
+    if (!this.paused) {
+        this.position = this.currentDiff + pos - this.start - dt; // we subtract dt to add it later with this.tick
+        this.actualPosition = this.position;
+    }
     return this.tick(dt);
 };
 
