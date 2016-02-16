@@ -63,7 +63,7 @@ Timeline.prototype.tick = function(dt) {
 
     if (this.paused) {
         this.lastDelta = 0;
-        this.currentDiff += this.lastDelta;
+        this.currentDiff -= dt;
         return this.position;
     }
 
