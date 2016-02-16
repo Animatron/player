@@ -273,17 +273,17 @@ describe('time', function() {
             anim.add(root);
 
             // anim: 0-----1-----2-----3-----4-----5-----6-
-            // root: 0-----1-········----2-----3-----4-----
+            // root: 0-----1-·········----2-----3-----4----
 
             anim.at(1.0, function() { root.pause(); });
             anim.at(2.0, function() { root.continue(); });
             anim.tick(1.2); // 1.2
             expect(root.getTime()).toBe(1.2);
-            anim.tick(1.4); // 2.5 // yet paused, continue just called
+            anim.tick(1.5); // 2.7 // yet paused, but continue called now
             expect(root.getTime()).toBe(1.2);
-            anim.tick(1.0); // 3.5
+            anim.tick(1.0); // 3.7
             // time when root was paused + time passed in animation since last continue call
-            expect(root.getTime()).toBe(1.2 + (3.5 - 2.5));
+            expect(root.getTime()).toBe((3.7 - 2.7) + 1.2);
         });
 
         it('`affectsChildren` (`true` by default) flag stops time both in the element and it\'s children', function() {
