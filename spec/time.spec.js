@@ -191,7 +191,7 @@ describe('time', function() {
 
     });
 
-    describe('pausing and continuing', function() {
+    describe('pausing/continuing', function() {
 
         it('time just flows if there are no pauses', function() {
             var anim = new anm.Animation();
@@ -228,7 +228,7 @@ describe('time', function() {
             expect(root.getTime()).toBe(1.0);
         });
 
-        it('pausing time is the actual time when pause was performed', function() {
+        it('pauses time is the actual time when pause was performed', function() {
             var anim = new anm.Animation();
             var root = new anm.Element('root');
             anim.add(root);
@@ -332,8 +332,8 @@ describe('time', function() {
             expect(child.getTime()).toBe(1.0);
             anim.tick(1.0); // 2.0
             expect(child.getTime()).toBe(1.0);
-            anim.tick(1.0); // 3.5
-            expect(child.getTime()).toBe(1.5);
+            anim.tick(1.0); // 3.0
+            expect(child.getTime()).toBe(2.0);
         });
 
         it('time pauses in the element and its children with bands, when `affectsChildren` flag is `true` (default)', function() {
@@ -346,17 +346,19 @@ describe('time', function() {
             anim.setDuration(10);
 
             // anim: 0-----1-----2-----3-----4-----5-----6-
-            // root:       0-----1·························
-            // chld:             0·························
+            // root:       0-----1-----2···················
+            // chld:             0-----1···················
 
             anim.at(2.0, function() { root.pause(); });
             anim.at(3.0, function() { root.continue(); });
-            anim.tick(1.5); // 1.5
-            expect(child.getTime()).toBe(anm.Timeline.NO_TIME);
-            anim.tick(1.0); // 2.5
-            expect(child.getTime()).toBe(0);
-            anim.tick(2.0); // 4.5
-            expect(child.getTime()).toBe(1.5);
+            anim.tick(1.0); // 1.0
+            expect(child.getTime()).toBeLessThan(0);
+            anim.tick(1.0); // 2.0
+            expect(child.getTime()).toBe(0.0);
+            anim.tick(1.0); // 3.0
+            expect(child.getTime()).toBe(1.0);
+            anim.tick(1.0); // 4.0
+            expect(child.getTime()).toBe(1.0);
         });
 
         it('time pauses and continues in the element and its children with bands, when `affectsChildren` flag is `true` (default)', function() {
@@ -382,7 +384,7 @@ describe('time', function() {
             expect(child.getTime()).toBe(1.5);
         });
 
-        it('time stops in the element, but not in its children, when `affectsChildren` is `false`', function() {
+        it('time pauses in the element, but not in its children, when `affectsChildren` is `false`', function() {
             var anim = new anm.Animation();
             var root = new anm.Element('root');
             var child = new anm.Element('child');
@@ -398,13 +400,13 @@ describe('time', function() {
 
             anim.at(1.0, function() { root.pause(); });
             anim.at(2.0, function() { root.continue(); });
-            anim.tick(1.5); // 1.5
-            expect(child.getTime()).toBe(1.5);
-            anim.tick(1.0); // 2.5
-            expect(child.getTime()).toBe(2.5);
+            anim.tick(1.0); // 1.0
+            expect(child.getTime()).toBe(1.0);
+            anim.tick(1.0); // 2.0
+            expect(child.getTime()).toBe(2.0);
         });
 
-        it('time stops in the element, but not in its children, with bands, when `affectsChildren` is `false`', function() {
+        it('time pauses in the element, but not in its children, with bands, when `affectsChildren` is `false`', function() {
             var anim = new anm.Animation();
             var root = new anm.Element('root');
             var child = new anm.Element('child');
@@ -423,7 +425,7 @@ describe('time', function() {
             anim.at(2.0, function() { root.pause(); });
             anim.at(3.0, function() { root.continue(); });
             anim.tick(1.5); // 1.5
-            expect(child.getTime()).toBe(anm.Timeline.NO_TIME);
+            expect(child.getTime()).toBeLessThan(0);
             anim.tick(1.0); // 2.5
             expect(child.getTime()).toBe(0.5);
         });
