@@ -61,7 +61,11 @@ Timeline.prototype.addAction = function(t, f) {
 Timeline.prototype.tick = function(dt) {
     this.actualPosition += dt;
 
-    if (this.paused) { this.lastDelta = 0; return this.position; }
+    if (this.paused) {
+        this.lastDelta = 0;
+        this.currentDiff += this.lastDelta;
+        return this.position;
+    }
 
     var next = (this.position !== NO_TIME) ? (this.position + dt) : NO_TIME;
 
@@ -210,14 +214,16 @@ Timeline.prototype.pause = function() {
     //console.log('pause', this.owner.name, this.position);
     if (this.paused) return;
     this.paused = true; this.fire(C.X_PAUSE, this.position);
+    if (this.owner.affectsChildren) {
+        this.owner.each(function(child) {
+            child.timeline.pause();
+        });
+    }
 };
 
 Timeline.prototype.pauseAt = function(at) {
     var timeline = this;
-    this.addAction(at, function() {
-        timeline.position = at;
-        timeline.pause();
-    });
+    this.addAction(at, function() { timeline.pause(); });
 };
 
 Timeline.prototype.continue = function() {
@@ -225,6 +231,11 @@ Timeline.prototype.continue = function() {
     if (!this.paused) return;
     this.fire(C.X_CONTINUE, this.position);
     this.paused = false;
+    if (this.owner.affectsChildren) {
+        this.owner.each(function(child) {
+            child.timeline.continue();
+        });
+    }
 };
 
 Timeline.prototype.countinueAt = function(at) {
@@ -237,6 +248,7 @@ Timeline.prototype.countinueAt = function(at) {
 
 Timeline.prototype.jump = function(t) {
     //console.log('jump', this.owner.name, this.position, t);
+    this.currentDiff = t - this.actualPosition;
     this.position = t; this.fire(C.X_JUMP, t);
 };
 

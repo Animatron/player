@@ -228,7 +228,7 @@ describe('time', function() {
             expect(root.getTime()).toBe(1.0);
         });
 
-        it('pause time is not affected with time of a tick when pause was actually performed', function() {
+        it('pausing time is the actual time when pause was performed', function() {
             var anim = new anm.Animation();
             var root = new anm.Element('root');
             anim.add(root);
@@ -236,15 +236,15 @@ describe('time', function() {
             anim.setDuration(10);
 
             // anim: 0-----1-----2-----3-----4-----5-----6-
-            // root: 0-----1·······························
+            // root: 0-----1-······························
 
             root.timeline.pauseAt(1.0);
-            anim.tick(1.5); // 1.5
-            expect(root.getTime()).toBe(1.0);
-            anim.tick(1.0); // 2.5
-            expect(root.getTime()).toBe(1.0);
+            anim.tick(1.2); // 1.2
+            expect(root.getTime()).toBe(1.2);
+            anim.tick(1.3); // 2.5
+            expect(root.getTime()).toBe(1.2);
             anim.tick(0.2); // 2.7
-            expect(root.getTime()).toBe(1.0);
+            expect(root.getTime()).toBe(1.2);
         });
 
         it('time pauses and continues', function() {
@@ -258,10 +258,32 @@ describe('time', function() {
 
             anim.at(1.0, function() { root.pause(); });
             anim.at(2.0, function() { root.continue(); });
-            anim.tick(1.5); // 1.5
-            expect(root.getTime()).toBe(1.0); // actual pause is time position when pause was called first time
-            anim.tick(1.1); // 2.6
-            expect(root.getTime()).toBe(1.6);
+            anim.tick(1.0); // 1.0
+            expect(root.getTime()).toBe(1.0);
+            anim.tick(1.0); // 2.0
+            expect(root.getTime()).toBe(1.0);
+            anim.tick(1.0); // 3.0
+            expect(root.getTime()).toBe(2.0);
+        });
+
+        it('time pauses and continued at the actual time when corresponding action was performed', function() {
+            var anim = new anm.Animation();
+            var root = new anm.Element('root');
+            anim.setDuration(10);
+            anim.add(root);
+
+            // anim: 0-----1-----2-----3-----4-----5-----6-
+            // root: 0-----1-········----2-----3-----4-----
+
+            anim.at(1.0, function() { root.pause(); });
+            anim.at(2.0, function() { root.continue(); });
+            anim.tick(1.2); // 1.2
+            expect(root.getTime()).toBe(1.2);
+            anim.tick(1.4); // 2.5 // yet paused, continue just called
+            expect(root.getTime()).toBe(1.2);
+            anim.tick(1.0); // 3.5
+            // time when root was paused + time passed in animation since last continue call
+            expect(root.getTime()).toBe(1.2 + (3.5 - 2.5));
         });
 
         it('`affectsChildren` (`true` by default) flag stops time both in the element and it\'s children', function() {
@@ -397,14 +419,14 @@ describe('time', function() {
             });
 
             // anim: 0-----1-----2-----3-----4-----5-----6-
-            // root: 0-----1----2>1----2-----3-----4-----5-
+            // root: 0-----1----2>1---2>1---2>1---2>1---2>1-
 
             anim.tick(1.0); // 1.0
             expect(root.getTime()).toBe(1.0);
             anim.tick(1.0); // 2.0 // jump performed here
             expect(root.getTime()).toBe(1.0);
-            anim.tick(2.0); // 4.0
-            expect(root.getTime()).toBe(3.0);
+            anim.tick(2.1); // 4.1
+            expect(root.getTime()).toBe(1.1);
 
         });
 
@@ -515,6 +537,8 @@ describe('time', function() {
     });
 
     // TODO: speed
+
+    // TODO: events
 
     // TODO: position manually adjusted
 
