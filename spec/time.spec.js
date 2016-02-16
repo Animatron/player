@@ -266,7 +266,7 @@ describe('time', function() {
             expect(root.getTime()).toBe(2.0);
         });
 
-        it('time pauses and continued at the actual time when corresponding action was performed', function() {
+        it('time pauses and continues at the actual time when corresponding action was performed', function() {
             var anim = new anm.Animation();
             var root = new anm.Element('root');
             anim.setDuration(10);
@@ -286,7 +286,32 @@ describe('time', function() {
             expect(root.getTime()).toBe((3.7 - 2.7) + 1.2);
         });
 
-        it('`affectsChildren` (`true` by default) flag stops time both in the element and it\'s children', function() {
+        it('time pauses both in the element and its children when `affectsChildren` is `true` (default)', function() {
+            var anim = new anm.Animation();
+            var root = new anm.Element('root');
+            var child = new anm.Element('child');
+            root.add(child);
+            anim.add(root);
+
+            anim.setDuration(10);
+
+            // anim: 0-----1-----2-----3-----4-----5-----6-
+            // root: 0-----1·······························
+            // chld: 0-----1·······························
+
+            anim.at(1.0, function() { root.pause(); });
+            anim.at(2.0, function() { root.continue(); });
+            anim.tick(0.5); // 0.5
+            expect(child.getTime()).toBe(0.5);
+            anim.tick(0.5); // 1.0
+            expect(child.getTime()).toBe(1.0);
+            anim.tick(1.0); // 2.0
+            expect(child.getTime()).toBe(1.0);
+            anim.tick(1.0); // 3.0
+            expect(child.getTime()).toBe(1.0);
+        });
+
+        it('time pauses and continues both in the element and its children when `affectsChildren` is `true` (default)', function() {
             var anim = new anm.Animation();
             var root = new anm.Element('root');
             var child = new anm.Element('child');
@@ -301,13 +326,40 @@ describe('time', function() {
 
             anim.at(1.0, function() { root.pause(); });
             anim.at(2.0, function() { root.continue(); });
-            anim.tick(1.5); // 1.5
+            anim.tick(0.5); // 0.5
+            expect(child.getTime()).toBe(0.5);
+            anim.tick(0.5); // 1.0
             expect(child.getTime()).toBe(1.0);
-            anim.tick(1.0); // 2.5
+            anim.tick(1.0); // 2.0
+            expect(child.getTime()).toBe(1.0);
+            anim.tick(1.0); // 3.5
             expect(child.getTime()).toBe(1.5);
         });
 
-        it('`affectsChildren` (`true` by default) flag stops time both in the element and it\'s children, with bands', function() {
+        it('time pauses in the element and its children with bands, when `affectsChildren` flag is `true` (default)', function() {
+            var anim = new anm.Animation();
+            var root = new anm.Element('root');
+            var child = new anm.Element('child');
+            root.add(child);
+            anim.add(root);
+
+            anim.setDuration(10);
+
+            // anim: 0-----1-----2-----3-----4-----5-----6-
+            // root:       0-----1·························
+            // chld:             0·························
+
+            anim.at(2.0, function() { root.pause(); });
+            anim.at(3.0, function() { root.continue(); });
+            anim.tick(1.5); // 1.5
+            expect(child.getTime()).toBe(anm.Timeline.NO_TIME);
+            anim.tick(1.0); // 2.5
+            expect(child.getTime()).toBe(0);
+            anim.tick(2.0); // 4.5
+            expect(child.getTime()).toBe(1.5);
+        });
+
+        it('time pauses and continues in the element and its children with bands, when `affectsChildren` flag is `true` (default)', function() {
             var anim = new anm.Animation();
             var root = new anm.Element('root');
             var child = new anm.Element('child');
@@ -330,7 +382,7 @@ describe('time', function() {
             expect(child.getTime()).toBe(1.5);
         });
 
-        it('when `affectsChildren` is `false`, it stops time in the element, but not in it\'s children', function() {
+        it('time stops in the element, but not in its children, when `affectsChildren` is `false`', function() {
             var anim = new anm.Animation();
             var root = new anm.Element('root');
             var child = new anm.Element('child');
@@ -352,7 +404,7 @@ describe('time', function() {
             expect(child.getTime()).toBe(2.5);
         });
 
-        it('when `affectsChildren` is `false`, it stops time in the element, but not in it\'s children, relatively to parent band', function() {
+        it('time stops in the element, but not in its children, with bands, when `affectsChildren` is `false`', function() {
             var anim = new anm.Animation();
             var root = new anm.Element('root');
             var child = new anm.Element('child');
