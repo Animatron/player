@@ -353,7 +353,6 @@ describe('time', function() {
             // chld: 0-----1·······························
 
             anim.at(1.0, function() { root.pause(); });
-            anim.at(2.0, function() { root.continue(); });
             anim.tick(0.5); // 0.5
             expect(child.getTime()).toBe(0.5);
             anim.tick(0.5); // 1.0
