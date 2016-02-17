@@ -137,7 +137,7 @@ Timeline.prototype.tickRelativeToPosition = function(pos, dt) {
     if (!this.paused) {
         console.log('tickrel', this.owner.name || (this.owner.targets ? 'Anim' : 'Scne'), 'dt', dt, 'start', this.start, 'actualPos', this.actualPosition, 'my pos', this.position, 'diff', this.currentDiff, 'new pos', this.currentDiff + pos - this.start, 'given', pos);
         this.position = this.currentDiff + pos - this.start - dt; // we subtract dt to add it later with this.tick
-        this.actualPosition = this.position;
+        this.actualPosition = this.position + this.currentDiff; // FIXME: why we need to update actualPosition here?
     }
     return this.tick(dt);
 };

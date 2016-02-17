@@ -520,7 +520,32 @@ describe('time', function() {
 
             anim.setDuration(10);
 
+            root.at(3.0, function() {
+                this.jump(1.0);
+            });
+
+            // anim: 0-----1-----2-----3-----4----
+            // root: 0-----1-----2----3>1----2----
+
+            anim.tick(2.0); // 2.0
+            expect(root.getTime()).toBe(2.0);
+            anim.tick(1.0); // 3.0 // jump performed here
+            expect(root.getTime()).toBe(1.0);
+            anim.tick(1.0); // 4.0
+            expect(root.getTime()).toBe(2.0);
+
+        });
+
+        it('jumps backward in time in same timespan as tick performed', function() {
+
+            var anim = new anm.Animation();
+            var root = new anm.Element('root');
+            anim.add(root);
+
+            anim.setDuration(10);
+
             root.at(2.0, function() {
+                console.log('jump');
                 this.jump(1.0);
             });
 
@@ -531,7 +556,9 @@ describe('time', function() {
             expect(root.getTime()).toBe(1.0);
             anim.tick(1.0); // 2.0 // jump performed here
             expect(root.getTime()).toBe(1.0);
-            anim.tick(2.1); // 4.1
+            anim.tick(1.0); // 3.0 // jump performed once more
+            expect(root.getTime()).toBe(1.0);
+            anim.tick(1.1); // 4.1
             expect(root.getTime()).toBe(1.1);
 
         });
@@ -559,7 +586,28 @@ describe('time', function() {
             expect(root.getTime()).toBe(5.0);
         });
 
-        it('jumps several times', function() {
+        it('jumps backward in time, several times', function() {
+            var anim = new anm.Animation();
+            var root = new anm.Element('root');
+            anim.add(root);
+
+            anim.setDuration(10);
+
+            root.at(3.0, function() {
+                this.jump(1.0);
+            });
+
+            // anim: 0-----1-----2-----3-----4-----5-----6-
+            // root: 0-----1-----2----3>1----2----3>1----2-
+
+            anim.tick(3.0); // 3.0 // jump performed first time
+            anim.tick(2.0); // 5.0 // jump performed second time
+            expect(root.getTime()).toBe(1.0);
+            anim.tick(0.5); // 5.5
+            expect(root.getTime()).toBe(1.5);
+        });
+
+        it('jumps several times when both jumps fit in one tick', function() {
             var anim = new anm.Animation();
             var root = new anm.Element('root');
             anim.add(root);
@@ -638,7 +686,7 @@ describe('time', function() {
             expect(child.getTime()).toBe(4.6);
         });
 
-        // TODO: with repeat modes, several jumps, ...
+        // TODO: with repeat modes
 
     });
 
