@@ -122,7 +122,7 @@ Timeline.prototype.tick = function(dt) {
 
     if (!positionAdjusted) this.position = next;
 
-    console.log('tick   ', this.owner.name || this.owner, 'dt', dt, 'start', this.start, 'actualPos', this.actualPosition, 'pos', this.position, 'diff', this.currentDiff);
+    //console.log('tick   ', this.owner.name || this.owner, 'dt', dt, 'start', this.start, 'actualPos', this.actualPosition, 'pos', this.position, 'diff', this.currentDiff);
 
     return this.position;
 };
@@ -313,7 +313,7 @@ Timeline.prototype._performActionsBetween = function(previous, next, dt) {
     var curAction = this.actions[actionsPos];
     // scroll to current time (this.time) forward first, if we're not there already
     while (curAction && (actionsPos < this.actions.length) &&
-           (curAction.time < previous)) {
+           (curAction.time <= previous)) {
         actionsPos++; curAction = this.actions[actionsPos];
     }
     // then perform everything before `next` time

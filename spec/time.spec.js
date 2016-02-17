@@ -78,6 +78,39 @@ describe('time', function() {
 
         });
 
+        it('properly advances time in the scene on a scene switch', function() {
+            var anim = new anm.Animation();
+
+            var fooScene = anim.replaceFirstScene('Foo', 10);
+            var barScene = anim.addScene('Bar', 10);
+
+            // anim: 0-----1-----2-----3-----4....10----11....20]
+            //       [------------Foo--------------][----Bar----]
+
+            anim.tick(5.0); // 5.0
+            expect(fooScene.getTime()).toBe(5.0);
+
+            anim.tick(5.1); // 10.1
+            expect(fooScene.getTime()).toBe(10.0);
+            expect(barScene.getTime()).toBe(10.1 - 10.0);
+        });
+
+        xit('when animation repeats, properly advances time for the first scene', function() {
+            var anim = new anm.Animation();
+
+            anim.repeat = true;
+
+            var fooScene = anim.replaceFirstScene('Foo', 10);
+            var barScene = anim.addScene('Bar', 10);
+
+            // anim: 0-----1-----2-----3-----4....10----11....20]
+            //       [------------Foo--------------][----Bar----]
+
+            anim.tick(20.1); // 20.1
+            expect(barScene.getTime()).toBe(10.0);
+            expect(fooScene.getTime()).toBe(0.1);
+        });
+
     });
 
     describe('time bands', function() {
@@ -187,6 +220,26 @@ describe('time', function() {
             }));
             anim.tick(0.6);
             expect(actionSpy).toHaveBeenCalled();
+        });
+
+        it('action is called once', function() {
+            var anim = new anm.Animation();
+            var root = new anm.Element('root');
+            anim.add(root);
+
+            anim.setDuration(10);
+
+            // anim: 0-----1-----2-----3-----
+            // root: 0-----○-----2-----3-----
+            //             1
+
+            var actionSpy = jasmine.createSpy('action');
+            root.at(1.0, actionSpy);
+            anim.tick(1.0); // 1.0
+            expect(actionSpy).toHaveBeenCalled();
+            actionSpy.calls.reset();
+            anim.tick(0.1); // 1.1
+            expect(actionSpy).not.toHaveBeenCalled();
         });
 
     });
@@ -377,7 +430,7 @@ describe('time', function() {
             anim.at(2.0, function() { root.pause(); });
             anim.at(3.0, function() { root.continue(); });
             anim.tick(1.5); // 1.5
-            expect(child.getTime()).toBe(anm.Timeline.NO_TIME);
+            expect(child.getTime()).toBeLessThan(0);
             anim.tick(1.0); // 2.5
             expect(child.getTime()).toBe(0);
             anim.tick(2.0); // 4.5

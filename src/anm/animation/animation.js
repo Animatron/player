@@ -380,7 +380,7 @@ Animation.prototype.tick = function(dt) {
     var currentScene = this.getCurrentScene();
     if ((currentScene.getTime() + dt) < currentScene.getDuration()) {
         currentScene.tick(dt);
-        this.timeline.tick(dt);
+        this.timeline.tick(dt); // FIXME: changing tick order here makes tests fail, find out why
     } else {
         var previousScene = this.getCurrentScene();
         var previousSceneIdx = this.currentSceneIdx;
@@ -391,6 +391,7 @@ Animation.prototype.tick = function(dt) {
            ? this.getCurrentScene() : this.advanceToNextScene(); // if no jumps performed, advance to next scene
 
         if (nextScene) nextScene.tick(dt - left); // tick the remainder in the next scene
+        this.timeline.tick(dt);
         if (!nextScene && this.endOnLastScene) {
             this.timeline.endNow();
         }
