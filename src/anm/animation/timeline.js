@@ -64,7 +64,6 @@ Timeline.prototype.tick = function(dt) {
     if (this.paused) {
         this.lastDelta = 0;
         this.currentDiff -= dt;
-        console.log('tickpau', this.owner.name || this.owner, 'dt', dt, 'start', this.start, 'actualPos', this.actualPosition, 'pos', this.position, 'diff', this.currentDiff);
         return this.position;
     }
 
@@ -123,8 +122,6 @@ Timeline.prototype.tick = function(dt) {
 
     if (!positionAdjusted) this.position = next;
 
-    console.log('tick   ', this.owner.name || (this.owner.targets ? 'Anim' : 'Scne'), 'dt', dt, 'start', this.start, 'actualPos', this.actualPosition, 'my pos', this.position, 'diff', this.currentDiff);
-
     return this.position;
 };
 
@@ -135,7 +132,6 @@ Timeline.prototype.tickRelative = function(other, dt) {
 
 Timeline.prototype.tickRelativeToPosition = function(pos, dt) {
     if (!this.paused) {
-        console.log('tickrel', this.owner.name || (this.owner.targets ? 'Anim' : 'Scne'), 'dt', dt, 'start', this.start, 'actualPos', this.actualPosition, 'my pos', this.position, 'diff', this.currentDiff, 'new pos', this.currentDiff + pos - this.start, 'given', pos);
         this.position = this.currentDiff + pos - this.start - dt; // we subtract dt to add it later with this.tick
         this.actualPosition = this.position + this.currentDiff; // FIXME: why we need to update actualPosition here?
     }
@@ -212,7 +208,6 @@ Timeline.prototype.getGlobalTime = function() {
 };
 
 Timeline.prototype.pause = function() {
-    //console.log('pause', this.owner.name, this.position);
     if (this.paused) return;
     this.paused = true; this.fire(C.X_PAUSE, this.position);
     /*if (this.owner.affectsChildren) {
@@ -228,7 +223,6 @@ Timeline.prototype.pauseAt = function(at) {
 };
 
 Timeline.prototype.continue = function() {
-    //console.log('continue', this.owner.name, this.position);
     if (!this.paused) return;
     this.fire(C.X_CONTINUE, this.position);
     this.paused = false;
@@ -248,7 +242,6 @@ Timeline.prototype.countinueAt = function(at) {
 };
 
 Timeline.prototype.jump = function(t) {
-    //console.log('jump', this.owner.name, this.position, t);
     this.currentDiff = t - this.actualPosition;
     this.position = t; this.fire(C.X_JUMP, t);
 };

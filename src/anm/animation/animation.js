@@ -377,7 +377,6 @@ Animation.prototype.render = function(ctx) {
 };
 
 Animation.prototype.tick = function(dt) {
-    console.log('-------------', this.getTime(), '+', dt, '->', this.getTime() + dt);
     var currentScene = this.getCurrentScene();
     if ((currentScene.getTime() + dt) < currentScene.getDuration()) {
         currentScene.tick(dt);
