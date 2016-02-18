@@ -146,6 +146,38 @@ describe('time', function() {
 
         });
 
+        it('negative bands also work properly', function() {
+
+            var anim = new anm.Animation();
+            var root = new anm.Element('root');
+            var child = new anm.Element('child');
+            root.add(child);
+            anim.add(root);
+
+            anim.setDuration(10);
+            root.changeBand(2.0, 10);
+            child.changeBand(-1.0, 10);
+
+            // anim: 0-----1-----2-----3-----4-----5-----6-
+            // root:             0-----1-----2-----3-----4-
+            // chld:       0-----1-----2-----3-----4-----5-
+
+            anim.tick(0.5); // 0.5
+            expect(root.getTime()).toBeLessThan(0);
+            expect(child.getTime()).toBeLessThan(0);
+            anim.tick(0.5); // 1.0
+            expect(root.getTime()).toBeLessThan(0);
+            expect(child.isActive()).toBeFalsy();
+            expect(child.getTime()).toBeLessThan(0);
+            anim.tick(1.0); // 2.0
+            expect(root.getTime()).toBe(0.0);
+            expect(child.getTime()).toBe(1.0);
+            anim.tick(1.0); // 3.0
+            expect(root.getTime()).toBe(1.0);
+            expect(child.getTime()).toBe(2.0);
+
+        });
+
     });
 
     describe('adding actions', function() {
