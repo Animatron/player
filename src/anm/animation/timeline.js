@@ -27,7 +27,8 @@ function Timeline(owner) {
     this.actions = [];
     this.paused = false;
     this.position = -this.start || 0;
-    this.actualPosition = -this.start || 0;
+    this.actualPosition = -this.start || 0; // actual time passed, excluding any jumps
+    this.currentDiff = 0; // current difference between actual position and position
     this.easing = null;
     this.speed = 1; // TODO: use speed
     this.lastDelta = 0;
@@ -60,7 +61,11 @@ Timeline.prototype.addAction = function(t, f) {
 Timeline.prototype.tick = function(dt) {
     this.actualPosition += dt;
 
-    if (this.paused) { this.lastDelta = 0; return this.position; }
+    if (this.paused) {
+        this.lastDelta = 0;
+        this.currentDiff -= dt;
+        return this.position;
+    }
 
     var next = (this.position !== NO_TIME) ? (this.position + dt) : NO_TIME;
 
@@ -113,7 +118,8 @@ Timeline.prototype.tick = function(dt) {
         }
     }
 
-    //console.log('tick', this.owner.name, this.position, dt, next);
+    this.currentDiff = (positionAdjusted ? this.position : next) - this.actualPosition;
+
     if (!positionAdjusted) this.position = next;
 
     return this.position;
@@ -121,12 +127,14 @@ Timeline.prototype.tick = function(dt) {
 
 Timeline.prototype.tickRelative = function(other, dt) {
     if (!other || !Timeline.isKnownTime(other.position)) { /*this.endNow();*/ return NO_TIME; }
-    return this.tickRelativeToPosition(other.position, dt)
+    return this.tickRelativeToPosition(other.position, dt);
 };
 
 Timeline.prototype.tickRelativeToPosition = function(pos, dt) {
-    this.position = pos - this.start - dt; // we subtract dt to add it later with this.tick
-    this.actualPosition = this.position;
+    if (!this.paused) {
+        this.position = this.currentDiff + pos - this.start - dt; // we subtract dt to add it later with this.tick
+        this.actualPosition = this.position + this.currentDiff; // FIXME: why we need to update actualPosition here?
+    }
     return this.tick(dt);
 };
 
@@ -200,33 +208,47 @@ Timeline.prototype.getGlobalTime = function() {
 };
 
 Timeline.prototype.pause = function() {
-    //console.log('pause', this.owner.name, this.position);
     if (this.paused) return;
     this.paused = true; this.fire(C.X_PAUSE, this.position);
+    /*if (this.owner.affectsChildren) {
+        this.owner.each(function(child) {
+            child.timeline.pause();
+        });
+    }*/
 };
 
 Timeline.prototype.pauseAt = function(at) {
-    var me = this; this.addAction(at, function() { me.pause(); });
+    var timeline = this;
+    this.addAction(at, function() { timeline.pause(); });
 };
 
 Timeline.prototype.continue = function() {
-    //console.log('continue', this.owner.name, this.position);
     if (!this.paused) return;
     this.fire(C.X_CONTINUE, this.position);
     this.paused = false;
+    /*if (this.owner.affectsChildren) {
+        this.owner.each(function(child) {
+            child.timeline.continue();
+        });
+    }*/
 };
 
 Timeline.prototype.countinueAt = function(at) {
-    var me = this; this.addAction(at, function() { me.continue(); });
+    var timeline = this;
+    this.addAction(at, function() {
+        /*timeline.position = at;*/
+        timeline.continue();
+    });
 };
 
 Timeline.prototype.jump = function(t) {
-    //console.log('jump', this.owner.name, this.position, t);
+    this.currentDiff = t - this.actualPosition;
     this.position = t; this.fire(C.X_JUMP, t);
 };
 
 Timeline.prototype.jumpAt = function(at, t) {
-    var me = this; this.addAction(at, function() { me.jump(t); });
+    var timeline = this;
+    this.addAction(at, function() { timeline.jump(t); });
 };
 
 Timeline.prototype.jumpTo = function(child) {
@@ -275,8 +297,8 @@ Timeline.prototype.onMessage = function(message, handler) {
 };
 
 Timeline.prototype.fireMessageAt = function(at, message) {
-    var me = this;
-    this.addAction(at, function() { me.fireMessage(message); });
+    var timeline = this;
+    this.addAction(at, function() { timeline.fireMessage(message); });
 };
 
 Timeline.prototype._performActionsBetween = function(previous, next, dt) {
@@ -285,7 +307,7 @@ Timeline.prototype._performActionsBetween = function(previous, next, dt) {
     var curAction = this.actions[actionsPos];
     // scroll to current time (this.time) forward first, if we're not there already
     while (curAction && (actionsPos < this.actions.length) &&
-           (curAction.time < previous)) {
+           (curAction.time <= previous)) {
         actionsPos++; curAction = this.actions[actionsPos];
     }
     // then perform everything before `next` time
@@ -293,7 +315,7 @@ Timeline.prototype._performActionsBetween = function(previous, next, dt) {
            (curAction.time <= next) &&
            ((curAction.time > previous) ||
             ((dt > 0) && (curAction.time == previous)))) {
-        curAction.func(next);
+        curAction.func.call(this.owner, next);
         actionsPos++; curAction = this.actions[actionsPos];
     }
 }
