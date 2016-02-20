@@ -293,7 +293,8 @@ Timeline.prototype.fireMessage = function(message) {
 };
 
 Timeline.prototype.onMessage = function(message, handler) {
-    this.on(C.X_MESSAGE, function(name) { if (name === message) handler(); });
+    var owner = this.owner;
+    this.on(C.X_MESSAGE, function(name) { if (name === message) handler.call(owner); });
 };
 
 Timeline.prototype.fireMessageAt = function(at, message) {
