@@ -420,6 +420,18 @@ Animation.prototype.continue = function() {
     this.getCurrentScene().continue();
 };
 
+Animation.prototype.fireMessage = function(msg) {
+    this.timeline.fireMessage(msg);
+};
+
+Animation.prototype.fireMessageAt = function(t, msg) {
+    this.timeline.fireMessageAt(t, msg);
+};
+
+Animation.prototype.onMessage = function(msg, callback) {
+    this.timeline.onMessage(msg, callback);
+};
+
 /**
  * @method jump
  *

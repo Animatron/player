@@ -109,6 +109,7 @@ registerEvent('X_PAUSE', 'timepause');
 registerEvent('X_CONTINUE', 'timecontinue');
 registerEvent('X_JUMP', 'timejump');
 registerEvent('X_ITER', 'timeiteration');
+registerEvent('X_MESSAGE', 'message');
 
 // * Animation or Element error
 registerEvent('X_ERROR', 'error');
