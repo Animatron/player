@@ -271,6 +271,24 @@ describe('time', function() {
             expect(actionSpy).not.toHaveBeenCalled();
         });
 
+        it('action is called even if assigned to zero time', function() {
+            var anim = new anm.Animation();
+            var root = new anm.Element('root');
+            anim.add(root);
+
+            anim.setDuration(10);
+
+            // anim: 0-----1-----2-----3-----
+            // root: ○-----1-----2-----3-----
+            //       0
+
+            var actionSpy = jasmine.createSpy('action');
+            root.at(0.0, actionSpy);
+
+            anim.tick(0.1);
+            expect(actionSpy).toHaveBeenCalled();
+        });
+
     });
 
     describe('pausing/continuing', function() {
@@ -509,6 +527,23 @@ describe('time', function() {
             expect(child.isActive()).toBeFalsy();
             anim.tick(1.0); // 2.5
             expect(child.getTime()).toBe(0.5);
+        });
+
+
+        it('pauses scene at zero time', function() {
+            var anim = new anm.Animation();
+            anim.setDuration(10);
+            anim.getCurrentScene().at(0.0, function() {
+                anim.getCurrentScene().pause();
+            });
+
+            // anim: 0-----1-----2-----3-----
+            // scne: 0·······················
+
+            anim.tick(0.1);
+            expect(anim.getCurrentScene().getTime()).toBe(0.1);
+            anim.tick(0.4); // 0.5
+            expect(anim.getCurrentScene().getTime()).toBe(0.1);
         });
 
         // TODO: with repeat modes, several pauses, ...

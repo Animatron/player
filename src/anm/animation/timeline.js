@@ -301,10 +301,12 @@ Timeline.prototype._performActionsBetween = function(previous, next, dt) {
     if (!this.actions.length) return;
     var actionsPos = 0;
     var curAction = this.actions[actionsPos];
-    // scroll to current time (this.time) forward first, if we're not there already
-    while (curAction && (actionsPos < this.actions.length) &&
-           (curAction.time <= previous)) {
-        actionsPos++; curAction = this.actions[actionsPos];
+    if (curAction && (curAction.time > 0)) {
+        // scroll to current time (this.position) forward first, if we're not there already
+        while (curAction && (actionsPos < this.actions.length) &&
+               (curAction.time <= previous)) {
+            actionsPos++; curAction = this.actions[actionsPos];
+        }
     }
     // then perform everything before `next` time
     while (curAction && (actionsPos < this.actions.length) &&
