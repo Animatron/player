@@ -773,29 +773,6 @@ describe('time', function() {
                 expect(barSpy2).toHaveBeenCalled();
             });
 
-            it('fires a message at requested time', function() {
-                var anim = new anm.Animation();
-                anim.setDuration(10);
-
-                var fooSpy = jasmine.createSpy('foo');
-                anim.onMessage('foo', fooSpy);
-
-                //                   2
-                // anim: 0-----1---#foo#---3-----4-----5-----6-
-
-                anim.fireMessageAt(2.0, 'foo');
-
-                expect(fooSpy).not.toHaveBeenCalled();
-
-                anim.tick(1.0); // 1.0
-                expect(fooSpy).not.toHaveBeenCalled();
-                anim.tick(1.0); // 2.0
-                expect(fooSpy).toHaveBeenCalled();
-                fooSpy.calls.reset();
-                anim.tick(1.0); // 3.0
-                expect(fooSpy).not.toHaveBeenCalled();
-            });
-
         });
 
         describe('local', function() {
@@ -861,32 +838,6 @@ describe('time', function() {
                 expect(fooSpy).not.toHaveBeenCalled();
                 expect(barSpy1).toHaveBeenCalled();
                 expect(barSpy2).toHaveBeenCalled();
-            });
-
-            it('fires a message at requested time', function() {
-                var anim = new anm.Animation();
-                var root = new anm.Element();
-                anim.add(root);
-                anim.setDuration(10);
-
-                var fooSpy = jasmine.createSpy('foo');
-                root.onMessage('foo', fooSpy);
-
-                // anim: 0-----1-----2-----3-----4-----5-----6-
-                // root: 0-----1---#foo#---3-----4-----5-----6-
-                //                   2
-
-                root.fireMessageAt(2.0, 'foo');
-
-                expect(fooSpy).not.toHaveBeenCalled();
-
-                anim.tick(1.0); // 1.0
-                expect(fooSpy).not.toHaveBeenCalled();
-                anim.tick(1.0); // 2.0
-                expect(fooSpy).toHaveBeenCalled();
-                fooSpy.calls.reset();
-                anim.tick(1.0); // 3.0
-                expect(fooSpy).not.toHaveBeenCalled();
             });
 
         });

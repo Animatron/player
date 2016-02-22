@@ -297,11 +297,6 @@ Timeline.prototype.onMessage = function(message, handler) {
     this.on(C.X_MESSAGE, function(name) { if (name === message) handler.call(owner); });
 };
 
-Timeline.prototype.fireMessageAt = function(at, message) {
-    var timeline = this;
-    this.addAction(at, function() { timeline.fireMessage(message); });
-};
-
 Timeline.prototype._performActionsBetween = function(previous, next, dt) {
     if (!this.actions.length) return;
     var actionsPos = 0;
