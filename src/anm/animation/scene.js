@@ -272,4 +272,16 @@ Scene._fromElement = function(elm, anim) {
     return scene;
 };
 
+Scene.prototype.fireMessage = function(msg) {
+    this.timeline.fireMessage(msg);
+};
+
+Scene.prototype.fireMessageAt = function(t, msg) {
+    this.timeline.fireMessageAt(t, msg);
+};
+
+Scene.prototype.onMessage = function(msg, callback) {
+    this.timeline.onMessage(msg, callback);
+};
+
 module.exports = Scene;

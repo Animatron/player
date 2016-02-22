@@ -719,6 +719,180 @@ describe('time', function() {
 
     });
 
+    describe('messages', function() {
+
+        describe('global', function() {
+
+            it('fires a messages to a subscriber', function() {
+                var anim = new anm.Animation();
+
+                var fooSpy = jasmine.createSpy('foo');
+                anim.onMessage('foo', fooSpy);
+
+                expect(fooSpy).not.toHaveBeenCalled();
+                anim.fireMessage('foo');
+
+                expect(fooSpy).toHaveBeenCalled();
+            });
+
+            it('passes owner as `this` to the handler', function() {
+                var anim = new anm.Animation();
+
+                var fooSpy = jasmine.createSpy('foo').and.callFake(function() {
+                    expect(this).toBe(anim);
+                });
+                anim.onMessage('foo', fooSpy);
+                anim.fireMessage('foo');
+
+                expect(fooSpy).toHaveBeenCalled();
+            });
+
+            it('fires a message to all subscribers', function() {
+
+                var anim = new anm.Animation();
+
+                var fooSpy = jasmine.createSpy('foo');
+                var barSpy1 = jasmine.createSpy('bar');
+                var barSpy2 = jasmine.createSpy('bar');
+
+                anim.onMessage('foo', fooSpy);
+                anim.onMessage('bar', barSpy1);
+                anim.onMessage('bar', barSpy2);
+
+                anim.fireMessage('foo');
+
+                expect(fooSpy).toHaveBeenCalled();
+                expect(barSpy1).not.toHaveBeenCalled();
+                expect(barSpy2).not.toHaveBeenCalled();
+                fooSpy.calls.reset();
+
+                anim.fireMessage('bar');
+
+                expect(fooSpy).not.toHaveBeenCalled();
+                expect(barSpy1).toHaveBeenCalled();
+                expect(barSpy2).toHaveBeenCalled();
+            });
+
+            it('fires a message at requested time', function() {
+                var anim = new anm.Animation();
+                anim.setDuration(10);
+
+                var fooSpy = jasmine.createSpy('foo');
+                anim.onMessage('foo', fooSpy);
+
+                //                   2
+                // anim: 0-----1---#foo#---3-----4-----5-----6-
+
+                anim.fireMessageAt(2.0, 'foo');
+
+                expect(fooSpy).not.toHaveBeenCalled();
+
+                anim.tick(1.0); // 1.0
+                expect(fooSpy).not.toHaveBeenCalled();
+                anim.tick(1.0); // 2.0
+                expect(fooSpy).toHaveBeenCalled();
+                fooSpy.calls.reset();
+                anim.tick(1.0); // 3.0
+                expect(fooSpy).not.toHaveBeenCalled();
+            });
+
+        });
+
+        describe('local', function() {
+
+            it('fires a messages to a subscriber', function() {
+                var anim = new anm.Animation();
+                var root = new anm.Element();
+                anim.add(root);
+
+                var animFooSpy = jasmine.createSpy('foo');
+                anim.onMessage('foo', animFooSpy);
+                var rootFooSpy = jasmine.createSpy('foo');
+                root.onMessage('foo', rootFooSpy);
+
+                expect(rootFooSpy).not.toHaveBeenCalled();
+                root.fireMessage('foo');
+
+                expect(animFooSpy).not.toHaveBeenCalled();
+                expect(rootFooSpy).toHaveBeenCalled();
+                rootFooSpy.calls.reset();
+
+                anim.fireMessage('foo');
+                expect(animFooSpy).toHaveBeenCalled();
+                expect(rootFooSpy).not.toHaveBeenCalled();
+            });
+
+            it('passes owner as `this` to the handler', function() {
+                var anim = new anm.Animation();
+                var root = new anm.Element();
+                anim.add(root);
+
+                var fooSpy = jasmine.createSpy('foo').and.callFake(function() {
+                    expect(this).toBe(root);
+                });
+                root.onMessage('foo', fooSpy);
+                root.fireMessage('foo');
+
+                expect(fooSpy).toHaveBeenCalled();
+            });
+
+            it('fires a message to all subscribers', function() {
+                var anim = new anm.Animation();
+                var root = new anm.Element();
+                anim.add(root);
+
+                var fooSpy = jasmine.createSpy('foo');
+                var barSpy1 = jasmine.createSpy('bar');
+                var barSpy2 = jasmine.createSpy('bar');
+
+                root.onMessage('foo', fooSpy);
+                root.onMessage('bar', barSpy1);
+                root.onMessage('bar', barSpy2);
+
+                root.fireMessage('foo');
+
+                expect(fooSpy).toHaveBeenCalled();
+                expect(barSpy1).not.toHaveBeenCalled();
+                expect(barSpy2).not.toHaveBeenCalled();
+                fooSpy.calls.reset();
+
+                root.fireMessage('bar');
+
+                expect(fooSpy).not.toHaveBeenCalled();
+                expect(barSpy1).toHaveBeenCalled();
+                expect(barSpy2).toHaveBeenCalled();
+            });
+
+            it('fires a message at requested time', function() {
+                var anim = new anm.Animation();
+                var root = new anm.Element();
+                anim.add(root);
+                anim.setDuration(10);
+
+                var fooSpy = jasmine.createSpy('foo');
+                root.onMessage('foo', fooSpy);
+
+                // anim: 0-----1-----2-----3-----4-----5-----6-
+                // root: 0-----1---#foo#---3-----4-----5-----6-
+                //                   2
+
+                root.fireMessageAt(2.0, 'foo');
+
+                expect(fooSpy).not.toHaveBeenCalled();
+
+                anim.tick(1.0); // 1.0
+                expect(fooSpy).not.toHaveBeenCalled();
+                anim.tick(1.0); // 2.0
+                expect(fooSpy).toHaveBeenCalled();
+                fooSpy.calls.reset();
+                anim.tick(1.0); // 3.0
+                expect(fooSpy).not.toHaveBeenCalled();
+            });
+
+        });
+
+    });
+
     // TODO: speed
 
     // TODO: events
