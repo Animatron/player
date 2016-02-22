@@ -132,6 +132,57 @@ public class TimelineTests {
         assertEquals(new Point(0, 0), e3.position);
     }
 
+    @Test
+    public void testPlayStop() {
+        assertEquals(50.0, m.duration());
+
+        m.tick(1);
+        assertEquals(1.0, m.playHead());
+
+        Point e1pos = e1.position;
+        c1.stop();
+
+        m.tick(1);
+        assertEquals(2.0, m.playHead());
+        assertEquals(1.0, c1.playHead());
+        assertEquals(e1pos, e1.position);
+
+        c3.stop();
+
+        m.tick(4);
+        assertEquals(6.0, m.playHead());
+        assertEquals(6.0, s1.playHead());
+        assertEquals(1.0, c1.playHead());
+        assertEquals(0.0, c3.playHead());
+        assertEquals(e1pos, e1.position);
+
+        assertTrue(m.isVisible(c1));
+        assertTrue(m.isVisible(e1));
+        assertTrue(m.isVisible(c3));
+        assertTrue(m.isVisible(e6));
+        assertFalse(m.isVisible(e2));
+        assertFalse(m.isVisible(e7));
+
+        c1.play();
+        c3.play();
+
+        m.tick(4);
+        assertEquals(10.0, m.playHead());
+        assertEquals(10.0, s1.playHead());
+        assertEquals(5.0, c1.playHead());
+        assertEquals(4.0, c3.playHead());
+        assertEquals(new Point(5, 5), e1.position);
+        assertEquals(new Point(10, 10), e2.position);
+
+        assertTrue(m.isVisible(c1));
+        assertTrue(m.isVisible(e1));
+        assertTrue(m.isVisible(e2));
+        assertTrue(m.isVisible(c3));
+        assertTrue(m.isVisible(e7));
+        assertFalse(m.isVisible(e6));
+
+    }
+
     /**
      *  Movie
      *    s1 dur=40
