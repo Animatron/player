@@ -106,8 +106,7 @@ Import.project = function(prj) {
     for (var i = 0, il = scenes_ids.length; i < il; i++) {
         var node_src = Import._find(scenes_ids[i], elems);
         if (Import._type(node_src) != TYPE_SCENE) _reportError('Given Scene ID ' + scenes_ids[i] + ' points to something else');
-        // FIXME: change to explicit Import.scene
-        scene = Scene._fromElement(Import.node(node_src, null, null, elems, null, root), root);
+        scene = Import.scene(node_src, elems, root); // also fill scene with all the elements defined in JSON
         // there's always a default scene in Player, which is first one
         if (i === 0) { root.replaceScene(0, scene); } else { root.addScene(scene); };
     }
@@ -177,6 +176,15 @@ function isPath(type) {
     return (type == TYPE_PATH);
 }
 
+Import.scene = function(src, all, anim) {
+    var scene = new Scene(anim);
+    // adds properties to existing scene instance, so it will be possible to assign
+    // it to every element inside on creation (but actual process of appending to scene
+    // happens inside Scene._fromElement)
+    Scene._fromElement(Import.node(src, null, null, all, null, anim, scene), anim, scene);
+    return scene;
+};
+
 /** node **/
 /*
  * union {
@@ -188,7 +196,7 @@ function isPath(type) {
  * } *element*;
  */
 // -> Element
-Import.node = function(src, layer_src, layer_band, all, parent, anim) {
+Import.node = function(src, layer_src, layer_band, all, parent, anim, scene) {
     var type = Import._type(src),
         trg = null;
     if ((type == TYPE_CLIP) ||
@@ -196,9 +204,9 @@ Import.node = function(src, layer_src, layer_band, all, parent, anim) {
         (type == TYPE_GROUP) ||
         (type == TYPE_SKELETON) ||
         (type == TYPE_BONES)) {
-        trg = Import.branch(type, src, layer_src, layer_band, all, anim);
+        trg = Import.branch(type, src, layer_src, layer_band, all, anim, scene);
     } else if (type != TYPE_UNKNOWN) {
-        trg = Import.leaf(type, src, layer_src, layer_band, parent, anim);
+        trg = Import.leaf(type, src, layer_src, layer_band, parent, anim, scene);
     }
     if (trg) {
         trg._anm_type = type;
@@ -226,9 +234,10 @@ var L_ROT_TO_PATH = 1,
  * } *group_element*;
  */
 // -> Element
-Import.branch = function(type, src, parent_src, parent_band, all, anim) {
+Import.branch = function(type, src, parent_src, parent_band, all, anim, scene) {
     var trg = new Element();
     trg.name = src[1];
+    if (scene) trg.scene = scene;
     var _layers = (type == TYPE_SCENE) ? src[3] : src[2],
         _layers_targets = [];
     if (type === TYPE_SCENE) {
@@ -371,8 +380,9 @@ Import.branch = function(type, src, parent_src, parent_band, all, anim) {
 
 /** leaf **/
 // -> Element
-Import.leaf = function(type, src, layer_src, layer_band, parent, anim) {
+Import.leaf = function(type, src, layer_src, layer_band, parent, anim, scene) {
     var trg = new Element();
+    if (scene) trg.scene = scene;
     var hasUrl = !!src[1];
     if (!hasUrl &&
         (type === TYPE_IMAGE || type === TYPE_AUDIO || type === TYPE_VIDEO)) {

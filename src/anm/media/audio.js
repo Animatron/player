@@ -351,11 +351,17 @@ Audio.prototype.connect = function(element, anim) {
         me.stopIfNotMaster();
         me.play.apply(me, arguments);
     });
-    var stop = function() {
+    var scene = element.scene;
+    if (scene) {
+        scene.timeline.on(C.X_END, function() {
+            me.stopIfNotMaster();
+        });
+    }
+    var forcedStop = function() {
         me.stop();
     };
-    anim.timeline.on(C.X_END, stop);
-    anim.timeline.on(C.X_PAUSE, stop);
+    anim.timeline.on(C.X_END, forcedStop);
+    anim.timeline.on(C.X_PAUSE, forcedStop);
 };
 /**
  * @method clone
