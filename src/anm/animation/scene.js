@@ -160,7 +160,7 @@ Scene.prototype.findById = function(id) {
 };
 
 Scene.prototype._register = function(elm) {
-    if (this.hash[elm.id]) throw errors.animation(ErrLoc.A.ELEMENT_IS_REGISTERED, this);
+    if (this.hash[elm.id]) log.warn(ErrLoc.A.ELEMENT_IS_REGISTERED, elm.id, elm.name);
     elm.registered = true;
     elm.anim = this.anim; elm.scene = this;
     this.hash[elm.id] = elm;
