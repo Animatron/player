@@ -1,7 +1,9 @@
 var utils = require('../utils.js'),
     is = utils.is,
     iter = utils.iter,
-    log = require('../log.js');
+    log = require('../log.js'),
+    errors = require('../errors.js'),
+    ErrLoc = require('../loc.js').Errors;
 
 var events = require('../events.js'),
     provideEvents = events.provideEvents;
@@ -34,7 +36,7 @@ function Scene(anim, name, duration) {
 }
 
 provideEvents(Scene, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
-                       C.X_MMOVE, C.X_MENTER, C.X_MEXIT ]);
+                       C.X_MMOVE, C.X_MENTER, C.X_MEXIT, C.X_ERROR ]);
 
 Scene.prototype.tick = function(dt) {
     this.timeline.tick(dt);

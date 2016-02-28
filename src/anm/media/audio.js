@@ -354,6 +354,8 @@ Audio.prototype.connect = function(element, anim) {
     var scene = element.scene;
     if (scene) {
         scene.timeline.on(C.X_END, function() {
+            // FIXME: if audio is a master, it should belong to Animation,
+            //        not a scene
             me.stopIfNotMaster();
         });
     }
