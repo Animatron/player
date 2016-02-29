@@ -490,12 +490,12 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     var anim = player.anim;
     var prevAnimPos = anim.getTime();
-    anim.reset();
 
     from = is.defined(from) ? from : prevAnimPos;
     player.__lastPlayConf = [ from, speed, stopAfter ];
 
     anim.continue();
+    anim.reset();
     anim.jump(from);
 
     player.__startTime = Date.now();
@@ -539,7 +539,10 @@ Player.prototype.play = function(from, speed, stopAfter) {
 };
 
 Player.prototype.continuePlaying = function() {
-    if (this.anim) this.play(this.anim.getTime());
+    if (this.anim) {
+        this.anim.continue();
+        this.play(this.anim.getTime());
+    }
 };
 
 /**
