@@ -113,7 +113,6 @@ Timeline.prototype.tick = function(dt) {
             }
 
             if ((previous >= 0) && (previous <= this.duration) && (next >= this.duration) && !this.passedEnd) {
-                if (this.owner.isScene) console.log('fire end of band for scene ', next, this.owner.name, this.owner.id);
                 this.fire(C.X_END, next); this.passedEnd = true;
             }
         }
