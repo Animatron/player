@@ -336,7 +336,7 @@ Audio.prototype.toggleMute = function() {
     }
 };
 /** @private @method connect */
-Audio.prototype.connect = function(element, anim) {
+Audio.prototype.connect = function(element, anim, scene) {
     var me = this;
     element.timeline.on(C.X_START, function() {
         me.play.apply(me, arguments);
@@ -351,7 +351,6 @@ Audio.prototype.connect = function(element, anim) {
         me.stopIfNotMaster();
         me.play.apply(me, arguments);
     });
-    var scene = element.scene;
     if (scene) {
         scene.timeline.on(C.X_END, function() {
             // FIXME: if audio is a master, it should belong to Animation,

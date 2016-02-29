@@ -31,7 +31,7 @@ function Video(url, formats, size) {
     this.playing = false;
 }
 /** @private @method connect */
-Video.prototype.connect = function(element, anim) {
+Video.prototype.connect = function(element, anim, scene) {
     var me = this;
     var startFrom = function() { me.play.apply(me, arguments); };
     var stop = function() { me.stop(); };

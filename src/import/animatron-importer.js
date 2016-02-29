@@ -382,7 +382,6 @@ Import.branch = function(type, src, parent_src, parent_band, all, anim, scene) {
 // -> Element
 Import.leaf = function(type, src, layer_src, layer_band, parent, anim, scene) {
     var trg = new Element();
-    if (scene) trg.scene = scene;
     var hasUrl = !!src[1];
     if (!hasUrl &&
         (type === TYPE_IMAGE || type === TYPE_AUDIO || type === TYPE_VIDEO)) {
@@ -395,12 +394,12 @@ Import.leaf = function(type, src, layer_src, layer_band, parent, anim, scene) {
     else if (type == TYPE_AUDIO) {
         trg.type = C.ET_AUDIO;
         trg.$audio = Import.audio(src);
-        trg.$audio.connect(trg, anim);
+        trg.$audio.connect(trg, anim, scene);
     }
     else if (type == TYPE_VIDEO) {
         trg.type = C.ET_VIDEO;
         trg.$video = Import.video(src);
-        trg.$video.connect(trg, anim);
+        trg.$video.connect(trg, anim, scene);
     }
     else if (type == TYPE_BONE) {
         trg.$from = src[1];
