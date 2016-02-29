@@ -269,7 +269,7 @@ Import.branch = function(type, src, parent_src, parent_band, all, anim, scene) {
         var band = Import.band(layer_src[2]);
         // if there is a branch under the node, it will be a wrapper
         // if it is a leaf, it will be the element itself
-        var layer_trg = Import.node(node_src, layer_src, band, all, trg, anim);
+        var layer_trg = Import.node(node_src, layer_src, band, all, trg, anim, scene);
         if (!layer_trg) continue;
         layer_trg.name = layer_src[1];
 
@@ -394,7 +394,7 @@ Import.leaf = function(type, src, layer_src, layer_band, parent, anim, scene) {
     else if (type == TYPE_AUDIO) {
         trg.type = C.ET_AUDIO;
         trg.$audio = Import.audio(src);
-        trg.$audio.connect(trg, anim, scene);
+        if (!trg.$audio.isMaster()) trg.$audio.connect(trg, anim, scene);
     }
     else if (type == TYPE_VIDEO) {
         trg.type = C.ET_VIDEO;

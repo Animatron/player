@@ -275,6 +275,9 @@ Audio.prototype.stop = function() {
 Audio.prototype.stopIfNotMaster = function() {
     if (!this.master) this.stop();
 };
+Audio.prototype.isMaster = function() {
+    return this.master;
+};
 /**
  * @method setVolume
  * @chainable
@@ -339,31 +342,45 @@ Audio.prototype.toggleMute = function() {
 Audio.prototype.connect = function(element, anim, scene) {
     var me = this;
     element.timeline.on(C.X_START, function() {
+        console.log(me.url, '(not-master) element timeline start, play from this point', arguments);
         me.play.apply(me, arguments);
     });
+    element.timeline.on(C.X_PAUSE, function() {
+        console.log(me.url, '(not-master) element timeline pause, stop if not master');
+        me.stopIfNotMaster();
+    });
     element.timeline.on(C.X_CONTINUE, function() {
+        console.log(me.url, '(not-master) element timeline continue, play from this point', arguments);
         me.play.apply(me, arguments);
     });
     element.timeline.on(C.X_END, function() {
+        console.log(me.url, '(not-master) element timeline end, stop if not master');
         me.stopIfNotMaster();
     });
     element.timeline.on(C.X_JUMP, function() {
+        console.log(me.url, '(not-master) element timeline jump, stop and play from new point', arguments);
         me.stop();
         me.play.apply(me, arguments);
     });
     if (scene) {
+        console.log(me.url, 'subscribing non-master to scene', scene.name);
         scene.timeline.on(C.X_END, function() {
+            console.log(me.url, '(not-master) scene timeline end, stop if not master');
             // FIXME: if audio is a master, it should belong to Animation,
             //        not a scene
             me.stopIfNotMaster();
         });
     }
-    var forcedStop = function() {
+    anim.timeline.on(C.X_END, function() {
+        console.log(me.url, '(not-master) animation timeline end, stop');
         me.stop();
-    };
-    anim.timeline.on(C.X_END, forcedStop);
-    anim.timeline.on(C.X_PAUSE, forcedStop);
+    });
+    anim.timeline.on(C.X_PAUSE, function() {
+        console.log(me.url, '(not-master) animation timeline pause, stop');
+        me.stop();
+    });
     anim.timeline.on(C.X_CONTINUE, function() {
+        console.log(me.url, '(not-master) animation timeline continue, play from this point', arguments);
         me.play.apply(me, arguments);
     });
     /*anim.timeline.on(C.X_JUMP, function() {
@@ -373,12 +390,20 @@ Audio.prototype.connect = function(element, anim, scene) {
 };
 Audio.prototype.connectAsMaster = function(element, anim) {
     var me = this;
-    anim.timeline.on(C.X_END, function() { me.stop(); });
-    anim.timeline.on(C.X_PAUSE, function() { me.stop(); });
+    anim.timeline.on(C.X_END, function() {
+        console.log(me.url, '(master) animation timeline end, stop');
+        me.stop();
+    });
+    anim.timeline.on(C.X_PAUSE, function() {
+        console.log(me.url, '(master) animation timeline pause, stop');
+        me.stop();
+    });
     anim.timeline.on(C.X_START, function() {
+        console.log(me.url, '(master) animation timeline start, play from this point', arguments);
         me.play.apply(me, arguments);
     });
     element.timeline.on(C.X_CONTINUE, function() {
+        console.log(me.url, '(master) animation timeline continue, play from this point', arguments);
         me.play.apply(me, arguments);
     });
     /*anim.timeline.on(C.X_JUMP, function() {
