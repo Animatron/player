@@ -82,6 +82,8 @@ function Animation() {
 
     this.endOnLastScene = true;
     this.listensMouse = false;
+
+    this.masterAudio = [];
 }
 
 Animation.DEFAULT_DURATION = 10;
@@ -652,6 +654,11 @@ Animation.prototype._collectRemoteResources = function(player) {
                                      return f.url;
                                  }));
     }
+    if (this.masterAudio.length > 0) {
+        for (var i = 0; i < this.masterAudio.length; i++) {
+            remotes = remotes.concat(this.masterAudio[i]._collectRemoteResources(anim, player)/* || []*/);
+        }
+    }
     return remotes;
 };
 
@@ -779,6 +786,11 @@ Animation.prototype.invokeLater = function(f) {
 };
 
 var FONT_LOAD_TIMEOUT = 10000; //in ms
+
+Animation.prototype.addMasterAudio = function(audioElm) {
+    this.masterAudio.push(audioElm);
+    audioElm.$audio.connectAsMaster(audioElm, this);
+};
 
 /*
  * @method loadFonts

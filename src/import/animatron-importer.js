@@ -363,7 +363,7 @@ Import.branch = function(type, src, parent_src, parent_band, all, anim, scene) {
         if (layer_trg.$audio && layer_trg.$audio.master) {
             layer_trg.band(band[0], Infinity);
             trg.remove(layer_trg);
-            anim.add(layer_trg);
+            anim.addMasterAudio(layer_trg);
         }
     }
 

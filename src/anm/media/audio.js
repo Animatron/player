@@ -348,7 +348,7 @@ Audio.prototype.connect = function(element, anim, scene) {
         me.stopIfNotMaster();
     });
     element.timeline.on(C.X_JUMP, function() {
-        me.stopIfNotMaster();
+        me.stop();
         me.play.apply(me, arguments);
     });
     if (scene) {
@@ -363,6 +363,18 @@ Audio.prototype.connect = function(element, anim, scene) {
     };
     anim.timeline.on(C.X_END, forcedStop);
     anim.timeline.on(C.X_PAUSE, forcedStop);
+    anim.timeline.on(C.X_JUMP, function() {
+        me.stop();
+        me.play.apply(me, arguments);
+    });
+};
+Audio.prototype.connectAsMaster = function(element, anim) {
+    var me = this;
+    anim.timeline.on(C.X_START, function() {
+        me.play.apply(me, arguments);
+    });
+    anim.timeline.on(C.X_END, function() { me.stop(); });
+    anim.timeline.on(C.X_PAUSE, function() { me.stop(); });
 };
 /**
  * @method clone
