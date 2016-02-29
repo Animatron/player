@@ -363,7 +363,7 @@ Audio.prototype.connect = function(element, anim, scene) {
         me.play.apply(me, arguments);
     });
     if (scene) {
-        console.log(me.url, 'subscribing non-master to scene', scene.name);
+        console.log(me.url, 'subscribing non-master to scene', scene.name, scene.id);
         scene.timeline.on(C.X_END, function() {
             console.log(me.url, '(not-master) scene timeline end, stop if not master');
             // FIXME: if audio is a master, it should belong to Animation,
@@ -383,10 +383,14 @@ Audio.prototype.connect = function(element, anim, scene) {
         console.log(me.url, '(not-master) animation timeline continue, play from this point', arguments);
         me.play.apply(me, arguments);
     });
-    /*anim.timeline.on(C.X_JUMP, function() {
-        me.stop();
-        me.play.apply(me, arguments);
-    });*/
+    anim.timeline.on(C.X_JUMP, function() {
+        anim.eachTarget(function(player) {
+            if (player.isPlaying()) {
+                me.stop();
+                me.play.apply(me, arguments);
+            }
+        });
+    });
 };
 Audio.prototype.connectAsMaster = function(element, anim) {
     var me = this;
@@ -406,10 +410,14 @@ Audio.prototype.connectAsMaster = function(element, anim) {
         console.log(me.url, '(master) animation timeline continue, play from this point', arguments);
         me.play.apply(me, arguments);
     });
-    /*anim.timeline.on(C.X_JUMP, function() {
-        me.stop();
-        me.play.apply(me, arguments);
-    });*/
+    anim.timeline.on(C.X_JUMP, function() {
+        anim.eachTarget(function(player) {
+            if (player.isPlaying()) {
+                me.stop();
+                me.play.apply(me, arguments);
+            }
+        });
+    });
 };
 /**
  * @method clone

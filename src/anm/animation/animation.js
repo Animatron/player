@@ -886,4 +886,10 @@ Animation.prototype.loadMasterAudio = function(player) {
     }
 };
 
+Animation.prototype.eachTarget = function(f) {
+    for (var targetId in this.targets) {
+        f(this.targets[targetId]);
+    }
+};
+
 module.exports = Animation;

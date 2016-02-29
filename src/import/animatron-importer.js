@@ -237,7 +237,6 @@ var L_ROT_TO_PATH = 1,
 Import.branch = function(type, src, parent_src, parent_band, all, anim, scene) {
     var trg = new Element();
     trg.name = src[1];
-    if (scene) trg.scene = scene;
     var _layers = (type == TYPE_SCENE) ? src[3] : src[2],
         _layers_targets = [];
     if (type === TYPE_SCENE) {

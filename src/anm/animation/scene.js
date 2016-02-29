@@ -268,7 +268,8 @@ Scene.prototype.getMouseSupport = function() {
 Scene._fromElement = function(elm, anim, target) {
     var scene = target || new Scene(anim || elm.anim/*, elm.name, elm.timeline.getDuration()*/);
     if (elm.name) scene.name = elm.name;
-    scene.timeline = elm.timeline.clone();
+    scene.timeline.loadFrom(elm.timeline);
+    //scene.timeline.owner = scene;
     elm.each(function(child) {
         scene.add(child);
     });
