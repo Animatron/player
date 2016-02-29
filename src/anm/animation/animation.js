@@ -647,18 +647,8 @@ Animation.prototype._collectRemoteResources = function(player) {
            remotes = remotes.concat(elm._collectRemoteResources(anim, player)/* || []*/);
         }
     });
-    if (this.fonts && this.fonts.length) {
-        remotes = remotes.concat(this.fonts.filter(function(f) {
-                                     return f.gf_name ? false : true; // skip google fonts
-                                 }).map(function(f) {
-                                     return f.url;
-                                 }));
-    }
-    if (this.masterAudio.length > 0) {
-        for (var i = 0; i < this.masterAudio.length; i++) {
-            remotes = remotes.concat(this.masterAudio[i]._collectRemoteResources(anim, player)/* || []*/);
-        }
-    }
+    remotes = remotes.concat(this.collectFontsUrls(player));
+    remotes = remotes.concat(this.collectMasterAudioUrls(player));
     return remotes;
 };
 
@@ -669,7 +659,8 @@ Animation.prototype._loadRemoteResources = function(player) {
            elm._loadRemoteResources(anim, player);
         }
     });
-    anim.loadFonts(player);
+    this.loadFonts(player);
+    this.loadMasterAudio(player);
 };
 
 /**
@@ -792,6 +783,25 @@ Animation.prototype.addMasterAudio = function(audioElm) {
     audioElm.$audio.connectAsMaster(audioElm, this);
 };
 
+Animation.prototype.collectFontsUrls = function(player) {
+    if (!this.fonts || !this.fonts.length) return [];
+    return this.fonts.filter(function(f) {
+                                return f.gf_name ? false : true; // skip google fonts
+                            }).map(function(f) {
+                                return f.url;
+                            });
+};
+
+Animation.prototype.collectMasterAudioUrls = function(player) {
+    var urls = [];
+    if (this.masterAudio.length > 0) {
+        for (var i = 0; i < this.masterAudio.length; i++) {
+            urls = urls.concat(this.masterAudio[i]._collectRemoteResources(this, player)/* || []*/);
+        }
+    }
+    return urls;
+};
+
 /*
  * @method loadFonts
  * @private
@@ -866,6 +876,14 @@ Animation.prototype.loadFonts = function(player) {
     }
 
 
+};
+
+Animation.prototype.loadMasterAudio = function(player) {
+    if (this.masterAudio.length > 0) {
+        for (var i = 0; i < this.masterAudio.length; i++) {
+            this.masterAudio[i]._loadRemoteResources(this, player);
+        }
+    }
 };
 
 module.exports = Animation;
