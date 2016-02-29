@@ -918,7 +918,7 @@ Player.prototype.drawAt = function(time) {
     anim.jump(time);
     Render.next(0, this.ctx, this.anim, this.width, this.height, this.zoom,
                 this.ribbonsColor, this.stretchToCanvas, u_before, ext_after);
-    anim.jump(prev_pos);
+    if (Timeline.isKnownTime(prev_pos)) anim.jump(prev_pos);
     return this;
 };
 
