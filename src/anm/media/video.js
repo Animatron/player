@@ -29,18 +29,51 @@ function Video(url, formats, size) {
     this.size = size;
     this.ready = false;
     this.playing = false;
+    this.muted = false;
+    this.volume = 1;
 }
 /** @private @method connect */
 Video.prototype.connect = function(element, anim, scene) {
     var me = this;
-    var startFrom = function() { me.play.apply(me, arguments); };
-    var stop = function() { me.stop(); };
-    element.timeline.on(C.X_START, startFrom);
-    element.timeline.on(C.X_CONTINUE, startFrom);
-    element.timeline.on(C.X_PAUSE, stop);
-    element.timeline.on(C.X_END, stop);
-    anim.timeline.on(C.X_END, stop);
-    anim.timeline.on(C.X_PAUSE, stop);
+
+    var me = this;
+    element.timeline.on(C.X_START, function() {
+        me.active = true; me.play.apply(me, arguments);
+    });
+    element.timeline.on(C.X_PAUSE, function() { me.stop(); });
+    element.timeline.on(C.X_CONTINUE, function() {
+        me.play.apply(me, arguments);
+    });
+    element.timeline.on(C.X_END, function() {
+        me.active = false; me.stop();
+    });
+    element.timeline.on(C.X_JUMP, function() {
+        me.stop();
+        me.play.apply(me, arguments);
+    });
+    if (scene) {
+        scene.timeline.on(C.X_END, function() {
+            me.active = false; me.stop();
+        });
+    }
+    anim.timeline.on(C.X_END, function() {
+        me.active = false; me.stop();
+    });
+    anim.timeline.on(C.X_PAUSE, function() {
+        me.stop();
+    });
+    anim.timeline.on(C.X_CONTINUE, function() {
+        if (me.active) me.play.apply(me, arguments);
+    });
+    anim.timeline.on(C.X_JUMP, function() {
+        var jumpArgs = arguments;
+        anim.eachTarget(function(player) {
+            if (player.isPlaying()) {
+                me.stop();
+                me.play.apply(me, jumpArgs);
+            }
+        });
+    });
 };
 /** @private @method load */
 Video.prototype.load = function(uid, player) {
@@ -179,6 +212,64 @@ Video.prototype.stop = function() {
     if (!this.playing) return;
     this.video.pause();
     this.playing = false;
+};
+/**
+ * @method setVolume
+ * @chainable
+ * @deprecated will be renamed to `.volume()`, will be both getter and setter
+ *
+ * Change video volume on the fly
+ *
+ * @param {Number} volume Volume value
+ * @return {anm.Video}
+ */
+Video.prototype.setVolume = function(volume) {
+    if (this.muted) {
+        this.unmuteVolume = volume;
+        return;
+    }
+    this.volume = volume;
+    if (this.video) {
+        this.video.volume = volume;
+    }
+    return this;
+};
+/**
+ * @method mute
+ *
+ * Mute this video
+ */
+Video.prototype.mute = function() {
+    if (this.muted) {
+        return;
+    }
+    this.unmuteVolume = this.volume;
+    this.setVolume(0);
+    this.muted = true;
+};
+/**
+ * @method unmute
+ *
+ * Unmute this video
+ */
+Video.prototype.unmute = function() {
+    if (!this.muted) {
+        return;
+    }
+    this.muted = false;
+    this.setVolume(this.unmuteVolume);
+};
+/**
+ * @method toggleMute
+ *
+ * Toggle mute value of this video
+ */
+Video.prototype.toggleMute = function() {
+    if (this.muted) {
+        this.unmute();
+    } else {
+        this.mute();
+    }
 };
 Video.prototype.invalidate = function() {
     this.$bounds = null;
