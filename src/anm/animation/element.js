@@ -2518,6 +2518,14 @@ Element.prototype._loadRemoteResources = function(anim, player) {
     }
 };
 
+Element.prototype.toggleMute = function() {
+    if (this.is(C.ET_AUDIO)) {
+        this.$audio.toggleMute();
+    } else if (this.is(C.ET_VIDEO)) {
+        this.$video.toggleMute();
+    }
+};
+
 Element.mergeStates = function(src1, src2, trg) {
     trg.x  = src1.x  + src2.x;  trg.y  = src1.y  + src2.y;
     trg.sx = src1.sx * src2.sx; trg.sy = src1.sy * src2.sy;

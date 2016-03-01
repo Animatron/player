@@ -886,6 +886,15 @@ Animation.prototype.loadMasterAudio = function(player) {
     }
 };
 
+Animation.prototype.toggleMute = function() {
+    if (this.masterAudio.length > 0) {
+        for (var i = 0; i < this.masterAudio.length; i++) {
+            this.masterAudio[i].toggleMute();
+        }
+    }
+    this.traverse(function(el) { el.toggleMute(); });
+};
+
 Animation.prototype.eachTarget = function(f) {
     for (var targetId in this.targets) {
         f(this.targets[targetId]);
