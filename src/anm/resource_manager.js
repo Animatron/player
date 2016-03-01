@@ -76,7 +76,7 @@ ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks, onpr
     var filteredUrls = [];
     rmLog('subscribing ' + callbacks.length + ' to ' + urls.length + ' urls: ' + urls);
     var test = {}; // FIXME: a very dirty way to test if urls duplicate, needs to be optimized
-    for (var i = 0; i < urls.length; i++){
+    for (var i = 0; i < urls.length; i++) {
         // there should be no empty urls and duplicates
         if (urls[i] && !test[urls[i]]) {
             test[urls[i]] = true;
@@ -153,9 +153,12 @@ ResourceManager.prototype.loadOrGet = function(subject_id, url, loader, onComple
         } : function() {});
     } else /*if (me._waiting[subject_id] && me._waiting[subject_id][url])*/ { // already waiting
         rmLog('> someone is already waiting for it, subscribing');
-        var new_id = subject_id + '-' + Math.floor((new Date()).getTime() + (Math.random() * 1000));
-        me._onprogress[new_id] = me._onprogress[subject_id];
-        me.subscribe(new_id, [ url ], function(res) {
+        var subscribe_as = subject_id;
+        if (me._subscriptions[subject_id] && me._onprogress[subject_id]) {
+            subscribe_as = (subject_id + '-' + Math.floor((new Date()).getTime() + (Math.random() * 1000)));
+            me._onprogress[subscribe_as] = me._onprogress[subject_id];
+        }
+        me.subscribe(subscribe_as, [ url ], function(res) {
             if (res[0]) { onComplete(res[0]); if (progress_f) progress_f(url, 1); }
             else { onError(res[0]); if (progress_f) progress_f(url, -1);}
         });
@@ -244,7 +247,9 @@ ResourceManager.prototype.cancel = function(subject_id) {
         } }
     }
     // clear _url_to_subjects ?
-    delete this._subscriptions[subject_id];
+    if (this._subscriptions[subject_id]) {
+        delete this._subscriptions[subject_id];
+    }
 };
 
 ResourceManager.prototype.clear = function() {

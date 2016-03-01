@@ -49,22 +49,18 @@ var audioContext = getAudioContext();
 function Audio(url) {
     this.url = url + audioExt;
     this.ready = false;
+    this.active = false;
     this.playing = false;
     this.canPlay = false;
     this.volume = 1;
     this.audio = null;
 }
 /** @private @method load */
-Audio.prototype.load = function(elm, player) {
+Audio.prototype.load = function(uid, player) {
     var me = this;
-    ResMan.loadOrGet(player.id, me.url,
+    ResMan.loadOrGet(uid, me.url,
       function(notify_success, notify_error, notify_progress) { // loader
-          var url = me.url;
-          if (engine.isHttps) {
-              url = url.replace('http:', 'https:');
-          }
-          url = engine.fixLocalUrl(url);
-
+          var url = engine.checkMediaUrl(me.url);
 
           if (anm.conf.doNotLoadAudio) {
             notify_error('Loading audio is turned off');
@@ -149,13 +145,14 @@ Audio.prototype.load = function(elm, player) {
 
             var loadingListener = function(e) {
                 var ranges = [];
+                var duration = el.duration;
                 for (var i = 0; i < el.buffered.length; i++) {
                     ranges.push([ el.buffered.start(i),
                                   el.buffered.end(i) ]);
                 }
 
                 for (i = 0, progress = 0; i < el.buffered.length; i ++) {
-                    progress += (1 / el.duration) * (ranges[i][1] - ranges[i][0]);
+                    progress += (1 / duration) * (ranges[i][1] - ranges[i][0]);
                 }
 
                 notify_progress(progress);
@@ -205,8 +202,8 @@ Audio.prototype.load = function(elm, player) {
 
       },
       function(err) {
-          log.error(err ? (err.message || err) : 'Unknown error');
-          throw errors.element(err ? err.message : 'Unknown', elm);
+          log.error(errors.animation(err ? (err.message || err) : ('Audio Load Error: ' + me.url), player.anim));
+          //throw errors.element(err ? err.message : 'Unknown', uid);
       });
 };
 /** @private @method play */
@@ -235,7 +232,7 @@ Audio.prototype.play = function(ltime, duration) {
 
       this._source = audioContext.createBufferSource();
       this._source.buffer = this.audio;
-      this._gain = audioContext.createGain();
+      this._gain = audioContext.createGainNode ? audioContext.createGainNode() : audioContext.createGain();
       this._source.connect(this._gain);
       this._gain.connect(audioContext.destination);
       this._gain.gain.value = this.volume;
@@ -278,6 +275,9 @@ Audio.prototype.stop = function() {
 /** @private @method stopIfNotMaster */
 Audio.prototype.stopIfNotMaster = function() {
     if (!this.master) this.stop();
+};
+Audio.prototype.isMaster = function() {
+    return this.master;
 };
 /**
  * @method setVolume
@@ -340,19 +340,89 @@ Audio.prototype.toggleMute = function() {
     }
 };
 /** @private @method connect */
-Audio.prototype.connect = function(element, anim) {
+Audio.prototype.connect = function(element, anim, scene) {
     var me = this;
-    element.on(C.X_START, function() {
-        me.play.apply(me, arguments);
+    element.timeline.on(C.X_START, function() {
+        //console.log(me.url, '(not-master) element timeline start, play from this point', arguments);
+        me.active = true; me.play.apply(me, arguments);
     });
-    element.on(C.X_STOP, function() {
+    element.timeline.on(C.X_PAUSE, function() {
+        //console.log(me.url, '(not-master) element timeline pause, stop if not master');
         me.stopIfNotMaster();
     });
-    var stop = function() {
+    element.timeline.on(C.X_CONTINUE, function() {
+        //console.log(me.url, '(not-master) element timeline continue, play from this point', arguments);
+        me.play.apply(me, arguments);
+    });
+    element.timeline.on(C.X_END, function() {
+        //console.log(me.url, '(not-master) element timeline end, stop if not master');
+        me.active = false; me.stopIfNotMaster();
+    });
+    element.timeline.on(C.X_JUMP, function() {
+        //console.log(me.url, '(not-master) element timeline jump, stop and play from new point', arguments);
         me.stop();
-    };
-    anim.on(C.A_STOP, stop);
-    anim.on(C.A_PAUSE, stop);
+        me.play.apply(me, arguments);
+    });
+    if (scene) {
+        //console.log(me.url, 'subscribing non-master to scene', scene.name, scene.id);
+        scene.timeline.on(C.X_END, function() {
+            //console.log(me.url, '(not-master) scene timeline end, stop if not master');
+            // FIXME: if audio is a master, it should belong to Animation,
+            //        not a scene
+            me.active = false; me.stopIfNotMaster();
+        });
+    }
+    anim.timeline.on(C.X_END, function() {
+        //console.log(me.url, '(not-master) animation timeline end, stop');
+        me.active = false; me.stop();
+    });
+    anim.timeline.on(C.X_PAUSE, function() {
+        //console.log(me.url, '(not-master) animation timeline pause, stop');
+        me.stop();
+    });
+    anim.timeline.on(C.X_CONTINUE, function() {
+        //console.log(me.url, '(not-master) animation timeline continue, play from this point', arguments);
+        if (me.active) me.play.apply(me, arguments);
+    });
+    anim.timeline.on(C.X_JUMP, function() {
+        //console.log(me.url, '(not-master) animation timeline jump, play from new point', arguments);
+        var jumpArgs = arguments;
+        anim.eachTarget(function(player) {
+            if (player.isPlaying()) {
+                me.stop();
+                me.play.apply(me, jumpArgs);
+            }
+        });
+    });
+};
+Audio.prototype.connectAsMaster = function(element, anim) {
+    var me = this;
+    anim.timeline.on(C.X_END, function() {
+        //console.log(me.url, '(master) animation timeline end, stop');
+        me.stop();
+    });
+    anim.timeline.on(C.X_PAUSE, function() {
+        //console.log(me.url, '(master) animation timeline pause, stop');
+        me.stop();
+    });
+    anim.timeline.on(C.X_START, function() {
+        //console.log(me.url, '(master) animation timeline start, play from this point', arguments);
+        me.play.apply(me, arguments);
+    });
+    anim.timeline.on(C.X_CONTINUE, function() {
+        //console.log(me.url, '(master) animation timeline continue, play from this point', arguments);
+        me.play.apply(me, arguments);
+    });
+    anim.timeline.on(C.X_JUMP, function() {
+        //console.log(me.url, '(master) animation timeline jump, play from new point', arguments);
+        var jumpArgs = arguments;
+        anim.eachTarget(function(player) {
+            if (player.isPlaying()) {
+                me.stop();
+                me.play.apply(me, jumpArgs);
+            }
+        });
+    });
 };
 /**
  * @method clone
@@ -394,7 +464,8 @@ function audioErrProxy(src, pass_to) {
     // e_.MEDIA_ERR_SRC_NOT_SUPPORTED=4
     // e_.MEDIA_ERR_ENCRYPTED=5
     pass_to(new Error('Failed to load audio file from ' + src + ' with error code: ' +
-                      err.currentTarget.error.code));
+          (err && err.currentTarget && err.currentTarget.error) ? err.currentTarget.error.code
+                                                                : 'Unknown'));
   };
 }
 

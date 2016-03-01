@@ -60,6 +60,7 @@ Errors.A.ELEMENT_IS_NOT_REGISTERED = 'There is no such element registered in ani
 Errors.A.UNSAFE_TO_REMOVE = 'Unsafe to remove, please use iterator-based looping (with returning false from iterating function) to remove safely';
 Errors.A.NO_ELEMENT_TO_REMOVE = 'Please pass some element or use detach() method';
 Errors.A.NO_ELEMENT = 'No such element found';
+Errors.A.NOT_BELONGS_TO_ANIMATION = 'This element should belong to Animation to provide this functionality';
 Errors.A.ELEMENT_NOT_ATTACHED = 'Element is not attached to something at all';
 Errors.A.MODIFIER_NOT_ATTACHED = 'Modifier wasn\'t applied to anything';
 Errors.A.NO_MODIFIER_PASSED = 'No modifier was passed';

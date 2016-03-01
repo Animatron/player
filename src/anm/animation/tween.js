@@ -254,6 +254,22 @@ Tween.register(C.T_ROTATE, function(values) {
     }
 });
 
+Tween.register(C.T_BONE_ROTATE, function(values) {
+    var _from = values[0],
+        to = values[1];
+    return function(t) {
+        this.bonerotate = _from * (1.0 - t) + to * t;
+    }
+});
+
+Tween.register(C.T_BONE_LENGTH, function(values) {
+    var _from = values[0],
+        to = values[1];
+    return function(t) {
+        this.bonelength = _from * (1.0 - t) + to * t;
+    }
+});
+
 Tween.register(C.T_ROT_TO_PATH, {
     func: function() {
         return function(t) {
@@ -318,7 +334,7 @@ Tween.register(C.T_VOLUME, function(values) {
     var _from = values[0],
         to = values[1];
     return function(t) {
-        if (!this.$audio.ready) return;
+        if (!this.$audio || !this.$audio.ready) return;
         var volume = _from * (1.0 - t) + to * t;
         this.$audio.setVolume(volume);
     };
@@ -334,8 +350,10 @@ Tween.register(C.T_DISPLAY, {
 
 Tween.register(C.T_SWITCH, {
     func: function(value, tween) {
-        return function(t) { this.switch_band = tween.$band;
-                             this.switch = value; }
+        return function(t) { this.hasSwitch = (value !== C.SWITCH_OFF);
+                             this.switchBand = tween.$band;
+                             this.justSwitched = this.switch && (this.switch !== value);
+                             this.switch = value; } // value is the name of the sub-child to switch to
     },
     from: nop, to: nop
 });

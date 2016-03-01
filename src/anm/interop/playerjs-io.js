@@ -13,7 +13,7 @@ var adapter = {
     },
 
     getPaused: function() {
-        return this.state.happens === C.PAUSED;
+        return this.happens === C.PAUSED;
     },
 
     mute: function() {
@@ -30,15 +30,15 @@ var adapter = {
 
     setVolume: function(message) {
         var volume = message.value;
-        player.volume(volume/100);
+        this.volume(volume/100);
     },
 
     getVolume: function() {
-        return player.volume()*100;
+        return this.volume()*100;
     },
 
     getDuration: function() {
-        return player.state.duration;
+        return this.anim ? this.anim.getDuration() : 0;
     },
 
     setCurrentTime: function(message) {
@@ -47,7 +47,7 @@ var adapter = {
     },
 
     getCurrentTime: function() {
-        return this.state.time;
+        return this.getTime();
     },
 
     setLoop: function(message) {
@@ -176,7 +176,8 @@ var bindPlayerEvents = function(player) {
     });
 
     player.on(C.S_TIME_UPDATE, function(time) {
-        fireEvent('timeupdate', {seconds: time, duration: player.state.duration});
+        fireEvent('timeupdate', { seconds: time,
+                                  duration: player.anim ? player.anim.getDuration() : 0 });
     });
 };
 

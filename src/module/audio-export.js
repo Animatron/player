@@ -16,10 +16,11 @@ Player.prototype.exportAudio = function() {
   if (this.anim) {
     this.anim.traverse(function(elm) {
       if (elm.is(C.ET_AUDIO)) {
+        var gband = elm.timeline.getGlobalBand(elm.parent);
         result.push({ 'url': elm._audio_url,
                       'band_offset': elm._audio_band_offset,
-                      'start': elm.gband[0],
-                      'end': elm.gband[1] });
+                      'start': gband[0],
+                      'end': gband[1] });
       }
     });
   }

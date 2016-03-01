@@ -45,7 +45,8 @@ function collectOptions() {
     if (!getElm('opts-audio').disabled) options.audioEnabled = getElm('opts-audio').checked;
     //if (!getElm('opts-video').disabled) options.videoEnabled = getElm('opts-video').checked;
     if (!getElm('opts-shadows').disabled) options.shadowsEnabled = getElm('opts-shadows').checked;
-    if (!getElm('opts-scene-size').disabled) options.forceSceneSize = getElm('opts-scene-size').checked;
+    if (!getElm('opts-anim-size').disabled) options.forceAnimationSize = getElm('opts-anim-size').checked;
+    if (!getElm('opts-stretch').disabled) options.stretchToCanvas = getElm('opts-stretch').checked;
     if (!getElm('opts-errors').disabled) options.muteErrors = getElm('opts-errors').checked;
     return options;
 }
@@ -178,7 +179,8 @@ function init() {
         'thumbnail': { label: 'Thumbnail', type: 'text', modify: function(elm, form) { elm.value = defaultThumbnail; } },
         'audio': { label: 'Audio', type: 'checkbox', modify: function(elm, form) { elm.checked = true; } },
         'shadows': { label: 'Shadows', type: 'checkbox', modify: function(elm, form) { elm.checked = true; } },
-        'scene-size': { label: 'Force scene size', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
+        'anim-size': { label: 'Force animation size', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
+        'stretch': { label: 'Stretch to canvas', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } },
         'errors': { label: 'Mute errors', type: 'checkbox', modify: function(elm, form) { elm.checked = false; } }
     });
 
@@ -280,7 +282,8 @@ var optionsMapper = function(mode, options) {
                 thumbnail: extractOption('thumbnail', textOption),
                 audioEnabled: extractOption('audioEnabled', booleanOption),
                 shadowsEnabled: extractOption('shadowsEnabled', booleanOption),
-                forceSceneSize: extractOption('forceSceneSize', booleanOption),
+                forceAnimationSize: extractOption('forceAnimationSize', booleanOption),
+                stretchToCanvas: extractOption('stretchToCanvas', booleanOption),
                 muteErrors: extractOption('muteErrors', booleanOption)
             };
 
@@ -317,7 +320,8 @@ var optionsMapper = function(mode, options) {
                 thumbnail: extractOption('thumbnail', 'anm-thumbnail', textOption),
                 audioEnabled: extractOption('audioEnabled', 'anm-audio', booleanOption),
                 shadowsEnabled: extractOption('shadowsEnabled', 'anm-shadows', booleanOption),
-                forceSceneSize: extractOption('forceSceneSize', 'anm-scene-size', booleanOption),
+                forceAnimationSize: extractOption('forceAnimationSize', 'anm-animation-size', booleanOption),
+                stretchToCanvas: extractOption('stretchToCanvas', 'anm-stretch', booleanOption),
                 muteErrors: extractOption('muteErrors', 'anm-mute-errors', booleanOption)
             };
 

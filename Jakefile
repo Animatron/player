@@ -80,7 +80,8 @@ var SubDirs = {
     ENGINES: 'engine',
     MODULES: 'module',
     IMPORTERS: 'import',
-    BUNDLES: 'bundle'
+    BUNDLES: 'bundle',
+    ANM: 'anm'
 };
 
 var Files = {
@@ -97,18 +98,28 @@ var Files = {
                         ANM: 'animatron-importer.js',
                         ANM_INTACT: 'animatron-intact-importer.js' },
            MODULES: { _ALL_: [ /* 'audio-export.js' */ ]
-                      /* AUDIO_EXPORT: 'audio-export.js' */ }, },
+                      /* AUDIO_EXPORT: 'audio-export.js' */ },
+           ANALYTICS: 'analytics.js'},
     Doc: { README: 'README.md',
            EMBEDDING: 'embedding.md',
            SCRIPTING: 'scripting.md' }
 };
 
+
+var _default_bundle_includes = _in_dir(Dirs.DIST, [Files.Main.PLAYER])
+    .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [Files.Ext.IMPORTERS.ANM])) // animatron-importer.js
+    .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES, []));
+
 var Bundles = [
+    { name: 'Animatron Local',
+      file: 'animatron.local',
+      includes: _default_bundle_includes
+    },
     { name: 'Animatron',
       file: 'animatron',
-      includes: _in_dir(Dirs.DIST,      [Files.Main.PLAYER])
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM ])) // animatron-importer.js
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ ])) }
+      includes: _default_bundle_includes
+          .concat(_in_dir(Dirs.SRC + '/' + SubDirs.ANM, [Files.Ext.ANALYTICS]))
+    }
 ];
 
 var Tests = {
@@ -168,6 +179,7 @@ var PRODUCTION_TAG = 'production',
     DEVELOPMENT_TAG = 'development';
 
 var MOCK_MINIFICATION = false; // it's for debugging purposes, when we need full version in minified files
+var COMPILER_WARNINGS = false;
 
 var _print = !jake.program.opts.quiet ? console.log : function() { };
 
@@ -450,7 +462,7 @@ task('version', { async: true }, function(param) {
                 _print('Writing ' + _v + ' to ' + VERSION_FILE + ' file.\n');
                 jake.echo(_v, _loc(VERSION_FILE));
 
-                PACKAGE.version = _v.substr(1); // trim 'v'
+                PACKAGE.version = (_v.split('.').length !== 2) ? _v : _v + '.0';
                 jake.rmRf(_loc(PACKAGE_FILE));
                 _print('Writing ' + _v + ' to ' + PACKAGE_FILE + ' file.\n');
                 jake.echo(JSON.stringify(PACKAGE, null, JSON_INDENT), _loc(PACKAGE_FILE));
@@ -565,6 +577,8 @@ task('invalidate', [], { async: true }, function(version) {
     var paths = [
         '/%VERSION%/bundle/animatron.js',
         '/%VERSION%/bundle/animatron.min.js',
+        '/%VERSION%/bundle/animatron.local.js',
+        '/%VERSION%/bundle/animatron.local.min.js',
         '/%VERSION%/player.js',
         '/%VERSION%/player.min.js',
         '/%VERSION%/publish.js',
@@ -645,7 +659,9 @@ task('deploy', ['dist-min'], function(version, bucket) {
                 'player.js',
                 'player.min.js',
                 'bundle/animatron.js',
-                'bundle/animatron.min.js'
+                'bundle/animatron.min.js',
+                'bundle/animatron.local.js',
+                'bundle/animatron.local.min.js'
             ];
 
         var AWS = require('aws-sdk');
@@ -759,14 +775,35 @@ task('_bundles', ['browserify'], function() {
 
     _print(DONE_MARKER);
 });
+
 // _minify =====================================================================
+
+task('_log_compiler_version', { async: true }, function() {
+    _print('---------');
+    _print('Using Compiler: ');
+    _print('');
+    jake.exec([ Binaries.CLOSURECOMPILER, '--version' ].join(' '), { stdout: true }, function() {
+        _print('---------');
+        _print('');
+        complete();
+    });
+});
 
 desc(_dfit(['Internal. Create a minified copy of all the sources and bundles '+
                'from '+Dirs.DIST+' folder and append a .min suffix to them']));
-task('_minify', { async: true }, function() {
+task('_minify', [ '_log_compiler_version' ], { async: true }, function() {
     _print('Minify all the files and put them in ' + Dirs.DIST + ' folder');
 
     var BUILD_TIME = _build_time();
+
+    function makeClosureCompilerCommand(src, dst) {
+        return [ Binaries.CLOSURECOMPILER,
+          '--compilation_level SIMPLE_OPTIMIZATIONS',
+          '--warning_level ' + (COMPILER_WARNINGS ? 'DEFAULT' : 'QUIET'),
+          '--js', src,
+          '--js_output_file', dst
+        ].join(' ');
+    }
 
     // TODO: use Jake new Rules technique for that (http://jakejs.com/#rules)
     function minify(src, cb) {
@@ -776,15 +813,11 @@ task('_minify', { async: true }, function() {
           cb(dst);
           return;
         }
-        jake.exec([
-          [ Binaries.CLOSURECOMPILER,
-            '--compilation_level SIMPLE_OPTIMIZATIONS',
-            '--js', src,
-            '--js_output_file', dst,
-            src
-          ].join(' ')
-        ], EXEC_OPTS, function() { cb(dst); });
-        _print('min -> ' + src + ' -> ' + dst);
+        var buildCommand = makeClosureCompilerCommand(src, dst);
+        _print('Build Command: ' + buildCommand);
+        jake.exec(buildCommand, EXEC_OPTS,
+            function() { cb(dst); _print('min -> ' + src + ' -> ' + dst + ' ✓'); });
+        _print('min -> ' + src + ' -> ' + dst + ' …');
     }
 
     function copyrightize(src) {
@@ -792,49 +825,43 @@ task('_minify', { async: true }, function() {
                                            .concat(jake.cat(src).trim()  + '\n');
         jake.rmRf(src);
         jake.echo(new_content, src);
-        _print('(c) -> ' + src);
+        _print('(c) -> ' + src + ' ✓');
     }
 
-    // since there is only one thread, it will [hopefully] work ok
-    var queue = {};
+    var minifyQueue = [ ];
 
-    function minifyInQueue(src) {
-        var task_id = _guid();
-        queue[task_id] = {};
-        minify(src, function(dst) {
-            _print(DONE_MARKER);
-            delete queue[task_id];
-            if (!Object.keys(queue).length) complete();
+    function runMinifyQueue(cb) {
+        if (minifyQueue.length === 0) {
+            complete();
+            return;
+        }
+        var next = minifyQueue.shift();
+        minify(next, function(dst) {
+            if (cb) cb(dst);
+            runMinifyQueue(cb);
         });
     }
 
-    function minifyInQueueWithCopyright(src) {
-        var task_id = _guid();
-        queue[task_id] = {};
-        minify(src, function(dst) {
-            copyrightize(dst);
-            _print(DONE_MARKER);
-            delete queue[task_id];
-            if (!Object.keys(queue).length) complete();
-        });
-    }
-    /*
-    _print('.. Vendor Files');
+    /* _print('.. Vendor Files');
 
     Files.Ext.VENDOR.forEach(function(vendorFile) {
-        minifyInQueue(_loc(Dirs.DIST + '/' + SubDirs.VENDOR + '/' + vendorFile));
-    });
-    */
+        minifyQueue.push(_loc(Dirs.DIST + '/' + SubDirs.VENDOR + '/' + vendorFile));
+    }); */
+
     _print('.. Main files');
 
-    //minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.INIT));
-    minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.PLAYER));
+    minifyQueue.push(_loc(Dirs.DIST + '/' + Files.Main.PLAYER));
 
     _print('.. Bundles');
 
     Bundles.forEach(function(bundle) {
-        minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
+        minifyQueue.push(_loc(Dirs.DIST + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
     });
+
+    runMinifyQueue(function(dst) {
+        copyrightize(dst);
+    });
+
 });
 
 // _build-file =================================================================
@@ -846,46 +873,22 @@ task('_build-file', { async: true }, function() {
     var BUILD_TIME = _extended_build_time();
     console.log('Build time:', BUILD_TIME);
 
-    var updateBuildFile = function(commitInfo) {
+    var updateBuildFile = function(commitLine) {
         jake.rmRf(_loc(BUILD_FILE));
         _print('Updating ' + BUILD_FILE + ' file.\n');
         jake.echo(BUILD_TIME + '\n' +
                   VERSION + '\n' +
-                  commitInfo, _loc(BUILD_FILE));
+                  commitLine, _loc(BUILD_FILE));
 
         _print(DONE_MARKER);
-
-        complete();
     };
 
-    if (isTeamCityBuild) {
-        var commitInfo = process.env.BUILD_VCS_NUMBER_Animatron_AnimatronPlayerDevelopment +
-            '\n' + 'Built by TeamCity. Build #' + process.env.BUILD_NUMBER;
-        console.log(commitInfo);
-        updateBuildFile(commitInfo);
-    } else {
-        var getCommit = jake.createExec([
-          [ Binaries.GIT,
-            'log',
-            '-n', '1',
-            '--format=format:"' + BUILD_FORMAT + '"'
-          ].join(' ')
-        ], EXEC_OPTS);
-        getCommit.on('stdout', function(commitInfo) {
-            commitInfo = commitInfo.toString();
+    _getCommitLine(function(commitLine) {
+        console.log(commitLine);
+        updateBuildFile(commitLine);
+        complete();
+    });
 
-            console.log(commitInfo);
-            updateBuildFile(commitInfo);
-
-        });
-        getCommit.addListener('stderr', function(msg) {
-            fail(msg, 1);
-        });
-        getCommit.addListener('error', function(msg) {
-            fail(msg, 1);
-        });
-        getCommit.run();
-    }
 });
 
 task('browserify', { 'async': true }, function() {
@@ -1072,4 +1075,31 @@ function _versionize(src) {
     jake.rmRf(src);
     jake.echo(new_content + '\n', src);
     _print('v -> ' + src);
+}
+
+function _getCommitLine(callback) {
+    if (isTeamCityBuild) {
+        var commitLine = (process.env.BUILD_VCS_NUMBER_Animatron_AnimatronPlayerDevelopment ||
+                          process.env.BUILD_VCS_NUMBER_Animatron_AnimatronPlayerMaster || '<Commit hash not found>') +
+            '\n' + 'Built by TeamCity. Build #' + process.env.BUILD_NUMBER;
+        callback(commitLine);
+    } else {
+        var getCommit = jake.createExec([
+          [ Binaries.GIT,
+            'log',
+            '-n', '1',
+            '--format=format:"' + BUILD_FORMAT + '"'
+          ].join(' ')
+        ], EXEC_OPTS);
+        getCommit.on('stdout', function(commitLine) {
+            callback(commitLine.toString());
+        });
+        getCommit.addListener('stderr', function(msg) {
+            fail(msg, 1);
+        });
+        getCommit.addListener('error', function(msg) {
+            fail(msg, 1);
+        });
+        getCommit.run();
+    }
 }

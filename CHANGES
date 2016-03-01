@@ -1,4 +1,10 @@
-<<<<<<< Updated upstream
+v1.5 / ...
+================================================================================
+
+* Complete refactoring for the time logic, new `Timeline` class
+* `Scene` class to manage scenes
+
+
 v1.4 / Wed Sep 02 2015 14:04:30 +0200 / 35facc26afe0d7c051873bf0e85abf8a23466256
 ================================================================================
 

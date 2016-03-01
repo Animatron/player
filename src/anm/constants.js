@@ -13,13 +13,13 @@ C.L_ERROR = 8;
 // ### Player states
 /* ----------------- */
 
-C.NOTHING = -1;
-C.STOPPED = 0;
-C.PLAYING = 1;
-C.PAUSED = 2;
-C.LOADING = 3;
-C.RES_LOADING = 4;
-C.ERROR = 5;
+C.NOTHING = 'nothing';
+C.STOPPED = 'stopped';
+C.PLAYING = 'playing';
+C.PAUSED = 'paused';
+C.LOADING = 'loading';
+C.RES_LOADING = 'loadingresources';
+C.ERROR = 'error';
 
 // public constants below are also appended to C object, but with `X_`-like prefix
 // to indicate their scope, see through all file
@@ -110,10 +110,10 @@ C.ET_AUDIO = 'audio';
 C.ET_VIDEO = 'video';
 
 // repeat mode
-C.R_ONCE = 0;
-C.R_STAY = 1;
-C.R_LOOP = 2;
-C.R_BOUNCE = 3;
+C.R_ONCE = 'once';
+C.R_STAY = 'stay';
+C.R_LOOP = 'loop';
+C.R_BOUNCE = 'bounce';
 
 // composite operation
 C.C_SRC_OVER = 1; // first (default) is 1, to pass if test
@@ -188,6 +188,8 @@ C.T_SHADOW      = 'shadow';
 C.T_VOLUME      = 'volume';
 C.T_DISPLAY     = 'display';
 C.T_SWITCH      = 'switch';
+C.T_BONE_ROTATE = 'bonerotate';
+C.T_BONE_LENGTH = 'bonelength';
 
 // modifiers classes
 C.MOD_SYSTEM = 'system';

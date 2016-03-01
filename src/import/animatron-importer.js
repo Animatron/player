@@ -21,6 +21,7 @@ var IMPORTER_ID = 'ANM'; // FIXME: change to 'animatron', same name as registere
 
 var C = anm.constants,
     Animation = anm.Animation,
+    Scene = anm.Scene,
     Element = anm.Element,
     Path = anm.Path,
     Text = anm.Text,
@@ -29,16 +30,19 @@ var C = anm.constants,
     Tween = anm.Tween,
     MSeg = anm.MSeg,
     LSeg = anm.LSeg,
-    CSeg = anm.CSeg,
-    Audio = anm.Audio,
-    Video = anm.Video,
-    is = anm.utils.is,
+    CSeg = anm.CSeg;
+
+var Audio = anm.Audio,
+    Video = anm.Video;
+
+var is = anm.utils.is,
     roundTo = anm.utils.roundTo,
+    errors = anm.errors,
     $log = anm.log;
     //test = anm._valcheck
 
-function _reportError(e) {
-    $log.error(e);
+function _reportError(text) {
+    $log.error(errors.system(text));
     // throw e; // skip errors if they do not affect playing ability
 }
 
@@ -75,53 +79,36 @@ Import.project = function(prj) {
     var scenes_ids = prj.anim.scenes;
     if (!scenes_ids.length) _reportError('No scenes found in given project');
     var root = new Animation(),
-        elems = prj.anim.elements,
-        last_scene_band = [ 0, 0 ];
+        elems = prj.anim.elements;
     root.__import_id = cur_import_id;
 
     root.meta = Import.meta(prj);
     root.fonts = Import.fonts(prj);
     Import.root = root;
-    Import.anim(prj, root); // will inject all required properties directly in animation object
-    if (prj.meta.duration) root.duration = prj.meta.duration;
 
-    Import._paths = prj.anim.paths;
+    Import._paths = prj.anim.paths || [];
     Import._path_cache = new ValueCache();
 
-    var node_res;
-    var traverseFunc = function(elm) {
-        var e_gband_before = elm.gband;
-        elm.gband = [
-            last_scene_band[1] + e_gband_before[0],
-            last_scene_band[1] + e_gband_before[1]
-        ];
-    };
+    Import.anim(prj, root); // will inject all required properties directly in animation object
+
+    // some additional configuration
+    if (prj.meta.duration && !prj.anim.script) {
+        root.setDuration(prj.meta.duration);
+    }
+    if (prj.anim.script) {
+        root.actions = prj.anim.script;
+        root.setDuration(Infinity);
+        root.endOnLastScene = true;
+    }
+
+    var scene;
 
     for (var i = 0, il = scenes_ids.length; i < il; i++) {
         var node_src = Import._find(scenes_ids[i], elems);
         if (Import._type(node_src) != TYPE_SCENE) _reportError('Given Scene ID ' + scenes_ids[i] + ' points to something else');
-        node_res = Import.node(node_src, null, elems, null, root);
-
-        if (i > 0) { // start from second scene, if there is one
-            // FIXME: smells like a hack
-            // correct the band of the next scene to follow the previous scene
-            // gband[1] contains the duration of the scene there, while gband[0] contains 0
-            // (see SCENE type handling in Import.node)
-            // TODO: fix it with proper native scenes when they will be supported in player
-            var gband_before = node_res.gband;
-            node_res.gband = [ last_scene_band[1] + gband_before[0],
-                               last_scene_band[1] + gband_before[1] ];
-            // local band is equal to global band on top level
-            node_res.lband = node_res.gband;
-            node_res.traverse(traverseFunc);
-        }
-        last_scene_band = node_res.gband;
-        root.add(node_res);
-    }
-
-    if (scenes_ids.length > 0) {
-        node_res.gband = [last_scene_band[0], Infinity];
-        node_res.lband = node_res.gband;
+        scene = Import.scene(node_src, elems, root); // also fill scene with all the elements defined in JSON
+        // there's always a default scene in Player, which is first one
+        if (i === 0) { root.replaceScene(0, scene); } else { root.addScene(scene); };
     }
 
     Import._paths = undefined; // clear
@@ -166,9 +153,8 @@ Import.anim = function(prj, trg) {
     trg.height = a.dimension ? Math.floor(a.dimension[1]): undefined;
     trg.bgfill = a.background ? Import.fill(a.background) : undefined;
     trg.zoom = a.zoom || 1.0;
-    trg.speed = a.speed || 1.0;
+    trg.setSpeed(a.speed || 1.0);
     if (a.loop && ((a.loop === true) || (a.loop === 'true'))) trg.repeat = true;
-    if (prj.anim.script) trg.actions = prj.anim.script;
 };
 
 var TYPE_UNKNOWN =  0,
@@ -181,11 +167,23 @@ var TYPE_UNKNOWN =  0,
     TYPE_AUDIO   = 14,
     TYPE_FONT    = 25,
     TYPE_VIDEO   = 26,
+    TYPE_SKELETON = 28,
+    TYPE_BONES = 29,
+    TYPE_BONE = 30,
     TYPE_LAYER   = 255; // is it good?
 
 function isPath(type) {
     return (type == TYPE_PATH);
 }
+
+Import.scene = function(src, all, anim) {
+    var scene = new Scene(anim);
+    // adds properties to existing scene instance, so it will be possible to assign
+    // it to every element inside on creation (but actual process of appending to scene
+    // happens inside Scene._fromElement)
+    Scene._fromElement(Import.node(src, null, null, all, null, anim, scene), anim, scene);
+    return scene;
+};
 
 /** node **/
 /*
@@ -198,15 +196,17 @@ function isPath(type) {
  * } *element*;
  */
 // -> Element
-Import.node = function(src, lsrc, all, parent, anim) {
+Import.node = function(src, layer_src, layer_band, all, parent, anim, scene) {
     var type = Import._type(src),
         trg = null;
     if ((type == TYPE_CLIP) ||
         (type == TYPE_SCENE) ||
-        (type == TYPE_GROUP)) {
-        trg = Import.branch(type, src, lsrc, all, anim);
+        (type == TYPE_GROUP) ||
+        (type == TYPE_SKELETON) ||
+        (type == TYPE_BONES)) {
+        trg = Import.branch(type, src, layer_src, layer_band, all, anim, scene);
     } else if (type != TYPE_UNKNOWN) {
-        trg = Import.leaf(type, src, lsrc, parent, anim);
+        trg = Import.leaf(type, src, layer_src, layer_band, parent, anim, scene);
     }
     if (trg) {
         trg._anm_type = type;
@@ -234,18 +234,17 @@ var L_ROT_TO_PATH = 1,
  * } *group_element*;
  */
 // -> Element
-Import.branch = function(type, src, psrc, all, anim) {
+Import.branch = function(type, src, parent_src, parent_band, all, anim, scene) {
     var trg = new Element();
     trg.name = src[1];
     var _layers = (type == TYPE_SCENE) ? src[3] : src[2],
         _layers_targets = [];
     if (type === TYPE_SCENE) {
-        trg.gband = [ 0, src[2] ];
-        trg.lband = [ 0, src[2] ];
+        trg.duration(src[2]);
     } else {
-        trg.gband = [ 0, Infinity ];
-        trg.lband = [ 0, Infinity ];
+        trg.band(0, Infinity);
     }
+    if (type === TYPE_CLIP) trg.affectsChildren = false;
     // in animatron layers are in reverse order
     for (var li = _layers.length; li--;) {
         /** layer **/
@@ -261,32 +260,35 @@ Import.branch = function(type, src, psrc, all, anim) {
          *     array [ *tween* ];          // 7, array of tweens
          * } *layer*;
          */
-        var lsrc = _layers[li];
+        var layer_src = _layers[li];
 
-        var nsrc = Import._find(lsrc[0], all);
-        if (!nsrc) continue;
+        var node_src = Import._find(layer_src[0], all);
+        if (!node_src) continue;
 
+        var band = Import.band(layer_src[2]);
         // if there is a branch under the node, it will be a wrapper
         // if it is a leaf, it will be the element itself
-        var ltrg = Import.node(nsrc, lsrc, all, trg, anim);
-        if (!ltrg) continue;
-        ltrg.name = lsrc[1];
+        var layer_trg = Import.node(node_src, layer_src, band, all, trg, anim, scene);
+        if (!layer_trg) continue;
+        layer_trg.name = layer_src[1];
 
         // apply bands, pivot and registration point
-        var flags = lsrc[6];
-        ltrg.disabled = !(flags & L_VISIBLE);
-        var pb = ((type === TYPE_GROUP) && psrc && psrc[2]) ? psrc[2] : [0, 0],
-            b = Import.band(lsrc[2]);
-        ltrg.lband = [b[0] - pb[0], b[1] - pb[0]];
-        ltrg.gband = b;
-        ltrg.$pivot = [ 0, 0 ];
-        ltrg.$reg = lsrc[4] || [ 0, 0 ];
+        var flags = layer_src[6];
+        layer_trg.disabled = !(flags & L_VISIBLE);
+
+        if (type !== TYPE_GROUP) {
+            layer_trg.band(band[0], band[1]);
+        } else {
+            layer_trg.band(band[0] - parent_band[0], band[1] - parent_band[0]);
+        }
+        layer_trg.$pivot = [ 0, 0 ];
+        layer_trg.$reg = layer_src[4] || [ 0, 0 ];
 
         // apply tweens
-        if (lsrc[7]) {
+        if (layer_src[7]) {
             var rotate_tweens = 0;
             var first_rotate = Infinity, last_rotate = 0;
-            for (var tweens = lsrc[7], ti = 0, tl = tweens.length;
+            for (var tweens = layer_src[7], ti = 0, tl = tweens.length;
                  ti < tl; ti++) {
                 var t = Import.tween(tweens[ti]);
                 if (!t) continue;
@@ -297,22 +299,22 @@ Import.branch = function(type, src, psrc, all, anim) {
                         rotate_tweens++;
                     }
                 }
-                ltrg.tween(t);
+                layer_trg.tween(t);
             }
             if (flags & L_ROT_TO_PATH) {
                 if (rotate_tweens) {
                     if ((first_rotate > 0) && (first_rotate < Infinity)) {
-                        ltrg.tween(Tween.rotate().start(0).stop(first_rotate)
+                        layer_trg.tween(Tween.rotate().start(0).stop(first_rotate)
                                                  .from(0).to(0));
                     }
                     if ((last_rotate > 0) && (last_rotate < Infinity)) {
-                        ltrg.tween(Tween.rotate().start(last_rotate).stop(ltrg.lband[1] - ltrg.lband[0])
+                        layer_trg.tween(Tween.rotate().start(last_rotate).stop(band[1] - band[0])
                                                  .from(0).to(0));
                     }
                 } else {
-                    ltrg.tween(Tween.rotate().start(0).stop(Infinity).from(0).to(0));
+                    layer_trg.tween(Tween.rotate().start(0).stop(Infinity).from(0).to(0));
                 }
-                ltrg.tween(Tween.rotatetopath().start(0).stop(Infinity));
+                layer_trg.tween(Tween.rotatetopath().start(0).stop(Infinity));
             }
         }
 
@@ -324,56 +326,51 @@ Import.branch = function(type, src, psrc, all, anim) {
          * } *end-action*;
          */
         // transfer repetition data
-        if (lsrc[5]) {
-            ltrg.mode = Import.mode(lsrc[5][0]);
-            if (lsrc[5].length > 1) {
-                ltrg.nrep = lsrc[5][1] || Infinity;
-            }
+        if (layer_src[5]) {
+            layer_trg.repeat(Import.mode(layer_src[5][0], layer_src[5][1]));
         } else {
-            ltrg.mode = Import.mode(null);
+            layer_trg.repeat(Import.mode(null));
         }
 
-        // Clips' end-actions like in Editor are not supported in Player,
-        // but they may be adapted to Player's model (same as Group in Editor)
-        if ((ltrg._anm_type === TYPE_CLIP) && (ltrg.mode !== C.R_ONCE)) {
-            ltrg.asClip([0, ltrg.lband[1] - ltrg.lband[0]], ltrg.mode, ltrg.nrep);
-            ltrg.lband = [ ltrg.lband[0], Infinity ];
-            ltrg.gband = [ ltrg.gband[0], Infinity ];
-            ltrg.mode = C.R_STAY;
-            ltrg.nrep = Infinity;
-        }
-
-        // if do not masks any layers, just add to target
+        // if do not masks any layers, store it as a potential mask target
         // if do masks, set it as a mask for them while not adding
-        if (!lsrc[3]) { // !masked
-            trg.add(ltrg);
-            _layers_targets.push(ltrg);
+        if (!layer_src[3]) { // !masked
+            _layers_targets.push(layer_trg);
         } else {
             // layer is a mask, apply it to the required number
             // of previously collected layers
-            var mask = ltrg,
-                togo = lsrc[3], // layers below to apply mask
+            var mask = layer_trg,
+                togo = layer_src[3], // layers below to apply mask
                 targets_n = _layers_targets.length;
+            layer_trg.markAsMask();
             if (togo > targets_n) {
                 _reportError('No layers collected to apply mask, expected ' +
-                            togo + ', got ' + targets_n);
+                             togo + ', got ' + targets_n);
                 togo = targets_n;
             }
             while (togo) {
                 var masked = _layers_targets[targets_n-togo];
-                masked.mask(mask);
+                masked.maskWith(mask);
                 togo--;
             }
         }
+        trg.add(layer_trg);
 
-        Import.callCustom(ltrg, lsrc, TYPE_LAYER);
+        Import.callCustom(layer_trg, layer_src, TYPE_LAYER);
 
         // TODO temporary implementation, use custom renderer for that!
-        if (ltrg.$audio && ltrg.$audio.master) {
-            ltrg.lband = [ltrg.lband[0], Infinity];
-            ltrg.gband = [ltrg.gband[0], Infinity];
-            trg.remove(ltrg);
-            anim.add(ltrg);
+        if (layer_trg.$audio && layer_trg.$audio.master) {
+            layer_trg.band(band[0], Infinity);
+            trg.remove(layer_trg);
+            anim.addMasterAudio(layer_trg);
+        }
+    }
+
+    if (type === TYPE_SKELETON) {
+        trg.layer2Bone = new Array(_layers.length);
+        var bones = trg.children[0];
+        for (var li = bones.children.length; li--;) {
+            trg.layer2Bone[bones.children[li].$to] = bones.children[li];
         }
     }
 
@@ -382,7 +379,7 @@ Import.branch = function(type, src, psrc, all, anim) {
 
 /** leaf **/
 // -> Element
-Import.leaf = function(type, src, lsrc, parent, anim) {
+Import.leaf = function(type, src, layer_src, layer_band, parent, anim, scene) {
     var trg = new Element();
     var hasUrl = !!src[1];
     if (!hasUrl &&
@@ -396,12 +393,16 @@ Import.leaf = function(type, src, lsrc, parent, anim) {
     else if (type == TYPE_AUDIO) {
         trg.type = C.ET_AUDIO;
         trg.$audio = Import.audio(src);
-        trg.$audio.connect(trg, anim);
+        if (!trg.$audio.isMaster()) trg.$audio.connect(trg, anim, scene);
     }
     else if (type == TYPE_VIDEO) {
         trg.type = C.ET_VIDEO;
         trg.$video = Import.video(src);
-        trg.$video.connect(trg, anim);
+        trg.$video.connect(trg, anim, scene);
+    }
+    else if (type == TYPE_BONE) {
+        trg.$from = src[1];
+        trg.$to = src[2];
     }
     else { trg.$path  = Import.path(src);  }
     if (trg.$path || trg.$text) {
@@ -459,7 +460,7 @@ Import._pathDecode = function(src) {
     if (!is.num(src) || (src == -1)) return null;
 
     var encoded = Import._paths[src];
-    if (!encoded) return;
+    if (!encoded) return null;
 
     var val = Import._path_cache.get(encoded);
     if (val) {
@@ -658,6 +659,8 @@ Import.tweentype = function(src) {
     if (src === 10) return C.T_STROKE;
     if (src === 11) return C.T_SHADOW;
     if (src === 12) return C.T_SWITCH;
+    if (src === 13) return C.T_BONE_ROTATE;
+    if (src === 14) return C.T_BONE_LENGTH;
 };
 /** tweendata **/
 // -> Any
@@ -665,7 +668,9 @@ Import.tweendata = function(type, src) {
     if (src === null) return null; // !!! do not optimize to !src since 0 can also happen
     if (type === C.T_TRANSLATE) return Import.pathval(src);
     if ((type === C.T_ROTATE) ||
-        (type === C.T_ALPHA)) {
+        (type === C.T_ALPHA) ||
+        (type === C.T_BONE_ROTATE) ||
+        (type === C.T_BONE_LENGTH)) {
         if (src.length == 2) return src;
         if (src.length == 1) return [ src[0], src[0] ];
     }
@@ -847,21 +852,22 @@ Import.grad = function(src) {
         _reportError('Unknown type of gradient with ' + pts.length + ' points');
     }
 };
+/** pattern **/
 /*
-array {          // pattern
-number;      // id of either shapeelement or image element
-number;      // 0 - no repeat, 1 - repeat xy, 2 - repeat x, 3 - repeat y
-number;      // width
-number;      // height
-array { number; number; number; number; }  // rectangle, inner bounds
-number;      // opacity
-}
-*/
+ * array {          // pattern
+ *     number;      // id of either shapeelement or image element
+ *     number;      // 0 - no repeat, 1 - repeat xy, 2 - repeat x, 3 - repeat y
+ *     number;      // width
+ *     number;      // height
+ *     array { number; number; number; number; }  // rectangle, inner bounds
+ *     number;      // opacity
+ * }
+ */
 var repeats = ['no-repeat', 'repeat', 'repeat-x', 'repeat-y'];
 
 Import.pattern = function(src) {
     var el = anm.lastImportedProject.anim.elements[src[0]],
-        elm = Import.leaf(Import._type(el), el/*, anim*/);
+        elm = Import.leaf(Import._type(el), el/*, layer, layer_band, parent, anim*/);
     if (elm) {
         elm.alpha = src[5];
         elm.disabled = true;
@@ -889,7 +895,7 @@ Import.audio = function(src) {
 };
 
 Import.video = function(src) {
-    var video = new Video(src[1], src[3]);
+    var video = new Video(src[1], src[3], src[4]);
     video.offset = src[2];
     return video;
 };

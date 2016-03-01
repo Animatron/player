@@ -1,15 +1,17 @@
 var utils = require('../utils.js'),
     is = utils.is,
-    iter = utils.iter,
     C = require('../constants.js');
 
 var engine = require('engine'),
     ResMan = require('../resource_manager.js'),
     FontDetector = require('../../vendor/font_detector.js');
 
-var Element = require('./element.js'),
+var Scene = require('./scene.js'),
+    Element = require('./element.js'),
     Clip = Element,
     Brush = require('../graphics/brush.js');
+
+var Timeline = require('./timeline.js');
 
 var events = require('../events.js'),
     provideEvents = events.provideEvents,
@@ -26,8 +28,6 @@ var DOM_TO_EVT_MAP = {
     'mouseup':   C.X_MUP,
     'mousedown': C.X_MDOWN,
     'mousemove': C.X_MMOVE,
-    'mouseover': C.X_MOVER,
-    'mouseout':  C.X_MOUT,
     'keypress':  C.X_KPRESS,
     'keyup':     C.X_KUP,
     'keydown':   C.X_KDOWN
@@ -58,33 +58,37 @@ var DOM_TO_EVT_MAP = {
  */
 function Animation() {
     this.id = utils.guid();
-    this.tree = [];
-    this.hash = {};
     this.name = '';
-    this.duration = undefined;
     this.bgfill = null;
     this.width = undefined;
     this.height = undefined;
     this.zoom = 1.0;
-    this.speed = 1.0;
     this.factor = 1.0;
     this.repeat = false;
     this.meta = {};
     this.targets = {}; // Player instances where this animation was loaded, by ID
-    this.$prefix = null; // functions to call before every frame
     //this.fps = undefined;
-    this.__informEnabled = true;
     this.__lastOverElm = null;
     this._laters = [];
-    this._initHandlers(); // TODO: make automatic
+    this.timeline = new Timeline(this);
+
+    var defaultScene = new Scene(this, '', 0);
+    this.scenes = [];
+    this.scenes.push(defaultScene);
+
+    this.currentSceneIdx = 0;
+
+    this.affectsChildren = true;
+
+    this.endOnLastScene = true;
+    this.listensMouse = false;
+
+    this.masterAudio = [];
 }
 
 Animation.DEFAULT_DURATION = 10;
 
-provideEvents(Animation, [ C.A_START, C.A_PAUSE, C.A_STOP,
-                           C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
-                           C.X_MMOVE, C.X_MOVER, C.X_MOUT,
-                           C.X_KPRESS, C.X_KUP, C.X_KDOWN, C.X_ERROR ]);
+provideEvents(Animation, [ C.X_KPRESS, C.X_KUP, C.X_KDOWN, C.X_ERROR ]);
 /**
  * @method add
  * @chainable
@@ -106,21 +110,7 @@ provideEvents(Animation, [ C.A_START, C.A_PAUSE, C.A_STOP,
  */
 Animation.prototype.add = function(arg1, arg2, arg3) {
     // this method only adds an element to a top-level
-    // FIXME: allow to add elements deeper or rename this
-    //        method to avoid confusion?
-    if (arg2) { // element by functions mode
-        var elm = new Element(arg1, arg2);
-        if (arg3) elm.changeTransform(arg3);
-        this.addToTree(elm);
-        //return elm;
-    } else if (is.arr(arg1)) { // elements array mode
-        var clip = new Clip();
-        clip.add(arg1);
-        this.addToTree(_clip);
-        //return clip;
-    } else { // element object mode
-        this.addToTree(arg1);
-    }
+    this.getCurrentScene().add(arg1, arg2, arg3);
     return this;
 };
 
@@ -133,14 +123,70 @@ Animation.prototype.add = function(arg1, arg2, arg3) {
  * @param {anm.Element} element
  */
 Animation.prototype.remove = function(elm) {
-    // error will be thrown in _unregister method if element is not registered
-    if (elm.parent) {
-        // it will unregister element inside
-        elm.parent.remove(elm);
+    elm.scene.remove(elm);
+    return this;
+};
+
+Animation.prototype.addScene = function(name, duration) {
+    var scene;
+    if (!(name instanceof Scene)) {
+        scene = new Scene(this, name, duration);
     } else {
-        this._unregister(elm);
+        scene = name;
+        scene.anim = this;
+    }
+    this.scenes.push(scene);
+    return scene;
+};
+
+Animation.prototype.getDuration = function() {
+    return this.timeline.getDuration();
+};
+
+/*Animation.prototype.getTotalDurationFromScenes = function() {
+    var duration = 0;
+    this.eachScene(function(scene) {
+        duration += scene.getDuration();
+    });
+    return duration;
+}*/
+
+Animation.prototype.getScenes = function() {
+    return this.scenes;
+};
+
+Animation.prototype.getScenesCount = function() {
+    return this.scenes.length;
+};
+
+Animation.prototype.setCurrentScene = function(idx) {
+    this.currentSceneIdx = idx;
+    this.getCurrentScene().continue(); // ensure it's not paused
+    return this;
+};
+
+Animation.prototype.getCurrentScene = function() {
+    return this.scenes[this.currentSceneIdx];
+};
+
+Animation.prototype.replaceScene = function(idx, scene) {
+    this.scenes[idx] = scene;
+    if (this.currentSceneIdx === idx) {
+        this.getCurrentScene().continue(); // ensure it's not paused
     }
     return this;
+};
+
+Animation.prototype.replaceFirstScene = function(name, duration) {
+    var scene;
+    if (!(name instanceof Scene)) {
+        scene = new Scene(this, name, duration);
+    } else {
+        scene = name;
+        scene.anim = this;
+    }
+    this.scenes[0] = scene;
+    return scene;
 };
 
 /**
@@ -155,7 +201,52 @@ Animation.prototype.remove = function(elm) {
  * @param {Object} [data]
  */
 Animation.prototype.traverse = function(visitor, data) {
-    utils.keys(this.hash, function(key, elm) { return visitor(elm, data); });
+    this.eachScene(function(scene) { scene.traverse(visitor, data); });
+    return this;
+};
+
+/**
+ * @method traverseVisible
+ * @chainable
+ *
+ * Visit every currently visible element in a tree.
+ *
+ * @param {Function} visitor
+ * @param {anm.Element} visitor.child
+ * @param {Boolean} visitor.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
+ * @param {Object} [data]
+ */
+Animation.prototype.traverseVisible = function(visitor, data) {
+    var currentScene = this.getCurrentScene();
+    if (currentScene && currentScene.isActive()) {
+        currentScene.traverse(function(child) {
+            return (child.isActive() && (visitor(child, data) === false)) ? false : true;
+        });
+    }
+    return this;
+};
+
+/**
+ * @method reverseTraverseVisible
+ * @chainable
+ *
+ * Visit every currently visible element in a tree. The only difference
+ * with {@link anm.Animation#traverseVisible .traverseVisible} is that `.reverseTraverseVisible` literally iterates
+ * over the children in the order _reverse_ to the order of their addition—this
+ * could be helpful when you need elements with higher z-index to be visited before.
+ *
+ * @param {Function} visitor
+ * @param {anm.Element} visitor.child
+ * @param {Boolean} visitor.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
+ * @param {Object} [data]
+ */
+Animation.prototype.reverseTraverseVisible = function(visitor, data) {
+    var currentScene = this.getCurrentScene();
+    if (currentScene && currentScene.isActive()) {
+        currentScene.reverseTraverse(function(child) {
+            return (child.isActive() && (visitor(child, data) === false)) ? false : true;
+        });
+    }
     return this;
 };
 
@@ -171,8 +262,27 @@ Animation.prototype.traverse = function(visitor, data) {
  * @param {Object} [data]
  */
 Animation.prototype.each = function(visitor, data) {
-    for (var i = 0, tlen = this.tree.length; i < tlen; i++) {
-        if (visitor(this.tree[i], data) === false) break;
+    this.eachScene(function(scene) { scene.each(visitor, data); });
+    return this;
+};
+
+/**
+ * @method eachVisible
+ * @chainable
+ *
+ * Visit every visible root element (direct child of a current scene) in a tree.
+ *
+ * @param {Function} visitor
+ * @param {anm.Element} visitor.child
+ * @param {Boolean} visitor.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
+ * @param {Object} [data]
+ */
+Animation.prototype.eachVisible = function(visitor, data) {
+    var currentScene = this.getCurrentScene();
+    if (currentScene && currentScene.isActive()) {
+        currentScene.each(function(child) {
+            return (child.isActive() && (visitor(child, data) === false)) ? false : true;
+        });
     }
     return this;
 };
@@ -192,9 +302,30 @@ Animation.prototype.each = function(visitor, data) {
  * @param {Object} [data]
  */
 Animation.prototype.reverseEach = function(visitor, data) {
-    var i = this.tree.length;
-    while (i--) {
-        if (visitor(this.tree[i], data) === false) break;
+    this.eachScene(function(scene) { scene.reverseEach(visitor, data); });
+    return this;
+};
+
+/**
+ * @method reverseTraverseVisible
+ * @chainable
+ *
+ * Visit every visible root element of the scene in a tree. The only difference
+ * with {@link anm.Animation#eachVisible .eachVisible} is that `.reverseEachVisible` literally iterates
+ * over the children in the order _reverse_ to the order of their addition—this
+ * could be helpful when you need elements with higher z-index to be visited before.
+ *
+ * @param {Function} visitor
+ * @param {anm.Element} visitor.child
+ * @param {Boolean} visitor.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
+ * @param {Object} [data]
+ */
+Animation.prototype.reverseEachVisible = function(visitor, data) {
+    var currentScene = this.getCurrentScene();
+    if (currentScene && currentScene.isActive()) {
+        currentScene.reverseEach(function(child) {
+            return (child.isActive() && (visitor(child, data) === false)) ? false : true;
+        });
     }
     return this;
 };
@@ -213,22 +344,27 @@ Animation.prototype.reverseEach = function(visitor, data) {
  * @param {Boolean} remover.return `false`, if this element should be removed
  */
 Animation.prototype.iter = function(func, rfunc) {
-    iter(this.tree).each(func, rfunc);
+    this.eachScene(function(scene) { scene.iter(func, rfunc); });
+    return this;
+};
+
+Animation.prototype.eachScene = function(func) {
+    var scenes = this.scenes;
+    for (var i = 0, il = scenes.length; i < il; i++) {
+        func(scenes[i]);
+    }
     return this;
 };
 
 /**
  * @method render
  *
- * Render the Animation for given context at given time.
+ * Render the Animation for given context at current time.
  *
  * @param {Canvas2DContext} context
- * @param {Number} time
- * @param {Number} [dt] The difference in time between current frame and previous one
  */
-Animation.prototype.render = function(ctx, time, dt) {
+Animation.prototype.render = function(ctx) {
     ctx.save();
-    this.time = time;
     var zoom = this.zoom;
     if (zoom != 1) {
         ctx.scale(zoom, zoom);
@@ -238,11 +374,60 @@ Animation.prototype.render = function(ctx, time, dt) {
         this.bgfill.apply(ctx);
         ctx.fillRect(0, 0, this.width, this.height);
     }
-    time = this.$prefix ? this.$prefix(time, ctx) : time;
-    this.each(function(child) {
-        child.render(ctx, time, dt);
-    });
+    this.getCurrentScene().render(ctx);
     ctx.restore();
+};
+
+Animation.prototype.tick = function(dt) {
+    var currentScene = this.getCurrentScene();
+    if ((currentScene.getTime() + dt) < currentScene.getDuration()) {
+        currentScene.tick(dt);
+        this.timeline.tick(dt); // FIXME: changing tick order here makes tests fail, find out why
+    } else {
+        var previousScene = this.getCurrentScene();
+        var previousSceneIdx = this.currentSceneIdx;
+        var left = (previousScene.getDuration() - previousScene.getTime());
+        previousScene.tick(left);
+        var nextScene =
+           (this.currentSceneIdx !== previousSceneIdx) // check if user performed jumps between scenes during currentScene.tick above
+           ? this.getCurrentScene() : this.advanceToNextScene(); // if no jumps performed, advance to next scene
+
+        if (nextScene) nextScene.tick(dt - left); // tick the remainder in the next scene
+        this.timeline.tick(dt);
+        if (!nextScene && this.endOnLastScene) {
+            this.timeline.endNow();
+        }
+    }
+}
+
+Animation.prototype.advanceToNextScene = function() {
+    var curSceneIdx = this.currentSceneIdx;
+    if (((curSceneIdx + 1) >= this.scenes.length) ||
+        !this.scenes[curSceneIdx + 1]) return null;
+    this.currentSceneIdx++;
+    return this.getCurrentScene();
+};
+
+Animation.prototype.at = function(t, f) {
+    return this.timeline.addAction(t, f);
+};
+
+Animation.prototype.pause = function() {
+    this.timeline.pause();
+    this.getCurrentScene().pause();
+};
+
+Animation.prototype.continue = function() {
+    this.timeline.continue();
+    this.getCurrentScene().continue();
+};
+
+Animation.prototype.fireMessage = function(msg) {
+    this.timeline.fireMessage(msg);
+};
+
+Animation.prototype.onMessage = function(msg, callback) {
+    this.timeline.onMessage(msg, callback);
 };
 
 /**
@@ -252,15 +437,11 @@ Animation.prototype.render = function(ctx, time, dt) {
  * every Player where this animation was loaded inside. It will skip a jump, if it's already in process
  * of jumping.
  *
- * @param {Number} time
+ * @param {Number} time global animation time
  */
 Animation.prototype.jump = function(t) {
-    if (this.jumping) return;
-    this.jumping = true;
-    utils.keys(this.targets, function(id, player) {
-        if (player) player.seek(t);
-    });
-    this.jumping = false;
+    this.timeline.jump(t);
+    this.goToSceneAt(t);
 };
 
 /**
@@ -275,25 +456,68 @@ Animation.prototype.jump = function(t) {
 Animation.prototype.jumpTo = function(selector) {
     var elm = is.str(selector) ? this.find(selector) : selector;
     if (!elm) return;
-    this.jump(elm.gband[0]);
+    //this.jump(elm.timeline.getGlobalStart());
+    if (elm instanceof Scene) {
+        this.goToScene(elm);
+    } else {
+        this.timeline.jumpTo(elm);
+        this.goToSceneAt(this.getTime());
+    }
 };
 
-// TODO: test
-/**
- * @method getFittingDuration
- *
- * Get the duration where all child elements' bands fit.
- *
- * @return {Number} The calculated duration
- */
-Animation.prototype.getFittingDuration = function() {
-    var max_pos = -Infinity;
-    var me = this;
-    this.each(function(child) {
-        var elm_tpos = child._max_tpos();
-        if (elm_tpos > max_pos) max_pos = elm_tpos;
-    });
-    return max_pos;
+Animation.prototype.jumpToStart = function() {
+    this.timeline.jumpToStart();
+    this.setCurrentScene(0);
+    this.getCurrentScene().jumpToStart();
+};
+
+Animation.prototype.getTime = function() {
+    return this.timeline.getLastPosition();
+};
+
+Animation.prototype.isActive = function() {
+    return this.timeline.isActive() && this.getCurrentScene() && this.getCurrentScene().isActive();
+};
+
+Animation.prototype.setDuration = function(duration) {
+    if (this.scenes.length === 1) this.scenes[0].setDuration(duration);
+    this.timeline.setDuration(duration);
+};
+
+Animation.prototype.setSpeed = function(speed) {
+    this.timeline.setSpeed(speed);
+};
+
+Animation.prototype.goToScene = function(scene) {
+    for (var i = 0; i < this.scenes.length; i++) {
+        if (this.scenes[i].id === scene.id) {
+            this.scenes[i].jumpToStart();
+            this.setCurrentScene(i);
+            break;
+        }
+    }
+};
+
+Animation.prototype.goToSceneAt = function(t) {
+    if (t <= this.getDuration()) {
+        var loc_t = t;
+        var i = 0,
+            cursor = this.scenes[i];
+        while (/*(i < this.scenes.length) && */cursor && (loc_t > cursor.timeline.getDuration())) {
+            loc_t = loc_t - cursor.timeline.getDuration();
+            i++; cursor = this.scenes[i];
+        }
+        if (cursor) {
+            cursor.jump(loc_t);
+            this.setCurrentScene(i);
+        } else {
+            this.setCurrentScene(0);
+            this.getCurrentScene().jump(t);
+        }
+    } else {
+        this.setCurrentScene(this.scenes.length - 1);
+        this.getCurrentScene().jumpToEnd();
+    }
 };
 
 /**
@@ -303,11 +527,13 @@ Animation.prototype.getFittingDuration = function() {
  * Reset all render-related data for itself, and the data of all the elements.
  */
 Animation.prototype.reset = function() {
-    this.__informEnabled = true;
-    this.time = null;
-    this.each(function(child) {
-        child.reset();
+    this.timeline.reset();
+    this.eachScene(function(scene) {
+        scene.reset();
     });
+
+    if (this.mouseState) this.mouseState = new events.MouseEventsState();
+
     return this;
 };
 
@@ -359,7 +585,11 @@ Animation.prototype.dispose = function(player) {
  * @return {Boolean} `true` if no Elements, `false` if there are some.
  */
 Animation.prototype.isEmpty = function() {
-    return this.tree.length === 0;
+    var isEmpty = false;
+    this.eachScene(function(scene) {
+        isEmpty = isEmpty || scene.isEmpty();
+    })
+    return isEmpty;
 };
 
 /**
@@ -380,7 +610,21 @@ Animation.prototype.toString = function() {
  * @param {Canvas} canvas
  */
 Animation.prototype.subscribeEvents = function(canvas) {
-    engine.subscribeAnimationToEvents(canvas, this, DOM_TO_EVT_MAP);
+    var anim = this;
+    this.listensForMouse = true;
+    var mouseState = new events.MouseEventsState();
+    this.mouseState = mouseState;
+    engine.subscribeAnimationToEvents(canvas, this, function(domType, domEvent) {
+        var anmEventType = DOM_TO_EVT_MAP[domType];
+        if (events.isMouse(anmEventType)) {
+            var currentScene = anim.getCurrentScene();
+            if (currentScene && currentScene.isActive()) {
+                var anmEvent = new events.MouseEvent(anmEventType, domEvent.x, domEvent.y,
+                                                     anim, domEvent); // target, source
+                currentScene.getMouseSupport().dispatch(anmEvent);
+            }
+        }
+    });
 };
 
 /**
@@ -390,135 +634,9 @@ Animation.prototype.subscribeEvents = function(canvas) {
  * @param {Canvas} canvas
  */
 Animation.prototype.unsubscribeEvents = function(canvas) {
+    this.listensMouse = false;
     engine.unsubscribeAnimationFromEvents(canvas, this);
-};
-
-// this function is called for any event fired for this element, just before
-// passing it to the handlers; if this function returns `true` or nothing, the event is
-// then passed to all the handlers; if it returns `false`, handlers never get this event.
-Animation.prototype.filterEvent = function(type, evt) {
-
-    function firstSubscriber(elm, type) {
-        return elm.firstParent(function(parent) {
-            return parent.subscribedTo(type);
-        });
-    }
-
-    var anim = this;
-    if (events.mouse(type)) {
-        var pos = anim.adapt(evt.pos.x, evt.pos.y);
-        var targetFound = false;
-        anim.reverseEach(function(child) {
-            child.inside(pos, function(elm) { // filter elements
-                return is.defined(elm.cur_t) && elm.fits(elm.cur_t);
-            }, function(elm, local_pos) { // point is inside
-                targetFound = true;
-                if (type !== 'mousemove') {
-                    var subscriber = firstSubscriber(elm, type);
-                    if (subscriber) subscriber.fire(type, evt);
-                } else { // type === 'mousemove'
-                    // check mouseover/mouseout
-                    var mmoveSubscriber = firstSubscriber(elm, 'mousemove');
-                    if (!anim.__lastOverElm) {
-                        // mouse moved over some element for the first time
-                        anim.__lastOverElm = elm;
-                        var moverSubscriber = firstSubscriber(elm, 'mouseover');
-                        if (moverSubscriber) moverSubscriber.fire('mouseover', evt);
-                        if (mmoveSubscriber) mmoveSubscriber.fire('mousemove', evt); // fire this mousemove next to mouseover
-                    } else {
-                        if (elm.id === anim.__lastOverElm.id) { // mouse is still over this element
-                            if (mmoveSubscriber) mmoveSubscriber.fire(type, evt);
-                        } else {
-                            // mouse moved over new element
-                            var moverSubscriber = firstSubscriber(elm, 'mouseover');
-                            if (anim.__lastOverElm) {
-                                var moutSubscriber = firstSubscriber(anim.__lastOverElm, 'mouseout');
-                                if (moutSubscriber) moutSubscriber.fire('mouseout', evt);
-                                anim.__lastOverElm = null;
-                            }
-                            anim.__lastOverElm = elm;
-                            if (moverSubscriber) moverSubscriber.fire('mouseover', evt);
-                            if (mmoveSubscriber) mmoveSubscriber.fire('mousemove', evt); // fire this mousemove next to mouseover
-                        }
-                    }
-
-                }
-                return false; /* stop inner iteration, so first matched element exits the check */
-            });
-            if (targetFound) return false; /* stop outer iteration, so first matched element exits the check */
-        });
-        if ((type === 'mousemove') && !targetFound && anim.__lastOverElm) {
-            var stillInside = false;
-            anim.__lastOverElm.inside(pos, null, function() { stillInside = true; });
-            if (!stillInside) {
-                var moutSubscriber = firstSubscriber(anim.__lastOverElm, 'mouseout');
-                anim.__lastOverElm = null;
-                if (moutSubscriber) moutSubscriber.fire('mouseout', evt);
-            }
-        }
-        return false; /* stop passing this event further to other handlers */
-    }
-    return true; /* keep passing this event further to other handlers */
-};
-
-/**
- * @method addToTree
- * @private
- *
- * @param {anm.Element} element
- */
-Animation.prototype.addToTree = function(elm) {
-    if (!elm.children) throw errors.animation(ErrLoc.A.OBJECT_IS_NOT_ELEMENT, this);
-    this._register(elm);
-    /*if (elm.children) this._addElems(elm.children);*/
-    this.tree.push(elm);
-};
-
-Animation.prototype.handlePause = function() {
-    this.traverse(function(elm) {
-        elm.__resetBandEvents();
-    });
-};
-
-/*Animation.prototype._addElems = function(elems) {
-    for (var ei = 0; ei < elems.length; ei++) {
-        var _elm = elems[ei];
-        this._register(_elm);
-    }
-}*/
-Animation.prototype._register = function(elm) {
-    if (this.hash[elm.id]) throw errors.animation(ErrLoc.A.ELEMENT_IS_REGISTERED, this);
-    elm.registered = true;
-    elm.anim = this;
-    this.hash[elm.id] = elm;
-
-    var me = this;
-
-    elm.each(function(child) {
-        me._register(child);
-    });
-};
-
-Animation.prototype._unregister_no_rm = function(elm) {
-    this._unregister(elm, true);
-};
-
-Animation.prototype._unregister = function(elm, save_in_tree) { // save_in_tree is optional and false by default
-    if (!elm.registered) throw errors.animation(ErrLoc.A.ELEMENT_IS_NOT_REGISTERED, this);
-    var me = this;
-    elm.each(function(child) {
-        me._unregister(child);
-    });
-    var pos = -1;
-    if (!save_in_tree) {
-      while ((pos = this.tree.indexOf(elm)) >= 0) {
-        this.tree.splice(pos, 1); // FIXME: why it does not goes deeply in the tree?
-      }
-    }
-    delete this.hash[elm.id];
-    elm.registered = false;
-    elm.anim = null;
-    //elm.parent = null;
+    // TODO: unsubscribe children from events
 };
 
 Animation.prototype._collectRemoteResources = function(player) {
@@ -529,9 +647,8 @@ Animation.prototype._collectRemoteResources = function(player) {
            remotes = remotes.concat(elm._collectRemoteResources(anim, player)/* || []*/);
         }
     });
-    if(this.fonts && this.fonts.length) {
-        remotes = remotes.concat(this.fonts.map(function(f){return f.url;}));
-    }
+    remotes = remotes.concat(this.collectFontsUrls(player));
+    remotes = remotes.concat(this.collectMasterAudioUrls(player));
     return remotes;
 };
 
@@ -542,7 +659,8 @@ Animation.prototype._loadRemoteResources = function(player) {
            elm._loadRemoteResources(anim, player);
         }
     });
-    anim.loadFonts(player);
+    this.loadFonts(player);
+    this.loadMasterAudio(player);
 };
 
 /**
@@ -564,7 +682,7 @@ Animation.prototype._loadRemoteResources = function(player) {
  * @return {anm.Element} First found element
  */
 Animation.prototype.find = function(selector, where) {
-    return Search.one(selector).over(where ? where.children : this.tree);
+    return Search.one(selector).over(where ? where.children : this.getScenes());
 };
 
 /**
@@ -586,7 +704,7 @@ Animation.prototype.find = function(selector, where) {
  * @return {Array} An array of found elements
  */
 Animation.prototype.findAll = function(selector, where) {
-    return Search.all(selector).over(where ? where.children : this.tree);
+    return Search.all(selector).over(where ? where.children : this.getScenes());
 };
 
 /**
@@ -603,23 +721,12 @@ Animation.prototype.findAll = function(selector, where) {
  * @deprecated in favor of special syntax in `find` method
  */
 Animation.prototype.findById = function(id) {
-    return this.hash[id];
-};
-
-/**
- * @method prefix
- *
- * Perform the function exactly before rendering all the elements inside,
- * before the new frame, but after the preparations. This function *should*
- * return the time value passed in or a new time value.
- *
- * @param {Function} f function to call
- * @param {Number} f.t time
- * @param {Context2D} f.ctx canvas context
- * @param {Number} f.return new time value
- */
-Animation.prototype.prefix = function(f) {
-    this.$prefix = f;
+    var scenes = this.scenes;
+    var found = null;
+    for (var i = 0, il = scenes.length; (i < il) && !found; i++) {
+        found = scenes[i].findById(id);
+    }
+    return found;
 };
 
 /**
@@ -638,9 +745,9 @@ Animation.prototype.prefix = function(f) {
  *
  * @return {Object} transformed point
  */
-Animation.prototype.adapt = function(x, y) {
-    return { x: x / this.factor,
-             y: y / this.factor };
+Animation.prototype.adapt = function(pt) {
+    return { x: pt.x / this.factor,
+             y: pt.y / this.factor };
 };
 
 /*
@@ -669,13 +776,37 @@ Animation.prototype.invokeLater = function(f) {
     this._laters.push(f);
 };
 
-var FONT_LOAD_TIMEOUT = 10000, //in ms
-    https = engine.isHttps;
+var FONT_LOAD_TIMEOUT = 10000; //in ms
+
+Animation.prototype.addMasterAudio = function(audioElm) {
+    this.masterAudio.push(audioElm);
+    audioElm.$audio.connectAsMaster(audioElm, this);
+};
+
+Animation.prototype.collectFontsUrls = function(player) {
+    if (!this.fonts || !this.fonts.length) return [];
+    return this.fonts.filter(function(f) {
+                                return f.gf_name ? false : true; // skip google fonts
+                            }).map(function(f) {
+                                return f.url;
+                            });
+};
+
+Animation.prototype.collectMasterAudioUrls = function(player) {
+    var urls = [];
+    if (this.masterAudio.length > 0) {
+        for (var i = 0; i < this.masterAudio.length; i++) {
+            urls = urls.concat(this.masterAudio[i]._collectRemoteResources(this, player)/* || []*/);
+        }
+    }
+    return urls;
+};
 
 /*
  * @method loadFonts
  * @private
  */
+var URL2GOOGLE_FONTS = 'http://fonts.googleapis.com/css?family=';
 Animation.prototype.loadFonts = function(player) {
     if (!this.fonts || !this.fonts.length) {
         return;
@@ -686,47 +817,48 @@ Animation.prototype.loadFonts = function(player) {
         css = '',
         fontsToLoad = [],
         detector = new FontDetector();
-
+    var url2gf = '';
     for (var i = 0; i < fonts.length; i++) {
         var font = fonts[i];
         if (!font.url || !font.face) {
             //no font name or url
             continue;
         }
-        var url = font.url, woff = font.woff;
-        if (https) {
-            //convert the URLs to https
-            url = url.replace('http:', 'https:');
-            if (woff) {
-                woff = woff.replace('http:', 'https:');
-            }
-        }
-        url = engine.fixLocalUrl(url);
-        fontsToLoad.push(font);
-        css += '@font-face {\n' +
+        var url = engine.checkMediaUrl(font.url),
+            woff = engine.checkMediaUrl(font.woff), gf_name = font.gf_name;
+
+        if (!gf_name) {
+            fontsToLoad.push(font);
+            css += '@font-face {\n' +
             'font-family: "' + font.face + '";\n' +
-            'src:' +  (woff ? ' url("'+woff+'") format("woff"),\n' : '') +
-            ' url("'+url+'") format("truetype");\n' +
-            (font.style ? 'font-style: ' + font.style +';\n' : '') +
+            'src:' + (woff ? ' url("' + woff + '") format("woff"),\n' : '') +
+            ' url("' + url + '") format("truetype");\n' +
+            (font.style ? 'font-style: ' + font.style + ';\n' : '') +
             (font.weight ? 'font-weight: ' + font.weight + ';\n' : '') +
             '}\n';
+        } else {
+            url2gf += font.gf_name + "|";
+        }
+    }
+    if (url2gf.length) {
+        var link = engine.checkMediaUrl(URL2GOOGLE_FONTS + url2gf.substring(0, url2gf.lastIndexOf('|')));
+        engine.addFontLinkObject(link);
     }
 
     if (fontsToLoad.length === 0) {
         return;
     }
-
     style.innerHTML += css;
 
     var getLoader = function(i) {
-            var face = fontsToLoad[i].face;
+            var font = fontsToLoad[i];
             return function(success) {
                 var interval = 100,
                 counter = 0,
                 intervalId,
                 checkLoaded = function() {
                     counter += interval;
-                    var loaded = detector.detect(face);
+                    var loaded = detector.detect(font);
                     if (loaded || counter > FONT_LOAD_TIMEOUT) {
                         // after 10 seconds, we'll just assume the font has been loaded
                         // and carry on. this should help when the font could not be
@@ -743,6 +875,21 @@ Animation.prototype.loadFonts = function(player) {
         ResMan.loadOrGet(player.id, fontsToLoad[i].url, getLoader(i));
     }
 
+
+};
+
+Animation.prototype.loadMasterAudio = function(player) {
+    if (this.masterAudio.length > 0) {
+        for (var i = 0; i < this.masterAudio.length; i++) {
+            this.masterAudio[i]._loadRemoteResources(this, player);
+        }
+    }
+};
+
+Animation.prototype.eachTarget = function(f) {
+    for (var targetId in this.targets) {
+        f(this.targets[targetId]);
+    }
 };
 
 module.exports = Animation;

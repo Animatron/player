@@ -309,10 +309,10 @@ Path.prototype.pointAt = function(t) {
     return hit.seg.atT(hit.start, hit.segt);
 };
 /**
- * @method inside
+ * @method contains
  *
  * Checks if point is inside the path. _Does no test for bounds_, the point is
- * assumed to be already inside of the bounds, so check `path.bounds().inside(pt)`
+ * assumed to be already inside of the bounds, so check `path.bounds().contains(pt)`
  * before calling this method manually.
  *
  * @param {Object} pt point to check
@@ -320,7 +320,7 @@ Path.prototype.pointAt = function(t) {
  * @param {Number} pt.y
  * @return {Boolean} is point inside
  */
-Path.prototype.inside = function(pt) {
+Path.prototype.contains = function(pt) {
     var x = pt.x, y = pt.y;
 
     var mask = /*(windingRule == WIND_NON_ZERO ?*/ -1 /*: 1)*/;

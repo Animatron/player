@@ -25,9 +25,9 @@ module.exports = function(config) {
       isDebug ? './dist/bundle/animatron.js' : './dist/bundle/animatron.min.js',
 
       './spec/search.spec.js',
-      './spec/orient-to-path.spec.js',
+      './spec/mouse.spec.js',
+      './spec/time.spec.js',
       './spec/loading-modes.spec.js'
-
     ],
 
 

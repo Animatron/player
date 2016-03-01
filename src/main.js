@@ -47,8 +47,6 @@ var anm = {
     conf: require('./anm/conf.js'),
     log: require('./anm/log.js'),
 
-    analytics: require('./anm/analytics.js'),
-
     modules: require('./anm/modules.js'),
     importers: require('./anm/importers.js'),
     engine: engine,
@@ -58,8 +56,11 @@ var anm = {
     resource_manager: require('./anm/resource_manager.js'),
     player_manager: require('./anm/player_manager.js'),
 
+    Timeline: require('./anm/animation/timeline.js'),
+
     Player: Player,
     Animation: require('./anm/animation/animation.js'),
+    Scene: require('./anm/animation/scene.js'),
     Element: Element,
     Clip: Element,
 

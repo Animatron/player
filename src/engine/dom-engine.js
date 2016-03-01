@@ -233,6 +233,7 @@ $DE.CONTROLS_CLASS = 'anm-controls';
 $DE.CONTROLS_INSTANCE_CLASS_PREFIX = 'anm-controls-';
 $DE.INFO_CLASS = 'anm-controls';
 $DE.INFO_INSTANCE_CLASS_PREFIX = 'anm-controls-';
+$DE.DEBUG_CLASS = 'anm-debug';
 
 
 $DE.ensureGlobalStylesInjected = function() {
@@ -582,7 +583,8 @@ $DE.extractUserOptions = function(elm) {
              'infoEnabled': __boolAttr(elm.getAttribute('anm-info') || elm.getAttribute('anm-info-enabled')),
              'handleEvents': __boolAttr(elm.getAttribute('anm-events') || elm.getAttribute('anm-handle-events')),
              'infiniteDuration': __boolAttr(elm.getAttribute('anm-infinite') || elm.getAttribute('anm-infinite-duration')),
-             'forceSceneSize': __boolAttr(elm.getAttribute('anm-scene-size') || elm.getAttribute('anm-force-scene-size')),
+             'forceAnimationSize': __boolAttr(elm.getAttribute('anm-animation-size') || elm.getAttribute('anm-force-animation-size')),
+             'stretchToCanvas': __boolAttr(elm.getAttribute('anm-stretch') || elm.getAttribute('anm-stretch-to-canvas')),
              'inParent': undefined, // TODO: check if we're in tag?
              'muteErrors': __boolAttr(elm.getAttribute('anm-mute-errors')),
              'loadingMode': elm.getAttribute('anm-loading-mode'),
@@ -669,6 +671,10 @@ $DE.setCanvasPosition = function(cvs, x, y) {
 
 $DE.setCanvasBackground = function(cvs, bg) {
     cvs.style.backgroundColor = bg;
+};
+
+$DE.disableCanvasFocusHilight = function(cvs) {
+    cvs.style.outline = 'none';
 };
 
 $DE._saveCanvasPos = function(cvs) {
@@ -819,7 +825,8 @@ $DE.keyEvent = function(e) {
 };
 
 $DE.mouseEvent = function(e, cvs) {
-    return { pos: $DE.getEventPosition(e, cvs) };
+    var pos = $DE.getEventPosition(e, cvs);
+    return { x: pos.x, y: pos.y };
 };
 
 $DE.preventDefault = function(evt) {
@@ -829,7 +836,7 @@ $DE.preventDefault = function(evt) {
 
 var _kevt = $DE.keyEvent,
     _mevt = $DE.mouseEvent;
-$DE.subscribeAnimationToEvents = function(cvs, anim, map) {
+$DE.subscribeAnimationToEvents = function(cvs, anim, receiver) {
     if (cvs.__anm.subscribed &&
         cvs.__anm.subscribed[anim.id]) {
         return;
@@ -838,14 +845,14 @@ $DE.subscribeAnimationToEvents = function(cvs, anim, map) {
     if (!cvs.__anm.handlers)   cvs.__anm.handlers = {};
     if (!cvs.__anm.subscribed) cvs.__anm.subscribed = {};
     var handlers = cvs.__anm.subscribed[anim.id] || {
-        click:     function(evt) { anim.fire(map.click,     _mevt(evt, cvs)); },
-        dblclick:  function(evt) { anim.fire(map.dblclick,  _mevt(evt, cvs)); },
-        mouseup:   function(evt) { anim.fire(map.mouseup,   _mevt(evt, cvs)); },
-        mousedown: function(evt) { anim.fire(map.mousedown, _mevt(evt, cvs)); },
-        mousemove: function(evt) { anim.fire(map.mousemove, _mevt(evt, cvs)); },
-        keypress:  function(evt) { anim.fire(map.keypress,  _kevt(evt)); },
-        keyup:     function(evt) { anim.fire(map.keyup,     _kevt(evt)); },
-        keydown:   function(evt) { anim.fire(map.keydown,   _kevt(evt)); }
+        click:     function(evt) { receiver('click',     _mevt(evt, cvs)); },
+        dblclick:  function(evt) { receiver('dblclick',  _mevt(evt, cvs)); },
+        mouseup:   function(evt) { receiver('mouseup',   _mevt(evt, cvs)); },
+        mousedown: function(evt) { receiver('mousedown', _mevt(evt, cvs)); },
+        mousemove: function(evt) { receiver('mousemove', _mevt(evt, cvs)); },
+        keypress:  function(evt) { receiver('keypress',  _kevt(evt)); },
+        keyup:     function(evt) { receiver('keyup',     _kevt(evt)); },
+        keydown:   function(evt) { receiver('keydown',   _kevt(evt)); }
     };
     cvs.__anm.handlers[anim.id] = handlers;
     cvs.__anm.subscribed[anim.id] = true;
@@ -907,8 +914,22 @@ $DE.createStatImg = function() {
     return img;
 };
 
+$DE.addFontLinkObject = function(url) {
+    var link = $doc.getElementById('anm-link');
+    if (link) {
+        return link;
+    }
+    link = $doc.createElement('link');
+    link.type = 'text/css';
+    link.id = 'anm-link';
+    link.rel = 'stylesheet';
+    link.href = url;
+    document.body.appendChild(link);
+    return link;
+};
+
 $DE.getWebfontStyleObject = function() {
-    var style = document.getElementById('anm-webfonts');
+    var style = $doc.getElementById('anm-webfonts');
     if (style) {
         return style;
     }
@@ -924,8 +945,11 @@ $DE.createAudio = function() {
     return $doc.createElement('audio');
 };
 
-$DE.createVideo = function() {
-    return $doc.createElement('video');
+$DE.createVideo = function(width, height) {
+    var el = $doc.createElement('video');
+    el.width = width;
+    el.height = height;
+    return el;
 };
 
 $DE.createSource = function() {
@@ -945,14 +969,15 @@ $DE.isHttps = https;
 var local = $win.location && $win.location.protocol === 'file:';
 $DE.isLocal = local;
 
-$DE.fixLocalUrl = function(url) {
+$DE.checkMediaUrl = function(url) {
     // use http links instead of protocol-local
     // which will be converted to file://uploads.animatron.com/...
     // and obviously won't work
     if (local && url.substring(0,2) === '//') {
-        url = 'http:' + url;
-    }
-    return url;
+        return ($DE.isHttps ? 'https:' : 'http:') + url;
+    } else if ($DE.isHttps) {
+        return url.replace('http:', 'https:');
+    } else return url;
 };
 
 

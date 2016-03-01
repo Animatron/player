@@ -47,28 +47,22 @@ function Sheet(src, callback, start_region) {
     this._thumbnail = false; // internal flag, used to load a player thumbnail
 }
 
-var https = engine.isHttps;
-
 /**
 * @private @method load
 */
-Sheet.prototype.load = function(elm, player_id, callback, errback) {
+Sheet.prototype.load = function(uid, player, callback, errback) {
     callback = callback || this._callback;
-    if (this._image) throw errors.element('Image already loaded', elm); // just skip loading?
+    if (this._image) throw errors.element('Image already loaded', uid); // just skip loading?
     var me = this;
     if (!me.src) {
-        log.error('Empty source URL for image');
+        log.error(errors.animation('Empty source URL for image', player.anim));
         me.ready = true; me.wasError = true;
         if (errback) errback.call(me, 'Empty source');
         return;
     }
-    resMan.loadOrGet(player_id, me.src,
+    resMan.loadOrGet(uid, me.src,
         function(notify_success, notify_error, notify_progress) { // loader
-            var src = me.src;
-            if (https) {
-                src = src.replace('http:', 'https:');
-            }
-            src = engine.fixLocalUrl(src);
+            var src = engine.checkMediaUrl(me.src);
 
             if (!me._thumbnail && conf.doNotLoadImages) {
               notify_error('Loading images is turned off');
@@ -98,7 +92,8 @@ Sheet.prototype.load = function(elm, player_id, callback, errback) {
             me.ready = true; // this flag is for users of the Sheet class
             if (callback) callback.call(me, image);
         },
-        function(err) { log.error(err.srcElement || err.path, err.message || err);
+        function(err) { log.error(errors.animation('Loading image failed ' + (err.srcElement || err.path) + '. ' +
+                                                  (err.message || err), player.anim));
                         me.ready = true;
                         me.wasError = true;
                         var doThrow = true;
@@ -174,10 +169,10 @@ Sheet.prototype.bounds = function() {
     return new Bounds(0, 0, r[2], r[3]);
 };
 /**
- * @method inside
+ * @method contains
  *
  * Checks if point is inside the image. _Does no test for bounds_, the point is
- * assumed to be already inside of the bounds, so check `image.bounds().inside(pt)`
+ * assumed to be already inside of the bounds, so check `image.bounds().contains(pt)`
  * before calling this method manually.
  *
  * @param {Object} pt point to check
@@ -185,7 +180,7 @@ Sheet.prototype.bounds = function() {
  * @param {Number} pt.y
  * @return {Boolean} is point inside
  */
-Sheet.prototype.inside = function(pt) {
+Sheet.prototype.contains = function(pt) {
     return true; // if point is inside of the bounds, point is considered to be
                  // inside the image shape
 };

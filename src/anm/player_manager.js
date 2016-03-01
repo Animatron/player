@@ -20,18 +20,13 @@ var events = require('./events.js'),
 function PlayerManager() {
     this.hash = {};
     this.instances = [];
-    this._initHandlers();
+    this.on(C.S_NEW_PLAYER, function(player) {
+        this.hash[player.id] = player;
+        this.instances.push(player);
+    }.bind(this));
 }
 
 events.provideEvents(PlayerManager, [ C.S_NEW_PLAYER, C.S_PLAYER_DETACH ]);
-
-PlayerManager.prototype.filterEvent = function(evt, player) {
-    if (evt == C.S_NEW_PLAYER) {
-        this.hash[player.id] = player;
-        this.instances.push(player);
-    }
-    return true;
-};
 
 /**
  * @method getPlayer
@@ -78,12 +73,12 @@ PlayerManager.prototype.handleDocumentHiddenChange = function(hidden) {
     var i, player;
     for (i = 0; i < this.instances.length; i++) {
         player = this.instances[i];
-        if (hidden && player.state.happens === C.PLAYING) {
+        if (hidden && player.happens === C.PLAYING) {
             player._pausedViaHidden = true;
             player.pause();
         } else if (!hidden && player._pausedViaHidden) {
             player._pausedViaHidden = false;
-            player.play(player.state.from);
+            if (player.anim) player.play(player.getTime());
         }
     }
 };

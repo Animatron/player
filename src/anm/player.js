@@ -41,11 +41,12 @@ var Loader = require('./loader.js'),
     Controls = require('./ui/controls.js');
 
 var Animation = require('./animation/animation.js'),
+    Scene = require('./animation/scene.js'),
     Element = require('./animation/element.js'),
     Render = require('./render.js'),
-    Sheet = require('./graphics/sheet.js'),
-    analytics = require('./analytics.js');
+    Sheet = require('./graphics/sheet.js');
 
+var Timeline = require('./animation/timeline.js');
 
 // Player
 // -----------------------------------------------------------------------------
@@ -92,7 +93,6 @@ var Animation = require('./animation/animation.js'),
 
 function Player() {
     this.id = '';
-    this.state = null;
     this.anim = null;
     this.canvas = null;
     this.ctx = null;
@@ -100,15 +100,15 @@ function Player() {
     this.__canvasPrepared = false;
     this.__instanceNum = ++Player.__instances;
     this.muted = false;
+    this.happens = C.NOTHING;
 }
 Player.__instances = 0;
 
 Player.PREVIEW_POS = 0; // was 1/3
 Player.PEFF = 0; // seconds to play more when reached end of movie
-Player.NO_TIME = -1;
 
 Player.DEFAULT_CONFIGURATION = { 'debug': false,
-                                 'repeat': false,
+                                 'repeat': undefined, // undefined means 'auto'
                                  'autoPlay': false,
                                  'mode': C.M_VIDEO,
                                  'zoom': 1.0,
@@ -133,6 +133,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'bgColor': undefined,
                                  'ribbonsColor': undefined,
                                  'forceAnimationSize': false,
+                                 'stretchToCanvas': false,
                                  'muteErrors': false
                                };
 
@@ -160,7 +161,7 @@ Player.EMPTY_BG = 'rgba(0,0,0,.05)';
  *
  *     { debug: false,
  *       autoPlay: false,
- *       repeat: false,
+ *       repeat: undefined, // undefined means 'auto'
  *       mode: C.M_VIDEO,
  *       zoom: 1.0,
  *       speed: 1.0,
@@ -178,6 +179,7 @@ Player.EMPTY_BG = 'rgba(0,0,0,.05)';
  *       playingMode: C.PM_DEFAULT, // see playing modes description in constants.js
  *       thumbnail: undefined,
  *       forceAnimationSize: false,
+ *       stretchToCanvas: false,
  *       muteErrors: false
  *     }
  *
@@ -218,9 +220,8 @@ Player.EMPTY_BG = 'rgba(0,0,0,.05)';
  */
 
 Player.prototype.init = function(elm, opts) {
-    this.viewId = analytics.getObjectId();
+    this.viewId = utils.getObjectId();
     if (!engine.isDocReady()) { log.warn(ErrLoc.P.DOM_NOT_READY); };
-    this._initHandlers(); /* TODO: make automatic */
     this.on(C.S_ERROR, this.__onerror());
     if (this.canvas || this.wrapper) throw errors.player(ErrLoc.P.INIT_TWICE, this);
     if (this.anim) throw errors.player(ErrLoc.P.INIT_AFTER_LOAD, this);
@@ -273,11 +274,10 @@ Player.prototype.init = function(elm, opts) {
  */
 Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
-    var player = this,
-        state = player.state;
+    var player = this;
 
-    if ((state.happens === C.PLAYING) ||
-        (state.happens === C.PAUSED)) {
+    if ((player.happens === C.PLAYING) ||
+        (player.happens === C.PAUSED)) {
         throw errors.player(ErrLoc.P.COULD_NOT_LOAD_WHILE_PLAYING, player);
     }
 
@@ -342,12 +342,11 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
     player._reset();
 
-    state.happens = C.LOADING;
+    player.happens = C.LOADING;
     player.fire(C.S_CHANGE_STATE, C.LOADING);
 
     var whenDone = function(result) {
         var anim = player.anim;
-        player.__subscribePlayingEvents(anim);
         if (player.handleEvents) {
             // checks inside if was already subscribed before, skips if so
             player.__subscribeDynamicEvents(anim);
@@ -359,7 +358,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             if (callback) callback.call(player, result);
             player._applyTimeOptionsIfSet();
         } else {
-            state.happens = C.RES_LOADING;
+            player.happens = C.RES_LOADING;
             player.fire(C.S_CHANGE_STATE, C.RES_LOADING);
             player.fire(C.S_RES_LOAD, remotes);
             // subscribe to wait until remote resources will be ready or failed
@@ -370,7 +369,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                         // to load different animations and first one finished loading
                         // after the second one
                         utils.postpone(function(){
-                            player.state.happens = C.LOADING;
+                            player.happens = C.LOADING;
                             player.fire(C.S_CHANGE_STATE, C.LOADING);
                             player.fire(C.S_LOAD, result);
                             player._updateMediaVolumes();
@@ -383,7 +382,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                 }
             ], function(url, factor, progress, errors) {
                 player.fire(C.S_LOADING_PROGRESS, factor);
-                if(player.controlsEnabled && player.controls){
+                if (player.controlsEnabled && player.controls) {
                     player.controls.loadingProgress = progress;
                     player.controls.loadingErrors = errors;
                 }
@@ -396,7 +395,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     /* TODO: configure canvas using clips bounds? */
 
     if (player.anim) {
-        player.__unsubscribePlayingEvents(player.anim);
         player.__unsubscribeDynamicEvents(player.anim);
         player.anim.traverse(function(elm) {
             elm.removeMaskCanvases();
@@ -427,7 +425,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     }
 
     if (durationPassed) { // FIXME: move to whenDone?
-        player.anim.duration = duration;
+        player.anim.setDuration(duration);
     }
 
     return player;
@@ -450,11 +448,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     var player = this;
 
-    player._ensureHasState();
-
-    var state = player.state;
-
-    if (state.happens === C.PLAYING) {
+    if (player.happens === C.PLAYING) {
         if (player.infiniteDuration) return; // it's ok to skip this call if it's some dynamic animation (FIXME?)
     }
 
@@ -465,48 +459,60 @@ Player.prototype.play = function(from, speed, stopAfter) {
     player._ensureHasAnim();
 
     var anim = player.anim;
-    if (state.happens === C.STOPPED) anim.reset();
+    var prevAnimPos = anim.getTime();
 
-    // used to resume playing in some special cases
-    state.__lastPlayConf = [ from, speed, stopAfter ];
+    from = is.defined(from) ? from : prevAnimPos;
+    player.__lastPlayConf = [ from, speed, stopAfter ];
 
-    state.from = from || 0;
-    state.time = Player.NO_TIME;
-    state.speed = (speed || 1) * (player.speed || 1) * (anim.speed || 1);
-    state.stop = (typeof stopAfter !== 'undefined') ? stopAfter : state.stop;
-    state.duration = player.infiniteDuration ? Infinity
-                     : (anim.duration || (anim.isEmpty() ? 0
-                                                           : Animation.DEFAULT_DURATION));
+    anim.continue();
+    anim.reset();
+    anim.jump(from);
 
-    if (state.duration === undefined) throw errors.player(ErrLoc.P.DURATION_IS_NOT_KNOWN, player);
+    player.__startTime = Date.now();
+    player.__startFrom = from;
+    player.__redraws = 0;
+    player.__rsec = 0;
+    player.__prevt = anim.getTime();
 
-    state.__startTime = Date.now();
-    state.__redraws = 0;
-    state.__rsec = 0;
-    state.__prevt = 0;
+    // FIXME: lines below should not modify animation time, but rather use some temporary time configuration
+    //        living through one playthrough and dying after stop.
+    if (is.num(speed)) anim.setSpeed(speed || 1);
+    if (is.num(stopAfter)) {
+        player.stopAfter = stopAfter;
+    } else {
+        player.stopAfter = Infinity;
+    }
 
-    if (state.happens === C.STOPPED && !player.repeating) {
-        player.reportStats();
+    if (anim.isEmpty()) anim.setDuration(0);
+    if (player.infiniteDuration) anim.setDuration(Infinity);
+
+    if (player.happens === C.STOPPED && !player.repeating) {
+        player.fire(C.S_REPORT_STATS);
     }
 
     var ctx_props = engine.getAnmProps(player.ctx);
     ctx_props.factor = this.factor();
 
-    state.happens = C.PLAYING;
+    player.happens = C.PLAYING;
 
-    state.__lastReq = Render.loop(player.ctx,
-                                  player, anim,
-                                  player.__beforeFrame(anim),
-                                  player.__afterFrame(anim),
-                                  player.__userBeforeRender,
-                                  player.__userAfterRender);
+    player.__lastReq = Render.loop(player.ctx,
+                                   player, anim,
+                                   player.__beforeFrame(anim),
+                                   player.__afterFrame(anim),
+                                   player.__userBeforeRender,
+                                   player.__userAfterRender);
 
     player.fire(C.S_CHANGE_STATE, C.PLAYING);
-    player.fire(C.S_PLAY, state.from);
-
-    analytics.trackPlayingStart(player);
+    player.fire(C.S_PLAY, anim.getTime());
 
     return player;
+};
+
+Player.prototype.continuePlaying = function() {
+    if (this.anim) {
+        this.anim.continue();
+        this.play(this.anim.getTime());
+    }
 };
 
 /**
@@ -516,47 +522,42 @@ Player.prototype.play = function(from, speed, stopAfter) {
  * Stop playing an {@link anm.Animation animation}.
  */
 Player.prototype.stop = function() {
-    /* if (state.happens === C.STOPPED) return; */
+    /* if (player.happens === C.STOPPED) return; */
 
     var player = this;
-
-    player._ensureHasState();
-
-    var state = player.state;
 
     // if player loads remote resources just now,
     // postpone this task and exit. postponed tasks
     // will be called when all remote resources were
     // finished loading
-    if (state.happens === C.RES_LOADING) {
+    if (player.happens === C.RES_LOADING) {
         player._postpone('stop', arguments);
         return;
     }
 
-    if ((state.happens === C.PLAYING) ||
-        (state.happens === C.PAUSED)) {
-        __stopAnim(state.__lastReq);
+    if ((player.happens === C.PLAYING) ||
+        (player.happens === C.PAUSED)) {
+        __stopAnim(player.__lastReq);
     }
-
-    state.time = Player.NO_TIME;
-    state.from = 0;
-    state.stop = Player.NO_TIME;
 
     var anim = player.anim;
 
     if (anim) {
-        state.happens = C.STOPPED;
+        player.happens = C.STOPPED;
         player._drawStill();
         player.fire(C.S_CHANGE_STATE, C.STOPPED);
-    } else if (state.happens !== C.ERROR) {
-        state.happens = C.NOTHING;
+    } else if (player.happens !== C.ERROR) {
+        player.happens = C.NOTHING;
         if (!player.controls) player._drawSplash();
         player.fire(C.S_CHANGE_STATE, C.NOTHING);
     }
 
     player.fire(C.S_STOP);
 
-    if (anim) anim.reset();
+    if (anim) {
+        anim.reset();
+        anim.jumpToStart();
+    }
 
     return player;
 };
@@ -574,38 +575,31 @@ Player.prototype.pause = function() {
     // postpone this task and exit. postponed tasks
     // will be called when all remote resources were
     // finished loading
-    if (player.state.happens === C.RES_LOADING) {
+    if (player.happens === C.RES_LOADING) {
         player._postpone('pause', arguments);
         return player;
     }
 
-    player._ensureHasState();
     player._ensureHasAnim();
 
-    var state = player.state;
-    if (state.happens === C.STOPPED) {
-        player.anim.reset();
+    if (player.happens === C.STOPPED) {
+        if (player.anim) player.anim.reset();
         return player;
     }
 
-    if (state.happens === C.PLAYING) {
-        __stopAnim(state.__lastReq);
-        player.anim.handlePause();
+    if (player.happens === C.PLAYING) {
+        __stopAnim(player.__lastReq);
     }
 
-    if (state.time > state.duration) {
-        state.time = state.duration;
-    }
+    if (player.anim) player.anim.pause();
 
-    state.from = state.time;
-    state.happens = C.PAUSED;
+    player.happens = C.PAUSED;
 
-    if (state.time !== Player.NO_TIME) player.drawAt(state.time);
+    var anim_time = player.anim ? player.anim.timeline : null;
+    if (anim_time && anim_time.isActive()) player.drawCurrent();
 
     player.fire(C.S_CHANGE_STATE, C.PAUSED);
-    player.fire(C.S_PAUSE, state.time);
-
-    analytics.trackPlayingPause(player);
+    player.fire(C.S_PAUSE, anim_time ? anim_time.getLastPosition() : Timeline.NO_TIME);
 
     return player;
 };
@@ -620,11 +614,37 @@ Player.prototype.pause = function() {
  * @param {Number} time to set the playhead at
  **/
 Player.prototype.seek = function(time) {
-    if (this.state.happens === C.PAUSED) {
+    if (this.happens === C.PAUSED) {
         return this.play(time).pause();
     } else {
         return this.pause().play(time);
     }
+};
+
+/**
+ * @method hasAnimation
+ *
+ * Is there some animation loaded into player
+ *
+ * @return {Boolean} `true`, if some animation already loaded into player, `false` otherwise
+ *
+ **/
+Player.prototype.hasAnimation = function() {
+    return is.defined(this.anim);
+};
+
+Player.prototype.getState = function() { return this.happens; };
+Player.prototype.isInState = function(state) { return this.happens === state; };
+Player.prototype.isPaused = function() { return this.happens === C.PAUSED; };
+Player.prototype.isStopped = function() { return this.happens === C.STOPPED; };
+Player.prototype.isPlaying = function() { return this.happens === C.PLAYING; };
+Player.prototype.isLoading = function() { return this.happens === C.LOADING; };
+Player.prototype.isLoadingResources = function() { return this.happens === C.RES_LOADING; };
+Player.prototype.hasError = function() { return this.happens === C.ERROR; };
+//Player.prototype.isSomethingHappens = function() { return this.happens !== C.NOTHING; };
+
+Player.prototype.getTime = function() {
+    return this.anim ? this.anim.getTime() : Timeline.NO_TIME;
 };
 
 /**
@@ -646,7 +666,8 @@ Player.prototype.onerror = function(callback) {
 
 provideEvents(Player, [ C.S_IMPORT, C.S_CHANGE_STATE, C.S_LOAD, C.S_RES_LOAD,
                         C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
-                        C.S_ERROR, C.S_LOADING_PROGRESS, C.S_TIME_UPDATE ]);
+                        C.S_ERROR, C.S_LOADING_PROGRESS, C.S_TIME_UPDATE,
+                        C.S_INTERACTIVITY, C.S_REPORT_STATS]);
 Player.prototype._prepare = function(elm) {
     if (!elm) throw errors.player(ErrLoc.P.NO_WRAPPER_PASSED, this);
     var wrapper_id, wrapper;
@@ -665,7 +686,6 @@ Player.prototype._prepare = function(elm) {
     this.canvas = assign_data.canvas;
     if (!engine.checkPlayerCanvas(this.canvas)) throw errors.player(ErrLoc.P.CANVAS_NOT_VERIFIED, this);
     this.ctx = engine.getContext(this.canvas, '2d');
-    this.state = Player.createState(this);
     this.fire(C.S_CHANGE_STATE, C.NOTHING);
 
     this.subscribeEvents(this.canvas);
@@ -683,14 +703,14 @@ Player.prototype._addOpts = function(opts) {
     this.zoom =    opts.zoom || this.zoom;
     this.speed =   opts.speed || this.speed;
     this.bgColor = opts.bgColor || this.bgColor;
-    this.width = opts.width || this.width;
-    this.height = opts.height || this.height;
+    this.width =   opts.width || this.width;
+    this.height =  opts.height || this.height;
 
     this.loadingMode = is.defined(opts.loadingMode)
-                       ? (C.LOADING_MODES.indexOf(opts.loadingMode) >= 0) ? opts.loadingMode : C.LM_DEFAULT)
+                       ? ((C.LOADING_MODES.indexOf(opts.loadingMode) >= 0) ? opts.loadingMode : C.LM_DEFAULT)
                        : this.loadingMode;
     this.playingMode = is.defined(opts.playingMode)
-                       ? (C.PLAYING_MODES.indexOf(opts.playingMode) >= 0) ? opts.playingMode : C.PM_DEFAULT)
+                       ? ((C.PLAYING_MODES.indexOf(opts.playingMode) >= 0) ? opts.playingMode : C.PM_DEFAULT)
                        : this.playingMode;
 
     this.ribbonsColor =
@@ -721,6 +741,8 @@ Player.prototype._addOpts = function(opts) {
                         opts.infiniteDuration : this.infiniteDuration;
     this.forceAnimationSize = is.defined(opts.forceAnimationSize) ?
                         opts.forceAnimationSize : this.forceAnimationSize;
+    this.stretchToCanvas = is.defined(opts.stretchToCanvas) ?
+                        opts.stretchToCanvas : this.stretchToCanvas;
     this.muteErrors = is.defined(opts.muteErrors) ?
                         opts.muteErrors : this.muteErrors;
 
@@ -740,6 +762,7 @@ Player.prototype._checkOpts = function() {
     if (this.bgColor) engine.setCanvasBackground(this.canvas, this.bgColor);
 
     if (this.anim && this.handleEvents) {
+        engine.disableCanvasFocusHilight(this.canvas);
         // checks inside if was already subscribed before, skips if so
         this.__subscribeDynamicEvents(this.anim);
     }
@@ -814,22 +837,16 @@ Player.prototype.rect = function(rect) {
     return this;
 };
 
-/* Player.prototype._rectChanged = function(rect) {
-    var cur_w = this.state.width,
-        cur_h = this.state.height;
-    return (cur_w != rect.width) || (cur_w != rect.height) ||
-           (cur.x != rect.x) || (cur.y != rect.y);
-} */
 /**
  * @method forceRedraw
  *
  * Force player to redraw controls and visuals according to current state
  */
 Player.prototype.forceRedraw = function() {
-    switch (this.state.happens) {
+    switch (this.happens) {
         case C.STOPPED: this.stop(); break;
-        case C.PAUSED: if (this.anim) this.drawAt(this.state.time); break;
-        case C.PLAYING: if (this.anim) { this._stopAndContinue(); } break;
+        case C.PAUSED: if (this.anim) this.drawCurrent(); break;
+        case C.PLAYING: if (this.anim) { /*this._pauseAndContinue();*/ } break;
         case C.NOTHING: if (!this.controls) this._drawSplash(); break;
         //case C.LOADING: case C.RES_LOADING: this._drawSplash(); break;
         //case C.ERROR: this._drawErrorSplash(); break;
@@ -844,13 +861,13 @@ Player.prototype.forceRedraw = function() {
  * @param {Number} time
  */
 Player.prototype.drawAt = function(time) {
-    if (time === Player.NO_TIME) throw errors.player(ErrLoc.P.PASSED_TIME_VALUE_IS_NO_TIME, this);
-    if (this.state.happens === C.RES_LOADING) { this._postpone('drawAt', arguments);
-                                                return; } // if player loads remote resources just now,
-                                                          // postpone this task and exit. postponed tasks
-                                                          // will be called when all remote resources were
-                                                          // finished loading
-    if ((time < 0) || (!this.infiniteDuration && (time > this.anim.duration))) {
+    if (time === Timeline.NO_TIME) throw errors.player(ErrLoc.P.PASSED_TIME_VALUE_IS_NO_TIME, this);
+    if (this.happens === C.RES_LOADING) { this._postpone('drawAt', arguments);
+                                          return; } // if player loads remote resources just now,
+                                                    // postpone this task and exit. postponed tasks
+                                                    // will be called when all remote resources were
+                                                    // finished loading
+    if ((time < 0) || (!this.infiniteDuration && (time > this.anim.getDuration()))) {
         throw errors.player(utils.strf(ErrLoc.P.PASSED_TIME_NOT_IN_RANGE, [time]), this);
     }
     var anim = this.anim,
@@ -859,16 +876,23 @@ Player.prototype.drawAt = function(time) {
         ext_after = function(gtime, ctx) {
             if (u_after) u_after(gtime, ctx);
             anim.reset();
-            anim.__informEnabled = true;
         };
 
     var ctx_props = engine.getAnmProps(this.ctx);
     ctx_props.factor = this.factor();
 
-    anim.__informEnabled = false;
-    Render.at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor, u_before, ext_after);
+    var prev_pos = anim.getTime();
+    anim.jump(time);
+    Render.next(0, this.ctx, this.anim, this.width, this.height, this.zoom,
+                this.ribbonsColor, this.stretchToCanvas, u_before, ext_after);
+    if (Timeline.isKnownTime(prev_pos)) anim.jump(prev_pos);
     return this;
 };
+
+Player.prototype.drawCurrent = function() {
+    Render.next(0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor,
+                this.stretchToCanvas, this.__userBeforeRender, this.__userAfterRender);
+}
 
 /**
  * @method size
@@ -965,14 +989,14 @@ Player.prototype.thumbnail = function(url, target_width, target_height) {
     }
     var thumb = new Sheet(url);
     player.__thumbLoading = true;
-    thumb.load(null, player.id, function() {
+    thumb.load(utils.guid(), player, function() {
         player.__thumbLoading = false;
         player.__thumb = thumb;
         if (target_width || target_height) {
             player.__thumbSize = [ target_width, target_height ];
         }
-        if ((player.state.happens !== C.PLAYING) &&
-            (player.state.happens !== C.PAUSED)) {
+        if ((player.happens !== C.PLAYING) &&
+            (player.happens !== C.PAUSED)) {
             player._drawStill();
         }
     }, function() { return true; /* do not throw error */});
@@ -986,7 +1010,7 @@ Player.prototype.thumbnail = function(url, target_width, target_height) {
  */
 Player.prototype.detach = function() {
     if (!engine.playerAttachedTo(this.wrapper, this)) return; // throw error?
-    analytics.trackPlayingComplete(this);
+    playerManager.fire(C.S_PLAYER_DETACH, this);
     this.stop();
     if (this.controls) this.controls.detach(this.wrapper);
     engine.detachPlayer(this);
@@ -995,7 +1019,6 @@ Player.prototype.detach = function() {
     }
     this._reset();
     resourceManager.cancel(this.id);
-    playerManager.fire(C.S_PLAYER_DETACH, this);
 };
 
 /**
@@ -1057,7 +1080,7 @@ Player.__invalidate = function(player) {
  */
 // TODO: change to before/after for events?
 Player.prototype.beforeFrame = function(callback) {
-    if (this.state.happens === C.PLAYING) throw errors.player(ErrLoc.P.BEFOREFRAME_BEFORE_PLAY, this);
+    if (this.happens === C.PLAYING) throw errors.player(ErrLoc.P.BEFOREFRAME_BEFORE_PLAY, this);
     this.__userBeforeFrame = callback;
 };
 
@@ -1071,7 +1094,7 @@ Player.prototype.beforeFrame = function(callback) {
  * @param {Boolean} callback.return
  */
 Player.prototype.afterFrame = function(callback) {
-    if (this.state.happens === C.PLAYING) throw errors.player(ErrLoc.P.AFTERFRAME_BEFORE_PLAY, this);
+    if (this.happens === C.PLAYING) throw errors.player(ErrLoc.P.AFTERFRAME_BEFORE_PLAY, this);
     this.__userAfterFrame = callback;
 };
 
@@ -1085,7 +1108,7 @@ Player.prototype.afterFrame = function(callback) {
  * @param {Canvas2DContext} callback.ctx
  */
 Player.prototype.beforeRender = function(callback) {
-    if (this.state.happens === C.PLAYING) throw errors.player(ErrLoc.P.BEFORENDER_BEFORE_PLAY, this);
+    if (this.happens === C.PLAYING) throw errors.player(ErrLoc.P.BEFORENDER_BEFORE_PLAY, this);
     this.__userBeforeRender = callback;
 };
 
@@ -1099,7 +1122,7 @@ Player.prototype.beforeRender = function(callback) {
  * @param {Canvas2DContext} callback.ctx
  */
 Player.prototype.afterRender = function(callback) {
-    if (this.state.happens === C.PLAYING) throw errors.player(ErrLoc.P.AFTERRENDER_BEFORE_PLAY, this);
+    if (this.happens === C.PLAYING) throw errors.player(ErrLoc.P.AFTERRENDER_BEFORE_PLAY, this);
     this.__userAfterRender = callback;
 };
 
@@ -1220,16 +1243,15 @@ Player.prototype._drawStill = function() {
     // drawStill is a flag, while _drawStill is a method
     // since we have no hungarian notation is't treated as ok (for now)
     var player = this,
-        state = player.state,
         anim = player.anim;
     if (player.drawStill) { // it's a flag!
         if (player.__thumb) {
             player._drawThumbnail();
         } else if (anim) {
-            if (!player.infiniteDuration && is.finite(anim.duration)) {
-                player.drawAt(anim.duration * Player.PREVIEW_POS);
+            if (!player.infiniteDuration && is.finite(anim.getDuration())) {
+                player.drawAt(anim.getDuration() * Player.PREVIEW_POS);
             } else {
-                player.drawAt(state.from);
+                player.drawCurrent();
             }
         }
     } else {
@@ -1332,18 +1354,15 @@ Player.prototype.toString = function() {
 
 // reset player to initial state, called before loading any animation
 Player.prototype._reset = function() {
-    var state = this.state;
     // clear postponed tasks if player started to load remote resources,
     // they are not required since new animation is loading in the player now
     // or it is being detached
-    if (state.happens === C.RES_LOADING) {
+    if (this.happens === C.RES_LOADING) {
         this._clearPostpones();
         resourceManager.cancel(this.id);
     }
-    state.happens = C.NOTHING;
-    state.from = 0;
-    state.time = Player.NO_TIME;
-    state.duration = undefined;
+    this.happens = C.NOTHING;
+    if (this.anim) this.anim.reset();
     this.fire(C.S_CHANGE_STATE, C.NOTHING);
     if (this.controls) this.controls.reset();
     this.ctx.clearRect(0, 0, this.width * engine.PX_RATIO,
@@ -1351,12 +1370,10 @@ Player.prototype._reset = function() {
     /*this.stop();*/
 };
 
-Player.prototype._stopAndContinue = function() {
-    //state.__lastPlayConf = [ from, speed, stopAfter ];
-    var state = this.state,
-        last_conf = state.__lastPlayConf;
-    var stoppedAt = state.time;
-    this.stop();
+Player.prototype._pauseAndContinue = function() {
+    var last_conf = this.__lastPlayConf;
+    var stoppedAt = this.anim ? this.anim.getTime() : 0;
+    this.pause();
     this.play(stoppedAt, last_conf[1], last_conf[2]);
 };
 
@@ -1371,7 +1388,7 @@ Player.prototype._resize = function(width, height) {
         cur_size = engine.getCanvasParameters(cvs);
     if (cur_size && (cur_size[0] === new_size[0]) && (cur_size[1] === new_size[1])) return;
     if (!new_size[0] || !new_size[1]) {
-        new_size = cur_size;
+        new_size = cur_size || [0, 0];
     }
     engine.setWrapperSize(this.wrapper, new_size[0], new_size[1]);
     engine.setCanvasSize(cvs, new_size[0], new_size[1]);
@@ -1395,9 +1412,9 @@ Player.prototype._restyle = function(bg) {
 // FIXME: methods below may be removed, but they are required for tests
 Player.prototype._enableControls = function() {
     if (!this.controls) this.controls = new Controls(this);
-    // if (this.state.happens === C.NOTHING) { this._drawSplash(); }
-    // if ((this.state.happens === C.LOADING) ||
-    //     (this.state.happens === C.RES_LOADING)) { this._drawLoadingSplash(); }
+    // if (this.happens === C.NOTHING) { this._drawSplash(); }
+    // if ((this.happens === C.LOADING) ||
+    //     (this.happens === C.RES_LOADING)) { this._drawLoadingSplash(); }
     this.controls.enable();
 };
 
@@ -1416,25 +1433,6 @@ Player.prototype._disableInfo = function() {
     if (!this.controls) return;
     this.controls.disableInfo();
 };
-
-Player.prototype.__subscribePlayingEvents = function(anim) {
-    if (this.__anim_handlers && this.__anim_handlers[anim.id]) return;
-    var handlers = {};
-    handlers[C.A_START] = this.on(C.S_PLAY,  function() { anim.fire(C.A_START); });
-    handlers[C.A_PAUSE] = this.on(C.S_PAUSE, function() { anim.fire(C.A_PAUSE); });
-    handlers[C.A_STOP]  = this.on(C.S_STOP,  function() { anim.fire(C.A_STOP);  });
-    if (!this.__anim_handlers) this.__anim_handlers = {};
-    this.__anim_handlers[anim.id] = handlers;
-};
-Player.prototype.__unsubscribePlayingEvents = function(anim) {
-    if (!this.__anim_handlers) return;
-    var handlers = this.__anim_handlers[anim.id];
-    if (!handlers) return;
-    this.unbind(C.S_PLAY,  handlers[C.A_START]);
-    this.unbind(C.S_PAUSE, handlers[C.A_PAUSE]);
-    this.unbind(C.S_STOP,  handlers[C.STOP]);
-    this.__anim_handlers[anim.id] = null;
-};
 Player.prototype.__subscribeDynamicEvents = function(anim) {
     if (global_opts.setTabindex) {
         engine.setTabIndex(this.canvas, this.__instanceNum);
@@ -1452,8 +1450,9 @@ Player.prototype.__subscribeDynamicEvents = function(anim) {
             }
         }
         if (!subscribed) {
+            anim.listensMouse = true;
             this.__boundTo.push([ anim.id, this.canvas ]);
-            anim.on(C.X_ERROR, this.__onerror());
+            anim.on(C.X_ERROR, this.__onerror()); // FIXME: why is it here?
             anim.subscribeEvents(this.canvas);
         }
     }
@@ -1478,52 +1477,49 @@ Player.prototype.__unsubscribeDynamicEvents = function(anim) {
     }
 };
 
-Player.prototype._ensureHasState = function() {
-    if (!this.state) throw errors.player(ErrLoc.P.NO_STATE, this);
-};
-
 Player.prototype._ensureHasAnim = function() {
     if (!this.anim) throw errors.player(ErrLoc.P.NO_ANIMATION, this);
 };
 
+Player.prototype._complete = function() {
+    this.fire(C.S_COMPLETE);
+    this.stop();
+    if (this.repeat ||
+        (!is.defined(this.repeat) && this.anim.repeat)) {
+       this.repeating = true;
+       //this.anim.jump(0); // done in player.stop()
+       this.play();
+       this.fire(C.S_REPEAT);
+    } else {
+       this.drawCurrent();
+    }
+}
+
 Player.prototype.__beforeFrame = function(anim) {
-    return (function(player, state, anim, callback) {
+    return (function(player, anim, callback) {
         return function(time) {
             anim.clearAllLaters();
-            if (state.happens !== C.PLAYING) return false;
-            if (((state.stop !== Player.NO_TIME) &&
-                 (time >= (state.from + state.stop))) ||
-                (is.finite(state.duration) &&
-                 (time > (state.duration + Player.PEFF)))) {
-                player.fire(C.S_COMPLETE);
-                analytics.trackPlayingComplete(player);
-                state.time = 0;
-                player.stop();
-                if (player.repeat || anim.repeat) {
-                   player.repeating = true;
-                   player.play();
-                   player.fire(C.S_REPEAT);
-               } else if (!player.infiniteDuration &&
-                       is.finite(state.duration)) {
-                   player.drawAt(state.duration);
-                }
+            if (player.happens !== C.PLAYING) return false;
+            if (player.anim && (!player.anim.isActive() || // FIXME: do using subscription anim.on(C.X_END, ...)
+                                player.anim.timeline.isAfter(player.stopAfter))) {
+                player._complete();
                 return false;
             }
             if (callback) callback(time, player.ctx);
             return true;
         };
-    })(this, this.state, anim, this.__userBeforeFrame);
+    })(this, anim, this.__userBeforeFrame);
 };
 
 Player.prototype.__afterFrame = function(anim) {
-    return (function(player, state, anim, callback) {
+    return (function(player, anim, callback) {
         return function(time) {
             if (callback) callback(time);
 
             anim.invokeAllLaters();
             return true;
         };
-    })(this, this.state, anim, this.__userAfterFrame);
+    })(this, anim, this.__userAfterFrame);
 };
 
 Player.prototype.__onerror = function() {
@@ -1536,13 +1532,14 @@ Player.prototype.__onerror = function() {
 // Called when any error happens during player initialization or animation
 // Player should mute all non-system errors by default, and if it got a system error, it may show
 // this error in its UI
+// FIXME: why not a handler for error events?
 Player.prototype.__onerror_f = function(err) {
   var player = this;
   var doMute = player.muteErrors;
       doMute = doMute && !(err instanceof errors.SystemError);
 
   try {
-      if (player.state) player.state.happens = C.ERROR;
+      player.happens = C.ERROR;
       player.__lastError = err;
       player.fire(C.S_CHANGE_STATE, C.ERROR);
 
@@ -1551,9 +1548,8 @@ Player.prototype.__onerror_f = function(err) {
   } catch(e) { throw e; }
 
   try {
-      if (player.state &&
-          ((player.state.happens != C.NOTHING) ||
-           (player.state.happens != C.STOPPED))) {
+      if ((player.happens !== C.NOTHING) ||
+          (player.happens !== C.STOPPED)) {
           player.__unsafe_stop();
       }
   } catch(e) { /* skip this error, it's ok just to fail to stop */ }
@@ -1561,6 +1557,7 @@ Player.prototype.__onerror_f = function(err) {
   doMute = (this.__err_handler && this.__err_handler(err)) || doMute;
 
   if (!doMute) {
+      log.error(err);
       try { this._drawErrorSplash(err); } catch(e) { /* skip errors in splash */ }
       throw err;
   }
@@ -1585,49 +1582,11 @@ Player.prototype._callPostpones = function() {
     this._queue = [];
 };
 
-Player.prototype.reportStats = function () {
-    // currently, notifies only about playing start
-    if (!this.anim || !this.anim.meta || !this.anim.meta._anm_id) return;
-    if (!this.statImg) {
-        this.statImg = engine.createStatImg();
-    }
-    var loadSrc = this._loadSrc,
-        id = this.anim.meta._anm_id;
-
-    var apiUrl = utils.makeApiUrl('api', '/stats/report/', loadSrc);
-    if (apiUrl) {
-        this.statImg.src = apiUrl + id + '?' + Math.random();
-    }
-};
-
 /* Player.prototype.__originateErrors = function() {
     return (function(player) { return function(err) {
         return player._fireError(err);
     }})(this);
 } */
-
-/**
- * @deprecated
- * @static @private @method createState
- *
- * Create a state for current player instance.
- *
- * @return {Object} Player state
- */
-Player.createState = function(player) {
-    // Player state contains only things that actually change while playing an animation,
-    // it's current time, time when player started to play or was stopped at,
-    // happens reflects what player does now, `afps` is actual FPS.
-    return {
-        'happens': C.NOTHING,
-        'time': Player.NO_TIME, 'from': 0, 'stop': Player.NO_TIME,
-        'afps': 0, 'speed': 1,
-        'duration': undefined,
-        '__startTime': -1,
-        '__redraws': 0, '__rsec': 0
-        /*'__drawInterval': null*/
-    };
-};
 
 /**
  * @static @method forSnapshot
@@ -1661,16 +1620,16 @@ Player.prototype._applyUrlParamsToAnimation = function(params) {
     // then the rule (for the moment) is: last one wins
 
     if (is.defined(params.t)) {
-        if (this.state.happens === C.PLAYING) this.stop();
+        if (this.happens === C.PLAYING) this.stop();
         this.play(params.t / 100);
     } else if (is.defined(params.from)) {
-        if (this.state.happens === C.PLAYING) this.stop();
+        if (this.happens === C.PLAYING) this.stop();
         this.play(params.from / 100);
     } else if (is.defined(params.p)) {
-        if (this.state.happens === C.PLAYING) this.stop();
+        if (this.happens === C.PLAYING) this.stop();
         this.play(params.p / 100).pause();
     } else if (is.defined(params.at)) {
-        if (this.state.happens === C.PLAYING) this.stop();
+        if (this.happens === C.PLAYING) this.stop();
         this.play(params.at / 100).pause();
     }
 };
@@ -1680,10 +1639,10 @@ Player.prototype._applyTimeOptionsIfSet = function() {
     // flag was set from some different source of options (async, for example),
     // then the rule (for the moment) is: last one wins
     if (this.autoPlay) {
-        if (this.state.happens === C.PLAYING) this.stop();
-        this.play(this.startFrom || this.state.from || 0);
+        if (this.happens === C.PLAYING) this.stop();
+        this.play(this.startFrom || this.anim.getTime());
     } else if (this.startFrom) {
-        if (this.state.happens === C.PLAYING) this.stop();
+        if (this.happens === C.PLAYING) this.stop();
         this.play(this.startFrom);
     } else if (this.stopAt) {
         this.pause(this.stopAt);
