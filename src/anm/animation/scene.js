@@ -1,7 +1,9 @@
 var utils = require('../utils.js'),
     is = utils.is,
     iter = utils.iter,
-    log = require('../log.js');
+    log = require('../log.js'),
+    errors = require('../errors.js'),
+    ErrLoc = require('../loc.js').Errors;
 
 var events = require('../events.js'),
     provideEvents = events.provideEvents;
@@ -34,7 +36,7 @@ function Scene(anim, name, duration) {
 }
 
 provideEvents(Scene, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
-                       C.X_MMOVE, C.X_MENTER, C.X_MEXIT ]);
+                       C.X_MMOVE, C.X_MENTER, C.X_MEXIT, C.X_ERROR ]);
 
 Scene.prototype.tick = function(dt) {
     this.timeline.tick(dt);
@@ -158,7 +160,7 @@ Scene.prototype.findById = function(id) {
 };
 
 Scene.prototype._register = function(elm) {
-    if (this.hash[elm.id]) throw errors.animation(ErrLoc.A.ELEMENT_IS_REGISTERED, this);
+    if (this.hash[elm.id]) log.warn(ErrLoc.A.ELEMENT_IS_REGISTERED, elm.id, elm.name);
     elm.registered = true;
     elm.anim = this.anim; elm.scene = this;
     this.hash[elm.id] = elm;
@@ -263,9 +265,11 @@ Scene.prototype.getMouseSupport = function() {
     return this.mouseSupport;
 };
 
-Scene._fromElement = function(elm, anim) {
-    var scene = new Scene(anim || elm.anim, elm.name/*, elm.timeline.getDuration()*/);
-    scene.timeline = elm.timeline.clone();
+Scene._fromElement = function(elm, anim, target) {
+    var scene = target || new Scene(anim || elm.anim/*, elm.name, elm.timeline.getDuration()*/);
+    if (elm.name) scene.name = elm.name;
+    scene.timeline.loadFrom(elm.timeline);
+    //scene.timeline.owner = scene;
     elm.each(function(child) {
         scene.add(child);
     });

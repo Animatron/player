@@ -82,6 +82,8 @@ function Animation() {
 
     this.endOnLastScene = true;
     this.listensMouse = false;
+
+    this.masterAudio = [];
 }
 
 Animation.DEFAULT_DURATION = 10;
@@ -645,13 +647,8 @@ Animation.prototype._collectRemoteResources = function(player) {
            remotes = remotes.concat(elm._collectRemoteResources(anim, player)/* || []*/);
         }
     });
-    if (this.fonts && this.fonts.length) {
-        remotes = remotes.concat(this.fonts.filter(function(f) {
-                                     return f.gf_name ? false : true; // skip google fonts
-                                 }).map(function(f) {
-                                     return f.url;
-                                 }));
-    }
+    remotes = remotes.concat(this.collectFontsUrls(player));
+    remotes = remotes.concat(this.collectMasterAudioUrls(player));
     return remotes;
 };
 
@@ -662,7 +659,8 @@ Animation.prototype._loadRemoteResources = function(player) {
            elm._loadRemoteResources(anim, player);
         }
     });
-    anim.loadFonts(player);
+    this.loadFonts(player);
+    this.loadMasterAudio(player);
 };
 
 /**
@@ -780,6 +778,30 @@ Animation.prototype.invokeLater = function(f) {
 
 var FONT_LOAD_TIMEOUT = 10000; //in ms
 
+Animation.prototype.addMasterAudio = function(audioElm) {
+    this.masterAudio.push(audioElm);
+    audioElm.$audio.connectAsMaster(audioElm, this);
+};
+
+Animation.prototype.collectFontsUrls = function(player) {
+    if (!this.fonts || !this.fonts.length) return [];
+    return this.fonts.filter(function(f) {
+                                return f.gf_name ? false : true; // skip google fonts
+                            }).map(function(f) {
+                                return f.url;
+                            });
+};
+
+Animation.prototype.collectMasterAudioUrls = function(player) {
+    var urls = [];
+    if (this.masterAudio.length > 0) {
+        for (var i = 0; i < this.masterAudio.length; i++) {
+            urls = urls.concat(this.masterAudio[i]._collectRemoteResources(this, player)/* || []*/);
+        }
+    }
+    return urls;
+};
+
 /*
  * @method loadFonts
  * @private
@@ -854,6 +876,20 @@ Animation.prototype.loadFonts = function(player) {
     }
 
 
+};
+
+Animation.prototype.loadMasterAudio = function(player) {
+    if (this.masterAudio.length > 0) {
+        for (var i = 0; i < this.masterAudio.length; i++) {
+            this.masterAudio[i]._loadRemoteResources(this, player);
+        }
+    }
+};
+
+Animation.prototype.eachTarget = function(f) {
+    for (var targetId in this.targets) {
+        f(this.targets[targetId]);
+    }
 };
 
 module.exports = Animation;

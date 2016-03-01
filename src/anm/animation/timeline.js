@@ -322,9 +322,15 @@ Timeline.prototype.clone = function(owner) {
     var trg = new Timeline(owner || this.owner);
     trg.start = this.start; trg.duration = this.duration;
     trg.endAction = this.endAction; trg.repetitionCount = this.repetitionCount;
-    trg.easing = this.easing;
+    trg.easing = this.easing; trg.speed = this.speed;
     //trg.actions = this.actions.concat([])
     return trg;
+};
+
+Timeline.prototype.loadFrom = function(other) {
+    this.start = other.start; this.duration = other.duration;
+    this.endAction = other.endAction; this.repetitionCount = other.repetitionCount;
+    this.easing = other.easing; this.speed = other.speed;
 };
 
 module.exports = Timeline;

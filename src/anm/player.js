@@ -490,12 +490,12 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     var anim = player.anim;
     var prevAnimPos = anim.getTime();
-    anim.reset();
 
     from = is.defined(from) ? from : prevAnimPos;
     player.__lastPlayConf = [ from, speed, stopAfter ];
 
     anim.continue();
+    anim.reset();
     anim.jump(from);
 
     player.__startTime = Date.now();
@@ -539,7 +539,10 @@ Player.prototype.play = function(from, speed, stopAfter) {
 };
 
 Player.prototype.continuePlaying = function() {
-    if (this.anim) this.play(this.anim.getTime());
+    if (this.anim) {
+        this.anim.continue();
+        this.play(this.anim.getTime());
+    }
 };
 
 /**
@@ -918,7 +921,7 @@ Player.prototype.drawAt = function(time) {
     anim.jump(time);
     Render.next(0, this.ctx, this.anim, this.width, this.height, this.zoom,
                 this.ribbonsColor, this.stretchToCanvas, u_before, ext_after);
-    anim.jump(prev_pos);
+    if (Timeline.isKnownTime(prev_pos)) anim.jump(prev_pos);
     return this;
 };
 
