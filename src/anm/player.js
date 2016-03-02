@@ -585,6 +585,7 @@ Player.prototype.stop = function() {
     }
 
     player.fire(C.S_STOP);
+    if (player.anim) player.anim.timeline.endNow();
 
     if (anim) {
         anim.reset();
