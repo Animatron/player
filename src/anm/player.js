@@ -513,7 +513,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
         player.stopAfter = Infinity;
     }
 
-    if (anim.isEmpty()) anim.setDuration(0);
+    if (anim.getNumberOfScenes() === 0) anim.setDuration(0);
     if (player.infiniteDuration) anim.setDuration(Infinity);
 
     if (player.happens === C.STOPPED && !player.repeating) {

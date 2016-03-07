@@ -139,6 +139,10 @@ Animation.prototype.addScene = function(name, duration) {
     return scene;
 };
 
+Animation.prototype.getNumberOfScenes = function() {
+    return this.scenes.length;
+};
+
 Animation.prototype.getDuration = function() {
     return this.timeline.getDuration();
 };

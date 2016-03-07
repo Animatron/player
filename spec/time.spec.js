@@ -111,6 +111,13 @@ describe('time', function() {
             expect(fooScene.getTime()).toBe(0.1);
         });
 
+        xit('takes animation duration from first scene', function() {
+            var anim = new anm.Animation();
+
+            anim.replaceFirstScene('Foo', 50);
+            expect(anim.getDuration()).toBe(50);
+        });
+
     });
 
     describe('time bands', function() {
