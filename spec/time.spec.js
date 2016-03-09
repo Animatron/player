@@ -95,7 +95,7 @@ describe('time', function() {
             expect(barScene.getTime()).toBe(10.1 - 10.0);
         });
 
-        xit('when animation repeats, properly advances time for the first scene', function() {
+        it('when animation repeats, properly advances time for the first scene', function() {
             var anim = new anm.Animation();
 
             anim.repeat = true;
@@ -179,6 +179,243 @@ describe('time', function() {
             anim.tick(1.0); // 3.0
             expect(root.getTime()).toBe(1.0);
             expect(child.getTime()).toBe(2.0);
+
+        });
+
+        describe('end-actions', function() {
+
+            describe('`once`', function() {
+
+                it('works for root elements', function() {
+                    var anim = new anm.Animation();
+                    var root = new anm.Element('root');
+                    anim.add(root);
+
+                    anim.setDuration(10);
+                    root.changeBand(2.0, 5.0);
+                    root.once();
+
+                    // anim: 0-----1-----2-----3-----4-----5-----6-
+                    // root:             0-----1-----2-----■
+
+                    anim.tick(0.5); // 0.5
+                    expect(root.isActive()).toBeFalsy();
+                    anim.tick(3.0); // 3.5
+                    expect(root.getTime()).toBe(1.5);
+                    anim.tick(1.0); // 4.5
+                    expect(root.getTime()).toBe(2.5);
+                    anim.tick(1.0); // 5.5
+                    expect(root.isActive()).toBeFalsy();
+                });
+
+                it('works for elements with parent', function() {
+                   var anim = new anm.Animation();
+                   var root = new anm.Element('root');
+                   var child = new anm.Element('child');
+                   root.add(child);
+                   anim.add(root);
+
+                   anim.setDuration(10);
+                   root.changeBand(2.0, Infinity);
+                   child.changeBand(-1.0, 2.0);
+                   child.once();
+
+                   // anim: 0-----1-----2-----3-----4-----5-----6-
+                   // root:             0-----1-----2-----3-----4-
+                   // chld:       0-----1-----2-----■
+
+                   anim.tick(0.5); // 0.5
+                   expect(root.isActive()).toBeFalsy();
+                   anim.tick(3.0); // 3.5
+                   expect(root.getTime()).toBe(1.5);
+                   expect(child.getTime()).toBe(2.5);
+                   anim.tick(1.0); // 4.5
+                   expect(root.getTime()).toBe(2.5);
+                   expect(child.isActive()).toBeFalsy();
+                   anim.tick(1.0); // 5.5
+                   expect(child.isActive()).toBeFalsy();
+                });
+
+                it('works when both element and parent have same end-action', function() {
+                    var anim = new anm.Animation();
+                    var root = new anm.Element('root');
+                    var child = new anm.Element('child');
+                    root.add(child);
+                    anim.add(root);
+
+                    anim.setDuration(10);
+                    root.changeBand(2.0, 5.0);
+                    root.once();
+                    child.changeBand(-1.0, 2.0);
+                    child.once();
+
+                    // anim: 0-----1-----2-----3-----4-----5-----6-
+                    // root:             0-----1-----2-----■
+                    // chld:       0-----1-----2-----■
+
+                    anim.tick(0.5); // 0.5
+                    expect(root.isActive()).toBeFalsy();
+                    anim.tick(3.0); // 3.5
+                    expect(root.getTime()).toBe(1.5);
+                    expect(child.getTime()).toBe(2.5);
+                    anim.tick(1.0); // 4.5
+                    expect(root.getTime()).toBe(2.5);
+                    expect(child.isActive()).toBeFalsy();
+                    anim.tick(1.0); // 5.5
+                    expect(root.isActive()).toBeFalsy();
+                    expect(child.isActive()).toBeFalsy();
+                });
+
+                xit('works for elements with parent having affectsChildren == false', function() {
+
+                });
+
+            });
+
+            describe('`stay`', function() {
+
+                it('works for root elements', function() {
+                    var anim = new anm.Animation();
+                    var root = new anm.Element('root');
+                    anim.add(root);
+
+                    anim.setDuration(10);
+                    root.changeBand(2.0, 5.0);
+                    root.stay();
+
+                    // anim: 0-----1-----2-----3-----4-----5-----6-
+                    // root:             0-----1-----2-----∞·······
+
+                    anim.tick(0.5); // 0.5
+                    expect(root.isActive()).toBeFalsy();
+                    anim.tick(3.0); // 3.5
+                    expect(root.getTime()).toBe(1.5);
+                    anim.tick(1.0); // 4.5
+                    expect(root.getTime()).toBe(2.5);
+                    anim.tick(1.0); // 5.5
+                    expect(root.getTime()).toBe(3.0);
+                });
+
+                it('works for elements with parent', function() {
+                   var anim = new anm.Animation();
+                   var root = new anm.Element('root');
+                   var child = new anm.Element('child');
+                   root.add(child);
+                   anim.add(root);
+
+                   anim.setDuration(10);
+                   root.changeBand(2.0, Infinity);
+                   child.changeBand(-1.0, 2.0);
+                   child.stay();
+
+                   // anim: 0-----1-----2-----3-----4-----5-----6-
+                   // root:             0-----1-----2-----3-----4-
+                   // chld:       0-----1-----2-----∞·············
+
+                   anim.tick(0.5); // 0.5
+                   expect(root.isActive()).toBeFalsy();
+                   anim.tick(3.0); // 3.5
+                   expect(root.getTime()).toBe(1.5);
+                   expect(child.getTime()).toBe(2.5);
+                   anim.tick(1.0); // 4.5
+                   expect(root.getTime()).toBe(2.5);
+                   expect(child.getTime()).toBe(3.0);
+                   anim.tick(1.0); // 5.5
+                   expect(child.getTime()).toBe(3.0);
+                });
+
+                it('works when both element and parent have same end-action', function() {
+                    var anim = new anm.Animation();
+                    var root = new anm.Element('root');
+                    var child = new anm.Element('child');
+                    root.add(child);
+                    anim.add(root);
+
+                    anim.setDuration(10);
+                    root.changeBand(2.0, 5.0);
+                    root.stay();
+                    child.changeBand(-1.0, 2.0);
+                    child.stay();
+
+                    // anim: 0-----1-----2-----3-----4-----5-----6-
+                    // root:             0-----1-----2-----∞·······
+                    // chld:       0-----1-----2-----∞·············
+
+                    anim.tick(0.5); // 0.5
+                    expect(root.isActive()).toBeFalsy();
+                    anim.tick(3.0); // 3.5
+                    expect(root.getTime()).toBe(1.5);
+                    expect(child.getTime()).toBe(2.5);
+                    anim.tick(1.0); // 4.5
+                    expect(root.getTime()).toBe(2.5);
+                    expect(child.getTime()).toBe(3.0);
+                    anim.tick(1.0); // 5.5
+                    expect(root.getTime()).toBe(3.0);
+                    expect(child.getTime()).toBe(3.0);
+                });
+
+                it('works when both element and parent have same end-action and parent ends earlier', function() {
+                    var anim = new anm.Animation();
+                    var root = new anm.Element('root');
+                    var child = new anm.Element('child');
+                    root.add(child);
+                    anim.add(root);
+
+                    anim.setDuration(10);
+                    root.changeBand(2.0, 4.0);
+                    root.stay();
+                    child.changeBand(-1.0, 3.0);
+                    child.stay();
+
+                    // anim: 0-----1-----2-----3-----4-----5-----6-
+                    // root:             0-----1-----∞·············
+                    // chld:       0-----1-----2-----3-----∞·······
+
+                    anim.tick(0.5); // 0.5
+                    expect(root.isActive()).toBeFalsy();
+                    anim.tick(3.0); // 3.5
+                    expect(root.getTime()).toBe(1.5);
+                    expect(child.getTime()).toBe(2.5);
+                    anim.tick(1.0); // 4.5
+                    expect(root.getTime()).toBe(2.0);
+                    expect(child.getTime()).toBe(3.0);
+                    anim.tick(1.0); // 5.5
+                    expect(root.getTime()).toBe(2.0);
+                    expect(child.getTime()).toBe(3.0);
+                });
+
+                it('works for elements with parent having affectsChildren == false', function() {
+                    var anim = new anm.Animation();
+                    var root = new anm.Element('root');
+                    var child = new anm.Element('child');
+                    root.add(child);
+                    anim.add(root);
+
+                    anim.setDuration(10);
+                    root.changeBand(2.0, 4.0);
+                    root.affectsChildren = false;
+                    root.stay();
+                    child.changeBand(-1.0, 3.0);
+                    child.stay();
+
+                    // anim: 0-----1-----2-----3-----4-----5-----6-
+                    // root:             0-----1-----∞·············
+                    // chld:       0-----1-----2-----3-----∞·······
+
+                    anim.tick(0.5); // 0.5
+                    expect(root.isActive()).toBeFalsy();
+                    anim.tick(3.0); // 3.5
+                    expect(root.getTime()).toBe(1.5);
+                    expect(child.getTime()).toBe(2.5);
+                    anim.tick(1.0); // 4.5
+                    expect(root.getTime()).toBe(2.0);
+                    expect(child.getTime()).toBe(3.5);
+                    anim.tick(1.0); // 5.5
+                    expect(root.getTime()).toBe(2.0);
+                    expect(child.getTime()).toBe(4.0);
+                });
+
+            });
 
         });
 
