@@ -95,7 +95,7 @@ describe('time', function() {
             expect(barScene.getTime()).toBe(10.1 - 10.0);
         });
 
-        it('when animation repeats, properly advances time for the first scene', function() {
+        xit('when animation repeats, properly advances time for the first scene', function() {
             var anim = new anm.Animation();
 
             anim.repeat = true;
@@ -384,7 +384,7 @@ describe('time', function() {
                     expect(child.getTime()).toBe(3.0);
                 });
 
-                it('works for elements with parent having affectsChildren == false', function() {
+                xit('works for elements with parent having affectsChildren == false', function() {
                     var anim = new anm.Animation();
                     var root = new anm.Element('root');
                     var child = new anm.Element('child');
@@ -413,6 +413,503 @@ describe('time', function() {
                     anim.tick(1.0); // 5.5
                     expect(root.getTime()).toBe(2.0);
                     expect(child.getTime()).toBe(4.0);
+                });
+
+            });
+
+            describe('`loop`', function() {
+
+                it('works for root elements', function() {
+                    var anim = new anm.Animation();
+                    var root = new anm.Element('root');
+                    anim.add(root);
+
+                    anim.setDuration(10);
+                    root.changeBand(2.0, 5.0);
+                    root.loop();
+
+                    // anim: 0-----1-----2-----3-----4-----5-----6-
+                    // root:             0-----1-----2-----↻-----1-
+
+                    anim.tick(0.5); // 0.5
+                    expect(root.isActive()).toBeFalsy();
+                    anim.tick(3.0); // 3.5
+                    expect(root.getTime()).toBe(1.5);
+                    anim.tick(1.0); // 4.5
+                    expect(root.getTime()).toBe(2.5);
+                    anim.tick(1.0); // 5.5
+                    expect(root.getTime()).toBe(0.5);
+                });
+
+                it('works for elements with parent', function() {
+                   var anim = new anm.Animation();
+                   var root = new anm.Element('root');
+                   var child = new anm.Element('child');
+                   root.add(child);
+                   anim.add(root);
+
+                   anim.setDuration(10);
+                   root.changeBand(2.0, Infinity);
+                   child.changeBand(-1.0, 2.0);
+                   child.loop();
+
+                   // anim: 0-----1-----2-----3-----4-----5-----6-
+                   // root:             0-----1-----2-----3-----4-
+                   // chld:       0-----1-----2-----↻-----1-----2-
+
+                   anim.tick(0.5); // 0.5
+                   expect(root.isActive()).toBeFalsy();
+                   anim.tick(3.0); // 3.5
+                   expect(root.getTime()).toBe(1.5);
+                   expect(child.getTime()).toBe(2.5);
+                   anim.tick(1.0); // 4.5
+                   expect(root.getTime()).toBe(2.5);
+                   expect(child.getTime()).toBe(0.5);
+                   anim.tick(1.0); // 5.5
+                   expect(root.getTime()).toBe(3.5);
+                   expect(child.getTime()).toBe(1.5);
+                });
+
+                it('works when both element and parent have same end-action', function() {
+                    var anim = new anm.Animation();
+                    var root = new anm.Element('root');
+                    var child = new anm.Element('child');
+                    root.add(child);
+                    anim.add(root);
+
+                    anim.setDuration(10);
+                    root.changeBand(2.0, 5.0);
+                    root.loop();
+                    child.changeBand(-1.0, 2.0);
+                    child.loop();
+
+                    // anim: 0-----1-----2-----3-----4-----5-----6-
+                    // root:             0-----1-----2-----↻-----1-
+                    // chld:       0-----1-----2-----↻-----^-----2-
+                    //                              3>0   1>1
+
+                    // root loop interrupts child flow and starts to play from
+                    // the start of what "it have seen", so from child t === 1,
+                    // though here it looks as  child normal flow continued
+
+                    anim.tick(0.5); // 0.5
+                    expect(root.isActive()).toBeFalsy();
+                    anim.tick(3.0); // 3.5
+                    expect(root.getTime()).toBe(1.5);
+                    expect(child.getTime()).toBe(2.5);
+                    anim.tick(1.0); // 4.5
+                    expect(root.getTime()).toBe(2.5);
+                    expect(child.getTime()).toBe(0.5);
+                    anim.tick(1.0); // 5.5
+                    expect(root.getTime()).toBe(0.5);
+                    expect(child.getTime()).toBe(1.5);
+                });
+
+                it('works when both element and parent have same end-action and parent ends earlier', function() {
+                    var anim = new anm.Animation();
+                    var root = new anm.Element('root');
+                    var child = new anm.Element('child');
+                    root.add(child);
+                    anim.add(root);
+
+                    anim.setDuration(10);
+                    root.changeBand(2.0, 4.0);
+                    root.loop();
+                    child.changeBand(-1.0, 3.0);
+                    child.loop();
+
+                    // anim: 0-----1-----2-----3-----4-----5-----6-
+                    // root:             0-----1-----↻-----1-----2-
+                    // chld:       0-----1-----2-----^-----2-----3-
+
+                    // (loop on the root overrides here the child loop
+                    //  and starts child it not from 0, but from 1, since
+                    //  it is the time when root was at 0)
+
+                    anim.tick(0.5); // 0.5
+                    expect(root.isActive()).toBeFalsy();
+                    anim.tick(3.0); // 3.5
+                    expect(root.getTime()).toBe(1.5);
+                    expect(child.getTime()).toBe(2.5);
+                    anim.tick(1.0); // 4.5
+                    expect(root.getTime()).toBe(0.5);
+                    expect(child.getTime()).toBe(1.5);
+                    anim.tick(1.0); // 5.5
+                    expect(root.getTime()).toBe(1.5);
+                    expect(child.getTime()).toBe(2.5);
+                });
+
+                it('works for elements with parent having affectsChildren == false', function() {
+                    var anim = new anm.Animation();
+                    var root = new anm.Element('root');
+                    var child = new anm.Element('child');
+                    root.add(child);
+                    anim.add(root);
+
+                    anim.setDuration(10);
+                    root.changeBand(2.0, 4.0);
+                    root.affectsChildren = false;
+                    root.loop();
+                    child.changeBand(-1.0, 3.0);
+                    child.loop();
+
+                    // anim: 0-----1-----2-----3-----4-----5-----6-
+                    // root:             0-----1-----↻-----1-----2-
+                    // chld:       0-----1-----2-----3-----↻-----1--
+
+                    // here both root and child continue playing since
+                    // root time is not affecting the child
+
+                    anim.tick(0.5); // 0.5
+                    expect(root.isActive()).toBeFalsy();
+                    anim.tick(3.0); // 3.5
+                    expect(root.getTime()).toBe(1.5);
+                    expect(child.getTime()).toBe(2.5);
+                    anim.tick(1.0); // 4.5
+                    expect(root.getTime()).toBe(0.5);
+                    expect(child.getTime()).toBe(3.5);
+                    anim.tick(1.0); // 5.5
+                    expect(root.getTime()).toBe(1.5);
+                    expect(child.getTime()).toBe(0.5);
+                });
+
+                describe('loop with number of repitions', function() {
+
+                    it('works for root elements', function() {
+                        var anim = new anm.Animation();
+                        var root = new anm.Element('root');
+                        anim.add(root);
+
+                        anim.setDuration(10);
+                        root.changeBand(1.0, 3.0);
+                        root.loop(2);
+
+                        // anim: 0-----1-----2-----3-----4-----5-----6-----7-----8-
+                        // root:       0-----1-----↻-----1-----↻-----1-----2
+
+                        anim.tick(0.5); // 0.5
+                        expect(root.isActive()).toBeFalsy();
+                        anim.tick(1.0); // 2.5
+                        expect(root.getTime()).toBe(1.5);
+                        anim.tick(1.0); // 3.5
+                        expect(root.getTime()).toBe(0.5);
+                        anim.tick(1.0); // 4.5
+                        expect(root.getTime()).toBe(1.5);
+                        anim.tick(2.4); // 6.9
+                        expect(root.getTime()).toBe(1.9);
+                        anim.tick(0.1); // 7.0
+                        expect(root.getTime()).toBe(2.0);
+                        anim.tick(0.1); // 7.1
+                        expect(root.isActive()).toBeFalsy();
+                    });
+
+                    it('works for elements with parent', function() {
+                        var anim = new anm.Animation();
+                        var root = new anm.Element('root');
+                        var child = new anm.Element('child');
+                        root.add(child);
+                        anim.add(root);
+
+                        anim.setDuration(10);
+                        root.changeBand(2.0, Infinity);
+                        child.changeBand(-1.0, 1.0);
+                        child.loop(2);
+
+                        // anim: 0-----1-----2-----3-----4-----5-----6-----7-----8-
+                        // root:             0-----1-----2-----3-----4-----5-----6-
+                        // chld:       0-----1-----↻-----1-----↻-----1-----2
+
+                        anim.tick(0.5); // 0.5
+                        expect(root.isActive()).toBeFalsy();
+                        anim.tick(3.0); // 3.5
+                        expect(root.getTime()).toBe(1.5);
+                        expect(child.getTime()).toBe(0.5);
+                        anim.tick(1.0); // 4.5
+                        expect(root.getTime()).toBe(2.5);
+                        expect(child.getTime()).toBe(1.5);
+                        anim.tick(1.0); // 5.5
+                        expect(root.getTime()).toBe(3.5);
+                        expect(child.getTime()).toBe(0.5);
+                        anim.tick(1.4); // 6.9
+                        expect(root.getTime()).toBe(4.9);
+                        expect(child.getTime()).toBe(1.9);
+                        anim.tick(0.1); // 7.0
+                        expect(root.getTime()).toBe(5.0);
+                        expect(child.getTime()).toBe(2.0);
+                        anim.tick(0.1); // 7.1
+                        expect(root.getTime()).toBe(5.1);
+                        expect(child.isActive()).toBeFalsy();
+                    });
+
+                });
+
+            });
+
+            describe('`bounce`', function() {
+
+                it('works for root elements', function() {
+                    var anim = new anm.Animation();
+                    var root = new anm.Element('root');
+                    anim.add(root);
+
+                    anim.setDuration(10);
+                    root.changeBand(2.0, 5.0);
+                    root.bounce();
+
+                    // anim: 0-----1-----2-----3-----4-----5-----6-
+                    // root:             0-----1-----2-----↺↼↼↼↼↼2↼
+
+                    anim.tick(0.5); // 0.5
+                    expect(root.isActive()).toBeFalsy();
+                    anim.tick(3.0); // 3.5
+                    expect(root.getTime()).toBe(1.5);
+                    anim.tick(1.0); // 4.5
+                    expect(root.getTime()).toBe(2.5);
+                    anim.tick(0.9); // 5.4
+                    expect(root.getTime()).toBe(2.6);
+                });
+
+                it('works for elements with parent', function() {
+                   var anim = new anm.Animation();
+                   var root = new anm.Element('root');
+                   var child = new anm.Element('child');
+                   root.add(child);
+                   anim.add(root);
+
+                   anim.setDuration(10);
+                   root.changeBand(2.0, Infinity);
+                   child.changeBand(-1.0, 2.0);
+                   child.bounce();
+
+                   // anim: 0-----1-----2-----3-----4-----5-----6-
+                   // root:             0-----1-----2-----3-----4-
+                   // chld:       0-----1-----2-----↺↼↼↼↼↼2↼↼↼↼↼1↼
+
+                   anim.tick(0.5); // 0.5
+                   expect(root.isActive()).toBeFalsy();
+                   anim.tick(3.0); // 3.5
+                   expect(root.getTime()).toBe(1.5);
+                   expect(child.getTime()).toBe(2.5);
+                   anim.tick(1.0); // 4.5
+                   expect(root.getTime()).toBe(2.5);
+                   expect(child.getTime()).toBe(2.5);
+                   anim.tick(1.0); // 5.5
+                   expect(root.getTime()).toBe(3.5);
+                   expect(child.getTime()).toBe(1.5);
+                });
+
+                it('works when both element and parent have same end-action', function() {
+                    var anim = new anm.Animation();
+                    var root = new anm.Element('root');
+                    var child = new anm.Element('child');
+                    root.add(child);
+                    anim.add(root);
+
+                    anim.setDuration(10);
+                    root.changeBand(2.0, 5.0);
+                    root.bounce();
+                    child.changeBand(-1.0, 2.0);
+                    child.bounce();
+
+                    // anim: 0-----1-----2-----3-----4-----5-----6-----7-
+                    // root:             0-----1-----2-----↺↼↼↼↼↼2↼↼↼↼↼1↼
+                    // chld:       0-----1-----2-----↺↼↼↼↼↼^-----↺↼↼↼↼↼2↼
+                    //                               3     2     3
+
+                    // root overrides the reverse flow of a child,
+                    // so it should reverse everything what happened before from
+                    // its point of view
+
+                    anim.tick(0.5); // 0.5
+                    expect(root.isActive()).toBeFalsy();
+                    anim.tick(3.0); // 3.5
+                    expect(root.getTime()).toBe(1.5);
+                    expect(child.getTime()).toBe(2.5);
+                    anim.tick(1.0); // 4.5
+                    expect(root.getTime()).toBe(2.5);
+                    expect(child.getTime()).toBe(0.5);
+                    anim.tick(1.0); // 5.5
+                    expect(root.getTime()).toBe(2.5);
+                    expect(child.getTime()).toBe(2.5);
+                    anim.tick(0.9); // 6.4
+                    expect(root.getTime()).toBe(1.6);
+                    expect(child.getTime()).toBe(2.6);
+                });
+
+                it('works when both element and parent have same end-action and parent ends earlier', function() {
+                    var anim = new anm.Animation();
+                    var root = new anm.Element('root');
+                    var child = new anm.Element('child');
+                    root.add(child);
+                    anim.add(root);
+
+                    anim.setDuration(10);
+                    root.changeBand(2.0, 4.0);
+                    root.bounce();
+                    child.changeBand(-1.0, 3.0);
+                    child.bounce();
+
+                    // anim: 0-----1-----2-----3-----4-----5-----6-----7-
+                    // root:             0-----1-----↺↼↼↼↼↼1↼↼↼↼↼↻-----1-
+                    // chld:       0-----1-----2-----^↼↼↼↼↼2↼↼↼↼↼^-----2-
+
+                    // (bounce on the root overrides here the child bounce
+                    //  and starts child it not from last point)
+
+                    anim.tick(0.5); // 0.5
+                    expect(root.isActive()).toBeFalsy();
+                    anim.tick(3.0); // 3.5
+                    expect(root.getTime()).toBe(1.5);
+                    expect(child.getTime()).toBe(2.5);
+                    anim.tick(1.0); // 4.5
+                    expect(root.getTime()).toBe(0.5);
+                    expect(child.getTime()).toBe(2.5);
+                    anim.tick(1.0); // 5.5
+                    expect(root.getTime()).toBe(0.5);
+                    expect(child.getTime()).toBe(1.5);
+                    anim.tick(0.9); // 6.4
+                    expect(root.getTime()).toBe(0.4);
+                    expect(child.getTime()).toBe(1.4);
+                });
+
+                it('works for elements with parent having affectsChildren == false', function() {
+                    var anim = new anm.Animation();
+                    var root = new anm.Element('root');
+                    var child = new anm.Element('child');
+                    root.add(child);
+                    anim.add(root);
+
+                    anim.setDuration(10);
+                    root.changeBand(2.0, 4.0);
+                    root.bounce(1);
+                    child.changeBand(-1.0, 3.0);
+
+                    // anim: 0-----1-----2-----3-----4-----5-----6-----7-
+                    // root:             0-----1-----↺↼↼↼↼↼1↼↼↼↼↼↻-----1-
+                    // chld:       0-----1-----2-----^↼↼↼↼↼2↼↼↼↼↼0
+
+                    // (bounce on the root overrides here the child bounce
+                    //  and starts child it not from last point)
+
+                    anim.tick(0.5); // 0.5
+                    expect(root.isActive()).toBeFalsy();
+                    anim.tick(3.0); // 3.5
+                    expect(root.getTime()).toBe(1.5);
+                    expect(child.getTime()).toBe(2.5);
+                    anim.tick(1.0); // 4.5
+                    expect(root.getTime()).toBe(0.5);
+                    expect(child.getTime()).toBe(2.5);
+                    anim.tick(1.0); // 5.5
+                    expect(root.getTime()).toBe(0.5);
+                    expect(child.getTime()).toBe(1.5);
+                    anim.tick(1.0); // 6.5
+                    expect(root.getTime()).toBe(0.5);
+                    expect(child.isActive()).toBeFalsy();
+                });
+
+                describe('bounce with number of repitions', function() {
+
+                    it('works for root elements', function() {
+                        var anim = new anm.Animation();
+                        var root = new anm.Element('root');
+                        anim.add(root);
+
+                        anim.setDuration(10);
+                        root.changeBand(1.0, 3.0);
+                        root.bounce(2);
+
+                        // anim: 0-----1-----2-----3-----4-----5-----6-----7-----8-
+                        // root:       0-----1-----↺↼↼↼↼↼1↼↼↼↼↼↻-----1-----2
+
+                        anim.tick(0.5); // 0.5
+                        expect(root.isActive()).toBeFalsy();
+                        anim.tick(1.0); // 2.5
+                        expect(root.getTime()).toBe(1.5);
+                        anim.tick(1.0); // 3.5
+                        expect(root.getTime()).toBe(1.5);
+                        anim.tick(1.0); // 4.5
+                        expect(root.getTime()).toBe(0.5);
+                        anim.tick(2.4); // 6.9
+                        expect(root.getTime()).toBe(1.9);
+                        anim.tick(0.1); // 7.0
+                        expect(root.getTime()).toBe(2.0);
+                        anim.tick(0.1); // 7.1
+                        expect(root.isActive()).toBeFalsy();
+                    });
+
+                    it('works for elements with parent', function() {
+                        var anim = new anm.Animation();
+                        var root = new anm.Element('root');
+                        var child = new anm.Element('child');
+                        root.add(child);
+                        anim.add(root);
+
+                        anim.setDuration(10);
+                        root.changeBand(2.0, Infinity);
+                        child.changeBand(-1.0, 1.0);
+                        child.bounce(2);
+
+                        // anim: 0-----1-----2-----3-----4-----5-----6-----7-----8-
+                        // root:             0-----1-----2-----3-----4-----5-----6-
+                        // chld:       0-----1-----↺↼↼↼↼↼1↼↼↼↼↼↻-----1-----2
+
+                        anim.tick(0.5); // 0.5
+                        expect(root.isActive()).toBeFalsy();
+                        anim.tick(3.0); // 3.5
+                        expect(root.getTime()).toBe(1.5);
+                        expect(child.getTime()).toBe(1.5);
+                        anim.tick(1.0); // 4.5
+                        expect(root.getTime()).toBe(2.5);
+                        expect(child.getTime()).toBe(0.5);
+                        anim.tick(1.0); // 5.5
+                        expect(root.getTime()).toBe(3.5);
+                        expect(child.getTime()).toBe(0.5);
+                        anim.tick(1.4); // 6.9
+                        expect(root.getTime()).toBe(4.9);
+                        expect(child.getTime()).toBe(1.9);
+                        anim.tick(0.1); // 7.0
+                        expect(root.getTime()).toBe(5.0);
+                        expect(child.getTime()).toBe(2.0);
+                        anim.tick(0.1); // 7.1
+                        expect(root.getTime()).toBe(5.1);
+                        expect(child.isActive()).toBeFalsy();
+                    });
+
+                    it('works for elements with parent, case 2', function() {
+                        var anim = new anm.Animation();
+                        var root = new anm.Element('root');
+                        var child = new anm.Element('child');
+                        root.add(child);
+                        anim.add(root);
+
+                        anim.setDuration(10);
+                        root.changeBand(2.0, Infinity);
+                        child.changeBand(-1.0, 1.0);
+                        child.bounce(1);
+
+                        // anim: 0-----1-----2-----3-----4-----5-----6-----7-----8-
+                        // root:             0-----1-----2-----3-----4-----5-----6-
+                        // chld:       0-----1-----↺↼↼↼↼↼1↼↼↼↼↼0
+
+                        anim.tick(0.5); // 0.5
+                        expect(root.isActive()).toBeFalsy();
+                        anim.tick(3.0); // 3.5
+                        expect(root.getTime()).toBe(1.5);
+                        expect(child.getTime()).toBe(1.5);
+                        anim.tick(1.0); // 4.5
+                        expect(root.getTime()).toBe(2.5);
+                        expect(child.getTime()).toBe(0.5);
+                        anim.tick(0.4); // 4.9
+                        expect(root.getTime()).toBe(2.4);
+                        expect(child.getTime()).toBe(0.1);
+                        anim.tick(0.1); // 5.0
+                        expect(root.getTime()).toBe(3.0);
+                        expect(child.getTime()).toBe(0.0);
+                        anim.tick(0.1); // 5.1
+                        expect(root.getTime()).toBe(3.1);
+                        expect(child.isActive()).toBeFalsy();
+                    });
+
                 });
 
             });
