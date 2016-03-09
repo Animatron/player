@@ -916,6 +916,69 @@ describe('time', function() {
 
         });
 
+        describe('switcher tween', function() {
+
+            xit('works when band starts at 0', function() {
+                var anim = new anm.Animation();
+                var container = new anm.Element('container');
+                anim.add(container);
+
+                var conditionOne = new anm.Element('condition-one'),
+                    conditionTwo = new anm.Element('condition-two'),
+                    conditionThree = new anm.Element('condition-three');
+
+                container.add(conditionOne);
+                container.add(conditionTwo);
+                container.add(conditionThree);
+
+                conditionOne.changeBand(0.0, 2.0);
+                conditionTwo.changeBand(0.0, 3.0);
+                conditionThree.changeBand(0.0, 3.0);
+
+                container.tween(anm.Tween.switch().value('condition-one').band(0.0, 2.0));
+                container.tween(anm.Tween.switch().value('condition-two').band(2.0, 5.0));
+                container.tween(anm.Tween.switch().value('condition-three').band(5.0, Infinity));
+
+                // anim: 0-----1-----2-----3-----4-----5-----6-----7-----8-
+                // cntr: 0-----1-----2-----3-----4-----5-----6-----7-----8-
+                //       [---cnd1---][------cnd2------][------cnd3-------]
+                //   cnd1: ----1-----2
+                //   cnd2:           0-----1-----2-----3
+                //   cnd3:                             0-----1-----2-----3
+
+                anim.tick(0.5); // 0.5
+                expect(conditionOne.getTime()).toBe(0.5);
+                expect(conditionTwo.isActive()).toBeFalsy();
+                expect(conditionThree.isActive()).toBeFalsy();
+                anim.tick(1.0); // 1.5
+                expect(conditionOne.getTime()).toBe(1.5);
+                expect(conditionTwo.isActive()).toBeFalsy();
+                expect(conditionThree.isActive()).toBeFalsy();
+                anim.tick(1.0); // 2.5
+                expect(conditionOne.isActive()).toBeFalsy();
+                expect(conditionTwo.getTime()).toBe(0.5);
+                expect(conditionThree.isActive()).toBeFalsy();
+                anim.tick(2.0); // 4.5
+                expect(conditionOne.isActive()).toBeFalsy();
+                expect(conditionTwo.getTime()).toBe(2.5);
+                expect(conditionThree.isActive()).toBeFalsy();
+                anim.tick(1.0); // 5.5
+                expect(conditionOne.isActive()).toBeFalsy();
+                expect(conditionTwo.isActive()).toBeFalsy();
+                expect(conditionThree.getTime()).toBe(0.5);
+                anim.tick(2.0); // 7.5
+                expect(conditionOne.isActive()).toBeFalsy();
+                expect(conditionTwo.isActive()).toBeFalsy();
+                expect(conditionThree.getTime()).toBe(2.5);
+                anim.tick(1.0); // 8.5
+                expect(conditionOne.isActive()).toBeFalsy();
+                expect(conditionTwo.isActive()).toBeFalsy();
+                expect(conditionThree.isActive()).toBeFalsy();
+
+            });
+
+        });
+
     });
 
     describe('adding actions', function() {
