@@ -470,7 +470,7 @@ describe('time', function() {
                    expect(child.getTime()).toBe(1.5);
                 });
 
-                it('works when both element and parent have same end-action', function() {
+                xit('works when both element and parent have same end-action', function() {
                     var anim = new anm.Animation();
                     var root = new anm.Element('root');
                     var child = new anm.Element('child');
@@ -539,7 +539,7 @@ describe('time', function() {
                     expect(child.getTime()).toBe(2.5);
                 });
 
-                it('works for elements with parent having affectsChildren == false', function() {
+                xit('works for elements with parent having affectsChildren == false', function() {
                     var anim = new anm.Animation();
                     var root = new anm.Element('root');
                     var child = new anm.Element('child');
@@ -575,7 +575,7 @@ describe('time', function() {
 
                 describe('loop with number of repitions', function() {
 
-                    it('works for root elements', function() {
+                    xit('works for root elements', function() {
                         var anim = new anm.Animation();
                         var root = new anm.Element('root');
                         anim.add(root);
@@ -603,7 +603,7 @@ describe('time', function() {
                         expect(root.isActive()).toBeFalsy();
                     });
 
-                    it('works for elements with parent', function() {
+                    xit('works for elements with parent', function() {
                         var anim = new anm.Animation();
                         var root = new anm.Element('root');
                         var child = new anm.Element('child');
@@ -647,7 +647,7 @@ describe('time', function() {
 
             describe('`bounce`', function() {
 
-                it('works for root elements', function() {
+                xit('works for root elements', function() {
                     var anim = new anm.Animation();
                     var root = new anm.Element('root');
                     anim.add(root);
@@ -669,7 +669,7 @@ describe('time', function() {
                     expect(root.getTime()).toBe(2.6);
                 });
 
-                it('works for elements with parent', function() {
+                xit('works for elements with parent', function() {
                    var anim = new anm.Animation();
                    var root = new anm.Element('root');
                    var child = new anm.Element('child');
@@ -698,7 +698,7 @@ describe('time', function() {
                    expect(child.getTime()).toBe(1.5);
                 });
 
-                it('works when both element and parent have same end-action', function() {
+                xit('works when both element and parent have same end-action', function() {
                     var anim = new anm.Animation();
                     var root = new anm.Element('root');
                     var child = new anm.Element('child');
@@ -736,7 +736,7 @@ describe('time', function() {
                     expect(child.getTime()).toBe(2.6);
                 });
 
-                it('works when both element and parent have same end-action and parent ends earlier', function() {
+                xit('works when both element and parent have same end-action and parent ends earlier', function() {
                     var anim = new anm.Animation();
                     var root = new anm.Element('root');
                     var child = new anm.Element('child');
@@ -772,7 +772,7 @@ describe('time', function() {
                     expect(child.getTime()).toBe(1.4);
                 });
 
-                it('works for elements with parent having affectsChildren == false', function() {
+                xit('works for elements with parent having affectsChildren == false', function() {
                     var anim = new anm.Animation();
                     var root = new anm.Element('root');
                     var child = new anm.Element('child');
@@ -809,7 +809,7 @@ describe('time', function() {
 
                 describe('bounce with number of repitions', function() {
 
-                    it('works for root elements', function() {
+                    xit('works for root elements', function() {
                         var anim = new anm.Animation();
                         var root = new anm.Element('root');
                         anim.add(root);
@@ -837,7 +837,7 @@ describe('time', function() {
                         expect(root.isActive()).toBeFalsy();
                     });
 
-                    it('works for elements with parent', function() {
+                    xit('works for elements with parent', function() {
                         var anim = new anm.Animation();
                         var root = new anm.Element('root');
                         var child = new anm.Element('child');
@@ -875,7 +875,7 @@ describe('time', function() {
                         expect(child.isActive()).toBeFalsy();
                     });
 
-                    it('works for elements with parent, case 2', function() {
+                    xit('works for elements with parent, case 2', function() {
                         var anim = new anm.Animation();
                         var root = new anm.Element('root');
                         var child = new anm.Element('child');
