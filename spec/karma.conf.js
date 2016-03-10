@@ -20,7 +20,8 @@ module.exports = function(config) {
 
       './spec/search.spec.js',
       './spec/mouse.spec.js',
-      './spec/time.spec.js'
+      './spec/time.spec.js',
+      './spec/time.2.spec.js'
     ],
 
 
