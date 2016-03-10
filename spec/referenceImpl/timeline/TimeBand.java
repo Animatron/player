@@ -25,6 +25,10 @@ public class TimeBand {
         return end-start;
     }
 
+    public TimeBand relative() {
+        return new TimeBand(0, length());
+    }
+
     public boolean contains(double time) {
         return start<=time && time<=end;
     }
@@ -41,4 +45,5 @@ public class TimeBand {
     public String toString() {
         return "band["+start+","+end+"]";
     }
+
 }

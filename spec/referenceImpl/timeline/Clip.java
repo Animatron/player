@@ -30,6 +30,10 @@ public class Clip extends Element {
             });
         }
 
+        public void remove(double time, Action action) {
+            // tbd
+        }
+
         /**
          * Executes all actions at exactly this time.
          * @param timeInTicks
@@ -47,7 +51,7 @@ public class Clip extends Element {
          */
         int step(int start, int delta) {
             for (ActionTime ta : timeActions) {
-                if (ta.timeInTicks >= start) {
+                if (ta.timeInTicks > start || ta.timeInTicks == 0 && start == 0) {
                     int step = ta.timeInTicks - start;
                     if (step <= delta) {
                         return step;
@@ -56,6 +60,10 @@ public class Clip extends Element {
                 }
             }
             return delta;
+        }
+
+        public boolean hasTimeActions() {
+            return !timeActions.isEmpty();
         }
     }
 
@@ -69,6 +77,8 @@ public class Clip extends Element {
 
     public int playHeadTicks;   // time in thousands
     public State state = State.playing;
+
+    private boolean hasTimeActionsInHierarchy;
 
     public Clip(String name) {
         super(name);
@@ -89,7 +99,19 @@ public class Clip extends Element {
     public Clip addChild(Element element) {
         element.parent = this;
         children.add(element);
+
+        if (element instanceof Clip) {
+            setHasTimeActionsInHierarchy(((Clip)element).hasTimeActionsInHierarchy);
+        }
+
         return this;
+    }
+
+    public void removeChild(Element element) {
+        children.remove(element);
+        element.parent = null;
+
+        updateHasTimeActionsInHierarchy();
     }
 
     /**
@@ -119,29 +141,14 @@ public class Clip extends Element {
         return state == State.playing;
     }
 
-    /**
-     * Regular time advance
-     */
-    public void tick(double delta) {
-        int deltaTicks = toTicks(delta);
-
-        int step;
-        do {
-            // calculate minimum step to not go over timeline action
-            step = step(deltaTicks);
-
-            tickStep(step, -1);
-        } while ((deltaTicks -= step) > 0);
-    }
-
-    protected void tickStep(int step, double newTime) {
+    protected void tickStep(int step, double parentTime) {
         double oldPlayHead = fromTicks(playHeadTicks);
 
         if (isPlaying()) playHeadTicks += step;
 
         double playHead = fromTicks(playHeadTicks);
 
-        runTweens(timeToTweenTime(playHead));
+        if (parentTime>=0) runTweens(timeToTweenTime(parentTime));
 
         for (Element child : children) {
             boolean wasThere = child.isPresentAtTime(oldPlayHead);
@@ -167,12 +174,90 @@ public class Clip extends Element {
         if (isPlaying()) timeline.run(this, playHeadTicks);
     }
 
-    public int step(int deltaTicks) {
-        int step = isPlaying()? timeline.step(playHeadTicks, deltaTicks): deltaTicks;
+    protected void init() {
+        playHeadTicks = 0;
+        runTweens(0);
         for (Element child : children) {
-            step = Math.min(step, child.step(deltaTicks));
+            if (child instanceof Clip) {
+                TimeBand band = child.getEffectiveBand();
+                if (band.start==0) {
+                    ((Clip)child).init();
+                }
+            }
         }
-        return step;
+        timeline.run(this, 0);
+    }
+
+    public int step(int deltaTicks) {
+        if (false && hasTimeActionsInHierarchy) {   // todo: keep it this way until we implement steps
+            int step = isPlaying() ? timeline.step(playHeadTicks, deltaTicks) : deltaTicks;
+
+            double oldPlayHead = fromTicks(playHeadTicks);
+            double playHead;
+            if (isPlaying()) playHead = fromTicks(playHeadTicks + step);
+            else playHead = oldPlayHead;
+
+            for (Element child : children) {
+                if (!(child instanceof Clip)) continue;
+
+                Clip clip = (Clip) child;
+
+                int newStep;
+
+                TimeBand effBand = child.getEffectiveBand();
+                boolean containsOld = effBand.contains(oldPlayHead);
+                boolean containsNew = effBand.contains(playHead);
+
+                if (containsOld && containsNew) {
+                    // ...[..o....n..]....
+                    newStep = clip.step(deltaTicks);
+                } else if (containsOld) {
+                    // ...[..o...]..n....
+                    newStep = clip.step(deltaTicks);
+                } else if (containsNew) {
+                    // ...o..[...n...]...
+                    newStep = clip.step(toTicks(playHead - effBand.start)) + toTicks(effBand.start-oldPlayHead);
+                } else {
+                    if (oldPlayHead < effBand.start && playHead > effBand.end) {
+                        // ...o...[...]...n...
+                        newStep = clip.step(deltaTicks);
+                    } else {
+                        // ...o...n...[...]...
+                        // ...[...]...o...n...
+                        newStep = step;
+                    }
+                }
+
+                step = Math.min(step, newStep);
+            }
+            return step;
+        } else {
+            return deltaTicks;
+        }
+    }
+
+    // this is optimization, but important one
+    protected boolean hasTimeActions() {
+        return timeline.hasTimeActions();
+    }
+
+    protected void updateHasTimeActionsInHierarchy() {
+        setHasTimeActionsInHierarchy(false);
+    }
+
+    protected void setHasTimeActionsInHierarchy(boolean hasActions) {
+        hasTimeActionsInHierarchy = hasActions | timeline.hasTimeActions();
+        if (parent!=null) parent.setHasTimeActionsInHierarchy(hasTimeActionsInHierarchy);
+    }
+
+    public void remove(double time, Action action) {
+        timeline.remove(time, action);
+        updateHasTimeActionsInHierarchy();
+    }
+
+    public void add(double time, Action action) {
+        timeline.add(time, action);
+        updateHasTimeActionsInHierarchy();
     }
 
     public Element find(String path) {

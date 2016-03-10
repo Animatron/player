@@ -13,7 +13,7 @@ public class Element {
 
     public List<Tween> tweens = new ArrayList<>();
 
-    public Clip parent;
+    protected Clip parent;
 
     public Point position;
 
@@ -32,15 +32,8 @@ public class Element {
         this.end = end;
     }
 
-    protected int step(int deltaTicks) {
-        return deltaTicks;
-    }
-
-    public void tick(double delta) {
-    }
-
     protected void tickStep(int step, double newTime) {
-        runTweens(newTime);
+        runTweens(timeToTweenTime(newTime));
     }
 
     protected void runTweens(double time) {
@@ -57,6 +50,7 @@ public class Element {
         return ticks/1000.0;
     }
 
+    // can be cached, just has to be synced with band
     public TimeBand getEffectiveBand() {
         TimeBand effBand = band;
 
@@ -113,7 +107,7 @@ public class Element {
     }
 
     public void addTranslate(Point p0, Point p1) {
-        add(new Tween.Translate(p0, p1, band));
+        add(new Tween.Translate(p0, p1, band.relative()));
     }
 
     public void add(Tween tween) {
@@ -127,5 +121,9 @@ public class Element {
     @Override
     public String toString() {
         return "element["+name+"]";
+    }
+
+    public void remove() {
+        parent.removeChild(this);
     }
 }

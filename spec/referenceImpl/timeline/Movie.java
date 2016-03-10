@@ -1,11 +1,13 @@
+import java.util.ArrayList;
+import java.util.List;
+
 public class Movie {
 
-    private Clip globalClip = new Clip("$");
+    private List<Scene> scenes = new ArrayList<>();
+    private Scene current;
 
     public Movie addScene(Scene scene) {
-        double duration = duration();
-        globalClip.addChild(scene);
-        scene.band = new TimeBand(duration, duration+scene.band.length());
+        scenes.add(scene);
         return this;
     }
 
@@ -16,17 +18,17 @@ public class Movie {
 
     public double duration() {
         double duration = 0;
-        for (Element child : globalClip.children) {
-            duration += ((Scene)child).duration();
+        for (Scene child : scenes) {
+            duration += child.duration();
         }
         return duration;
     }
 
     private double getStartOf(Scene scene) {
         double duration = 0;
-        for (Element child : globalClip.children) {
+        for (Scene child : scenes) {
             if (scene == child) break;
-            duration += ((Scene)child).duration();
+            duration += child.duration();
         }
         return duration;
     }
@@ -36,20 +38,28 @@ public class Movie {
     }
 
     public void tick(double delta) {
-        globalClip.tick(delta);
+        if (current==null) {
+            current = scenes.get(0);
+            current.maybeInit();
+        }
+
+        double playhead = current.playHead();
+        double duration = current.duration();
+
+        if (playhead+delta<=duration) {
+            current.tick(delta);
+        } else {
+            double thisDelta = duration - playhead;
+            if (thisDelta!=0) {
+                current.tick(thisDelta);
+            }
+            current = scenes.get((scenes.indexOf(current)+1));
+            current.maybeInit();
+            current.tick(delta-thisDelta);
+        }
     }
 
     public Scene getCurrentScene() {
-        double time = globalClip.playHead();
-
-        java.util.List<Element> children = globalClip.children;
-        for (int i = 0; i < children.size(); i++) {
-            Element child = children.get(i);
-            if (child.band.containsOpen(time) || (time <= child.band.end && i==children.size()-1)) {
-                return (Scene) child;
-            }
-        }
-
-        return null;
+        return current;
     }
 }
