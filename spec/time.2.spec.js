@@ -21,12 +21,14 @@ describe('timeline spec, Dima\'s version', function() {
      */
 
     it('properly advances time with simple ticks', function() {
+        // setup
         var anim = new anm.Animation();
         anim.setDuration(50);
 
         var s1 = new anm.Scene('s1');
         s1.setDuration(50);
         anim.add(s1);
+        //anim.addScene(s1);
 
         var c1 = createClip('c1');
         c1.changeBand(1.0, 40.0);
@@ -38,6 +40,7 @@ describe('timeline spec, Dima\'s version', function() {
         e1.modify(anm.Tween.translate().from([ 0, 0 ]).to([ 10, 10 ]));
         c1.add(e1);
 
+        // test
         anim.tick(2.0);
         expect(anim.getTime()).toEqual(2.0);
         expect(c1.getTime()).toEqual(1.0);
@@ -71,6 +74,62 @@ describe('timeline spec, Dima\'s version', function() {
         expect(c1.isActive()).toBeTruthy();
         expect(e1.isActive()).toBeFalsy();
         expect(roundPoint({ x: c1.x, y: c1.y })).toEqual({ x: 128, y: 128 });
+    });
+
+    /**
+     *  Movie
+     *    s1 dur=50
+     *       c1   [1...6{....11.....16}] band 1,6, loop(3) (100,100) -> (200,200)
+     *         e1  [1........10] (0,0) -> (10,10)
+     */
+
+    it('properly performs simple loops', function() {
+        // setup
+        var anim = new anm.Animation();
+        anim.setDuration(50);
+
+        var s1 = new anm.Scene('s1');
+        s1.setDuration(50);
+        //anim.addScene(s1);
+        anim.add(s1);
+
+        var c1 = createClip('c1');
+        c1.changeBand(1.0, 6.0);
+        c1.loop(2);
+        c1.modify(anm.Tween.translate().from([ 100, 100 ]).to([ 200, 200 ]));
+        s1.add(c1);
+
+        var e1 = new anm.Element('e1');
+        e1.changeBand(1.0, 10.0);
+        e1.modify(anm.Tween.translate().from([ 0, 0 ]).to([ 10, 10 ]));
+        c1.add(e1);
+
+        // test
+        anim.tick(2);
+        expect(anim.getTime()).toEqual(2.0);
+        expect(c1.getTime()).toEqual(1.0);
+        expect(c1.isActive()).toBeTruthy();
+        expect(e1.isActive()).toBeTruthy();
+        expect(roundPoint({ x: c1.x, y: c1.y })).toEqual({ x: 120, y: 120 });
+
+        anim.tick(4); // 6.0
+        expect(c1.getTime()).toEqual(5.0);
+        expect(c1.isActive()).toBeTruthy();
+        expect(e1.isActive()).toBeTruthy();
+        expect(roundPoint({ x: c1.x, y: c1.y })).toEqual({ x: 120, y: 120 });
+        expect(roundPoint({ x: e1.x, y: e1.y })).toEqual({ x: 4, y: 4 });
+
+        anim.tick(1); // 7.0
+        expect(c1.getTime()).toEqual(5.0);
+        expect(c1.isActive()).toBeTruthy();
+        expect(e1.isActive()).toBeTruthy();
+        expect(roundPoint({ x: c1.x, y: c1.y })).toEqual({ x: 120, y: 120 });
+        expect(roundPoint({ x: e1.x, y: e1.y })).toEqual({ x: 5, y: 5 });
+
+        anim.tick(10); // 17.0
+        expect(c1.getTime()).toEqual(15.0);
+        expect(c1.isActive()).toBeFalsy();
+        expect(e1.isActive()).toBeFalsy();
     });
 
 });
