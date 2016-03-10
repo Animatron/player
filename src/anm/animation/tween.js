@@ -70,7 +70,7 @@ var errors = require('../errors.js');
  * * `elm.modify(Tween.rotate().from(0).to(Math.PI / 2).band(0, 2).easing(function(t) { return 1 - t; }))`
  * * `elm.modify(Tween.rotate().from(0).to(Math.PI / 2).band(0, 2).easing('in'))`
  * * `elm.modify(Tween.translate().from(0, 0).to(100, 100))`
- * * `elm.modify(Tween.translate().value('M0 0 100 100'))`
+ * * `elm.modify(Tween.translate().value('M0 0 L100 100'))`
  * * `elm.modify(Tween.translate().value(new Path().move(0, 0).line(100, 100)))`
  * * `elm.modify(Tween.rotatetopath())`
  * * `elm.modify(Tween['rotatetopath']())`
