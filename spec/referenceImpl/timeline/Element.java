@@ -32,7 +32,7 @@ public class Element {
         this.end = end;
     }
 
-    protected void tickStep(int step, double newTime) {
+    protected void tickStep(int step, double oldTime, double newTime) {
         runTweens(timeToTweenTime(newTime));
     }
 
@@ -82,13 +82,13 @@ public class Element {
     }
 
     protected double timeToTweenTime(double time) {
-        double offset = time - band.start;
-
-        // if this element is part of a group which has repeating end action
-        // then we just return the group's tweentime, it's the same as for its children
         if (isInRepeatingGroup()) {
-            return parent.timeToTweenTime(time);
+            // if this element is part of a group which has repeating end action
+            // then we just return the group's tweentime minus band.start
+            return parent.timeToTweenTime(time) - band.start + parent.band.start;
         } else {
+            double offset = time - band.start;
+
             switch (end.type) {
                 case LOOP:
                     return band.contains(time) ? offset : offset % band.length();

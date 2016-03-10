@@ -30,7 +30,7 @@ public class Scene extends Clip {
             // calculate minimum step to not go over timeline action
             step = step(deltaTicks);
 
-            tickStep(step, -1);
+            tickStep(step, -1, -1);
 
         } while ((deltaTicks -= step) > 0);
     }

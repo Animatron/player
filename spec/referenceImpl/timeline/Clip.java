@@ -141,7 +141,7 @@ public class Clip extends Element {
         return state == State.playing;
     }
 
-    protected void tickStep(int step, double parentTime) {
+    protected void tickStep(int step, double oldParentTime, double parentTime) {
         double oldPlayHead = fromTicks(playHeadTicks);
 
         if (isPlaying()) playHeadTicks += step;
@@ -150,28 +150,32 @@ public class Clip extends Element {
 
         if (parentTime>=0) runTweens(timeToTweenTime(parentTime));
 
+        tickStepChildren(step, oldPlayHead, playHead);
+
+        if (isPlaying()) timeline.run(this, playHeadTicks);
+    }
+
+    protected void tickStepChildren(int step, double oldPlayHead, double playHead) {
         for (Element child : children) {
             boolean wasThere = child.isPresentAtTime(oldPlayHead);
             boolean isThere = child.isPresentAtTime(playHead);
 
             if (wasThere && isThere) {
-                child.tickStep(step, playHead);
+                child.tickStep(step, oldPlayHead, playHead);
             } else if (wasThere) {
                 // disappeared now, need to play tail
                 TimeBand effBand = child.getEffectiveBand();
 
-                child.tickStep(toTicks(effBand.end-oldPlayHead), effBand.end);
+                child.tickStep(toTicks(effBand.end-oldPlayHead), oldPlayHead, effBand.end);
 
             } else if (isThere) {
                 // appeared now, need to play head
 
                 TimeBand effBand = child.getEffectiveBand();
 
-                child.tickStep(toTicks(playHead-effBand.start), playHead);
+                child.tickStep(toTicks(playHead-effBand.start), effBand.start, playHead);
             }
         }
-
-        if (isPlaying()) timeline.run(this, playHeadTicks);
     }
 
     protected void init() {
