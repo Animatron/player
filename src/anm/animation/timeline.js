@@ -108,11 +108,13 @@ Timeline.prototype.tick = function(dt) {
         if (this.position !== previous) positionAdjusted = true;
 
         if (!positionAdjusted) { // there were no jumps in time, so this.position stayed
-            if ((previous <= 0) && (next > 0) && (next <= this.duration) && !this.passedStart) {
+            var effectiveDuration = this.getEffectiveDuration();
+            if ((previous <= 0) && (next > 0) && (next <= effectiveDuration) && !this.passedStart) {
                 this.fire(C.X_START, next); this.passedStart = true;
             }
 
-            if ((previous >= 0) && (previous <= this.duration) && (next >= this.duration) && !this.passedEnd) {
+            if ((previous >= 0) && (previous <= effectiveDuration)
+                && (next >= effectiveDuration) && !this.passedEnd) {
                 this.fire(C.X_END, next); this.passedEnd = true;
             }
         }
@@ -150,6 +152,13 @@ Timeline.prototype.isActive = function() {
 Timeline.prototype.setEndAction = function(type, nrep) {
     this.endAction = type;
     this.repetitionCount = is.num(nrep) ? nrep : Infinity;
+};
+
+Timeline.prototype.getEffectiveDuration = function() {
+    if (this.endAction === C.R_ONCE) return this.duration;
+    if (this.endAction === C.R_STAY) return Infinity;
+    if ((this.endAction === C.R_LOOP) ||
+        (this.endAction === C.R_BOUNCE)) return this.duration * this.repetitionCount;
 };
 
 Timeline.prototype.changeBand = function(start, stop) {
