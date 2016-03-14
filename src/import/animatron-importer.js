@@ -172,6 +172,22 @@ var TYPE_UNKNOWN =  0,
     TYPE_BONE = 30,
     TYPE_LAYER   = 255; // is it good?
 
+var TYPE_TO_NAME = {};
+TYPE_TO_NAME[TYPE_UNKNOWN] = 'unknown';
+TYPE_TO_NAME[TYPE_CLIP] = 'clip';
+TYPE_TO_NAME[TYPE_SCENE] = 'scene';
+TYPE_TO_NAME[TYPE_PATH] = 'path';
+TYPE_TO_NAME[TYPE_TEXT] = 'text';
+TYPE_TO_NAME[TYPE_IMAGE] = 'image';
+TYPE_TO_NAME[TYPE_GROUP] = 'group';
+TYPE_TO_NAME[TYPE_AUDIO] = 'audio';
+TYPE_TO_NAME[TYPE_FONT] = 'font';
+TYPE_TO_NAME[TYPE_VIDEO] = 'video';
+TYPE_TO_NAME[TYPE_SKELETON] = 'skeleton';
+TYPE_TO_NAME[TYPE_BONES] = 'bones';
+TYPE_TO_NAME[TYPE_BONE] = 'bone';
+TYPE_TO_NAME[TYPE_LAYER] = 'layer';
+
 function isPath(type) {
     return (type == TYPE_PATH);
 }
@@ -209,9 +225,9 @@ Import.node = function(src, layer_src, layer_band, all, parent, anim, scene) {
         trg = Import.leaf(type, src, layer_src, layer_band, parent, anim, scene);
     }
     if (trg) {
-        trg._anm_type = type;
         Import.callCustom(trg, src, type);
     }
+    trg.editor_type = type;
     return trg;
 };
 
@@ -411,6 +427,7 @@ Import.leaf = function(type, src, layer_src, layer_band, parent, anim, scene) {
         trg.$shadow = Import.shadow(src[3]);
     }
     // FIXME: fire an event instead (event should inform about type of the importer)
+    trg.editor_type = type;
     return trg;
 };
 

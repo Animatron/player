@@ -122,7 +122,7 @@ describe('timeline spec, Dima\'s version', function() {
             expect(roundPoint({ x: e1.x, y: e1.y })).toEqual({ x: 4, y: 4 });
 
             anim.tick(1); // 7.0
-            expect(c1.getTime()).toEqual(5.0);
+            expect(c1.getTime()).toEqual(6.0); // next loop started
             expect(c1.isActive()).toBeTruthy();
             expect(e1.isActive()).toBeTruthy();
             expect(roundPoint({ x: c1.x, y: c1.y })).toEqual({ x: 120, y: 120 });
