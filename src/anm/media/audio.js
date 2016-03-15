@@ -47,7 +47,7 @@ var audioContext = getAudioContext();
  * @class anm.Audio
  */
 function Audio(url) {
-    this.url = url + audioExt;
+    this.url = /\.\w+$/i.test(url) ? url : url + audioExt;
     this.ready = false;
     this.active = false;
     this.playing = false;
