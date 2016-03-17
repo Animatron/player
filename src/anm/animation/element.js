@@ -113,7 +113,6 @@ function Element(name, draw, onframe) {
     this.active = true;     /** @property {Boolean} active Is this element active or not (internal flag to control if this element is "alive") @readonly */
     this.isMask = false;    /** @property {Boolean} isMask Is this element a mask, or not (if yes—transformed, but not drawn) @readonly */
     this.hasSwitch = false; /** @property {Boolean} hasSwitch Is this element has actual switch tween @readonly */
-    this.affectsChildren = true; /** @property {Boolean} affectsChildren Is this element local time affects children local time */
     this.$data = null;      /** @property {Any} $data user data */
 
     this.registered = false; // is registered in animation or not
@@ -159,6 +158,13 @@ provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
  */
 Element.prototype.is = function(type) {
     return this.type == type;
+};
+
+/**
+ * @private
+ */
+Element.prototype.isEditorType = function(type) {
+    return this.editor_type == type;
 };
 
 Element.prototype.initState = function() {
@@ -684,7 +690,7 @@ Element.prototype.invTransform = function(ctx) {
 
 Element.prototype.tick = function(dt) {
     if (this.disabled) return;
-    var resultTime;
+    /*var resultTime;
     if (!this.parent && this.scene && this.scene.affectsChildren) {
         resultTime = this.timeline.tickRelative(this.scene.timeline, dt);
     } else if (this.parent && this.parent.affectsChildren) {
@@ -697,11 +703,9 @@ Element.prototype.tick = function(dt) {
         if (this.hasSwitch) {
             this.each(function(child) {
                 if (child.name == this.switch) {
-                    if (this.justSwitched/* || ((this.getTime() - this.switchBand[0]) > child.timeline.getDuration())*/) child.timeline.reset();
-                    //console.log('before', this.switchBand, 'parent', this.name, this.getTime(), 'child', child.name, child.getTime(), 'dt', dt);
+                    if (this.justSwitched) child.timeline.reset();
                     var childTime = child.timeline.tickRelativeToPosition(this.getTime() - this.switchBand[0], dt);
                     if (child.timeline.isActive()) child.modifiers(childTime, dt);
-                    //console.log('after', this.switchBand, 'parent', this.name, this.getTime(), 'child', child.name, child.getTime(), 'dt', dt);
                 }
             }.bind(this));
         } else {
@@ -710,7 +714,7 @@ Element.prototype.tick = function(dt) {
             });
         }
     }
-    this.active = isActive;
+    this.active = isActive;*/
     return resultTime;
 };
 
@@ -1109,7 +1113,6 @@ Element.prototype.jump = function(t) {
 Element.prototype.jumpTo = function(element) {
     var elm = is.str(selector) ? this.find(selector) : selector;
     if (!elm) return;
-    // var delta = this.timeline.getLastDelta (?)
     this.timeline.jumpTo(elm);
     return this;
 };

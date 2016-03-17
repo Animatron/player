@@ -26,8 +26,6 @@ function Scene(anim, name, duration) {
     this.timeline = new Timeline(this);
     this.timeline.setDuration(is.num(duration) ? duration : Infinity);
 
-    this.affectsChildren = true;
-
     this.children = [];
     this.hash = {};
 

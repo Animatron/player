@@ -78,8 +78,6 @@ function Animation() {
 
     this.currentSceneIdx = 0;
 
-    this.affectsChildren = true;
-
     this.endOnLastScene = true;
     this.listensMouse = false;
 

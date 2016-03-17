@@ -26,12 +26,9 @@ function Timeline(owner) {
     this.repetitionCount = Infinity;
     this.actions = [];
     this.paused = false;
-    this.position = -this.start || 0;
-    this.actualPosition = -this.start || 0; // actual time passed, excluding any jumps
-    this.currentDiff = 0; // current difference between actual position and position
+    this.position = -this.start || 0; // in ticks
     this.easing = null;
     this.speed = 1; // TODO: use speed
-    this.lastDelta = 0;
 
     this.passedStart = false;
     this.passedEnd = false;
@@ -45,10 +42,8 @@ Timeline.isKnownTime = isKnownTime;
 Timeline.prototype.reset = function() {
     this.paused = false;
     this.position = -this.start;
-    this.actualPosition = -this.start;
     this.passedStart = false;
     this.passedEnd = false;
-    this.lastDelta = 0;
 };
 
 Timeline.prototype.addAction = function(t, f) {
@@ -58,87 +53,7 @@ Timeline.prototype.addAction = function(t, f) {
     this.actions.splice(i, 0, { time: t, func: f });
 };
 
-Timeline.prototype.tick = function(dt) {
-    this.actualPosition += dt;
 
-    if (this.paused) {
-        this.lastDelta = 0;
-        this.currentDiff -= dt;
-        return this.position;
-    }
-
-    var next = (this.position !== NO_TIME) ? (this.position + dt) : NO_TIME;
-
-    if (next !== NO_TIME) {
-
-        this.lastDelta = dt;
-
-        next = (this.easing ? this.easing(next) : next);
-
-        if (is.finite(this.duration) && (next > this.duration)) {
-            if (this.endAction === C.R_ONCE) {
-                //next = NO_TIME; let it be higher than duration
-            } else if (this.endAction === C.R_STAY) {
-                var wasPaused = this.paused;
-                this.paused = true;
-                next = this.duration;
-                if (!wasPaused) this.fire(C.X_PAUSE, next);
-            } else if (this.endAction === C.R_LOOP) {
-                var fits = Math.floor(next / this.duration);
-                if ((fits < 0) || (fits > this.repetitionCount)) { next = NO_TIME; }
-                else { next = next - (fits * this.duration); }
-                this.fire(C.X_JUMP, next); this.fire(C.X_ITER);
-            } else if (this.endAction === C.R_BOUNCE) {
-                var fits = Math.floor(next / this.duration);
-                if ((fits < 0) || (fits > this.repetitionCount)) { next = NO_TIME; }
-                else {
-                    next = next - (fits * this.duration);
-                    next = ((fits % 2) === 0) ? next : (this.duration - next);
-                }
-                this.fire(C.X_JUMP, next); this.fire(C.X_ITER);
-            }
-        }
-    } else { this.lastDelta = 0; }
-
-    var previous = this.position;
-
-    var positionAdjusted = false; // this will be true if user manually changed time position with actions (i.e. with jump)
-    if (next !== NO_TIME) {
-        this._performActionsBetween(previous, next, dt); // actions could change this.position
-        if (this.position !== previous) positionAdjusted = true;
-
-        if (!positionAdjusted) { // there were no jumps in time, so this.position stayed
-            var effectiveDuration = this.getEffectiveDuration();
-            if ((previous <= 0) && (next > 0) && (next <= effectiveDuration) && !this.passedStart) {
-                this.fire(C.X_START, next); this.passedStart = true;
-            }
-
-            if ((previous >= 0) && (previous <= effectiveDuration)
-                && (next >= effectiveDuration) && !this.passedEnd) {
-                this.fire(C.X_END, next); this.passedEnd = true;
-            }
-        }
-    }
-
-    this.currentDiff = (positionAdjusted ? this.position : next) - this.actualPosition;
-
-    if (!positionAdjusted) this.position = next;
-
-    return this.position;
-};
-
-Timeline.prototype.tickRelative = function(other, dt) {
-    if (!other || !Timeline.isKnownTime(other.position)) { /*this.endNow();*/ return NO_TIME; }
-    return this.tickRelativeToPosition(other.position, dt);
-};
-
-Timeline.prototype.tickRelativeToPosition = function(pos, dt) {
-    if (!this.paused) {
-        this.position = this.currentDiff + pos - this.start - dt; // we subtract dt to add it later with this.tick
-        this.actualPosition = this.position + this.currentDiff; // FIXME: why we need to update actualPosition here?
-    }
-    return this.tick(dt);
-};
 
 Timeline.prototype.endNow = function() {
     this.fire(C.X_END, this.position); this.passedEnd = true;
@@ -198,10 +113,6 @@ Timeline.prototype.getLastPosition = function() {
     return this.position;
 };
 
-Timeline.prototype.getLastDelta = function() {
-    return this.lastDelta;
-};
-
 Timeline.prototype.getGlobalStart = function() {
     var cursor = this.owner;
     var start = 0;
@@ -216,14 +127,15 @@ Timeline.prototype.getGlobalTime = function() {
     return (this.position !== NO_TIME) ? (this.getGlobalStart() + this.position) : NO_TIME;
 };
 
+//Timeline.prototype.isPaused = function() { return this.paused; }
+//Timeline.prototype.isPlaying = function() { return !this.paused; }
+
 Timeline.prototype.pause = function() {
     if (this.paused) return;
     this.paused = true; this.fire(C.X_PAUSE, this.position);
-    /*if (this.owner.affectsChildren) {
-        this.owner.each(function(child) {
-            child.timeline.pause();
-        });
-    }*/
+    this.owner.each(function(child) {
+        child.timeline.pause();
+    });
 };
 
 Timeline.prototype.pauseAt = function(at) {
@@ -251,7 +163,6 @@ Timeline.prototype.countinueAt = function(at) {
 };
 
 Timeline.prototype.jump = function(t) {
-    this.currentDiff = t - this.actualPosition;
     this.position = t; this.fire(C.X_JUMP, t);
 };
 
@@ -271,12 +182,10 @@ Timeline.prototype.jumpTo = function(child) {
 };
 
 Timeline.prototype.jumpToStart = function() {
-    this.actualPosition = this.duration;
     this.position = 0; this.fire(C.X_JUMP, 0);
 };
 
 Timeline.prototype.jumpToEnd = function() {
-    this.actualPosition = this.duration;
     this.position = this.duration;
     this.fire(C.X_JUMP, this.position); this.fire(C.X_END);
 };
@@ -341,5 +250,13 @@ Timeline.prototype.loadFrom = function(other) {
     this.endAction = other.endAction; this.repetitionCount = other.repetitionCount;
     this.easing = other.easing; this.speed = other.speed;
 };
+
+Timeline.toTicks = function(seconds) {
+    return seconds * 1000;
+}
+
+Timeline.fromTicks = function(ticks) {
+    return ticks / 1000;
+}
 
 module.exports = Timeline;
