@@ -53,7 +53,8 @@ Timeline.prototype.addAction = function(t, f) {
     this.actions.splice(i, 0, { time: t, func: f });
 };
 
-
+// -> tick
+// -> tickRelative
 
 Timeline.prototype.endNow = function() {
     this.fire(C.X_END, this.position); this.passedEnd = true;
@@ -107,12 +108,37 @@ Timeline.prototype.isInfinite = function() {
     return this.getDuration() == Infinity;
 };
 
+Timeline.prototype.contains = function(time) {
+    return (this.start <= time) && (time <= this.start + this.duration);
+};
+
+Timeline.prototype.containsOpen = function(time) {
+    return (this.start <= time) && (time < this.start + this.duration);
+};
+
+/* Timeline.prototype.union = function(other) {
+    return new TimeBand(Math.min(start, band.start), Math.max(end, band.end));
+}; */
+
+Timeline.prototype.union = function(other) {
+    //var clone = this.clone();
+    var minStart = Math.min(this.start, other.start),
+        maxEnd   = Math.max(this.start + this.duration, other.start + other.duraion);
+    this.start = minStart;
+    this.duration = maxEnd - minStart;
+    //return clone;
+};
+
 Timeline.prototype.asBand = function() {
     return [this.start, this.start + this.duration];
 };
 
 Timeline.prototype.asRelativeBand = function() {
     return [0, this.duration];
+};
+
+Timeline.prototype.t = function(time) {
+    return (time - this.start) / this.duration;
 };
 
 Timeline.prototype.asGlobalBand = function(parent) {
