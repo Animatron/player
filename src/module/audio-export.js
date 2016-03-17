@@ -16,7 +16,7 @@ Player.prototype.exportAudio = function() {
   if (this.anim) {
     this.anim.traverse(function(elm) {
       if (elm.is(C.ET_AUDIO)) {
-        var gband = elm.timeline.getGlobalBand(elm.parent);
+        var gband = elm.getGlobalBand(elm.parent);
         result.push({ 'url': elm._audio_url,
                       'band_offset': elm._audio_band_offset,
                       'start': gband[0],

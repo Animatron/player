@@ -76,6 +76,10 @@ Timeline.prototype.getEffectiveDuration = function() {
         (this.endAction === C.R_BOUNCE)) return this.duration * this.repetitionCount;
 };
 
+Timeline.prototype.getEffectiveBand = function() {
+    return [ this.start, this.start + this.getEffectiveDuration() ];
+};
+
 Timeline.prototype.changeBand = function(start, stop) {
     this.start = start;
     this.duration = stop - this.start;
@@ -99,7 +103,19 @@ Timeline.prototype.getDuration = function(duration) {
     return this.duration;
 };
 
-Timeline.prototype.getGlobalBand = function(parent) {
+Timeline.prototype.isInfinite = function() {
+    return this.getDuration() == Infinity;
+};
+
+Timeline.prototype.asBand = function() {
+    return [this.start, this.start + this.duration];
+};
+
+Timeline.prototype.asRelativeBand = function() {
+    return [0, this.duration];
+};
+
+Timeline.prototype.asGlobalBand = function(parent) {
     var cursor = parent;
     var start = this.start;
     while (cursor) {
@@ -133,6 +149,11 @@ Timeline.prototype.getGlobalTime = function() {
 Timeline.prototype.pause = function() {
     if (this.paused) return;
     this.paused = true; this.fire(C.X_PAUSE, this.position);
+};
+
+Timeline.prototype.pauseWithChildren = function() {
+    if (this.paused) return;
+    this.pause();
     this.owner.each(function(child) {
         child.timeline.pause();
     });

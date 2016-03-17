@@ -1461,7 +1461,7 @@ Element.prototype.band = function(start, stop) {
 Element.prototype.changeBand = Element.prototype.band;
 
 Element.prototype.getGlobalBand = function() {
-    return this.timeline.getGlobalBand(this.parent);
+    return this.timeline.asGlobalBand(this.parent);
 };
 
 /**
