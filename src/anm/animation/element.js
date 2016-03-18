@@ -163,8 +163,8 @@ Element.prototype.is = function(type) {
 /**
  * @private
  */
-Element.prototype.isEditorType = function(type) {
-    return this.editor_type == type;
+Element.prototype.isImportType = function(type) {
+    return this.import_type == type;
 };
 
 Element.prototype.initState = function() {
@@ -1463,6 +1463,43 @@ Element.prototype.changeBand = Element.prototype.band;
 Element.prototype.getGlobalBand = function() {
     return this.timeline.asGlobalBand(this.parent);
 };
+
+Element.prototype.isPresentAtTime = function(time) {
+    if ()
+    if (isInRepeatingGroup()) {
+        return band.contains(parent.band.start + parent.timeToTweenTime(time));
+    } else {
+        return getEffectiveBand().contains(time);
+    }
+};
+
+Element.prototype.isGroup = function() {
+    return this.isImportType('group');
+};
+
+Element.prototype.isInGroup = function() {
+    return (this.parent && parent.isGroup());
+};
+
+Element.prototype.isInRepeatingGroup = function() {
+    return (this.parent && parent.isGroup() && parent.timeline.isRepeating());
+};
+
+Element.prototype.timeToTweenTime = function(time) {
+    return !this.isInRepeatingGroup()
+           ? this.timeline.toTweenTime(time)
+           // if this element is part of a group which has repeating end action
+           // then we just return the group's tweentime minus timeline.start
+           : this.parent.timeToTweenTime(time) - this.timeline.start + this.parent.timeline.start;
+};
+
+Element.prototype.isPresentAtTime = function(time) {
+    if (this.isInRepeatingGroup()) {
+        return this.timeline.contains(this.parent.timeline.start + this.parent.timeToTweenTime(time));
+    } else {
+        return this.timeline.containsEffective(time);
+    }
+}
 
 /**
  * @method duration

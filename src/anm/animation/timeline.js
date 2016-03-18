@@ -81,6 +81,11 @@ Timeline.prototype.getEffectiveBand = function() {
     return [ this.start, this.start + this.getEffectiveDuration() ];
 };
 
+Timeline.prototype.isRepeating = function() {
+    return ((this.endAction === C.R_LOOP) ||
+            (this.endAction === C.R_BOUNCE)) && (this.repetitionCount > 1);
+};
+
 Timeline.prototype.changeBand = function(start, stop) {
     this.start = start;
     this.duration = stop - this.start;
@@ -104,6 +109,10 @@ Timeline.prototype.getDuration = function(duration) {
     return this.duration;
 };
 
+Timeline.prototype.isRepeating = function() {
+    return this.duration;
+};
+
 Timeline.prototype.isInfinite = function() {
     return this.getDuration() == Infinity;
 };
@@ -112,9 +121,16 @@ Timeline.prototype.contains = function(time) {
     return (this.start <= time) && (time <= this.start + this.duration);
 };
 
+Timeline.prototype.containsEffective = function(time) {
+    return (this.start <= time) && (time <= this.start + this.getEffectiveDuration());
+};
+
+
 Timeline.prototype.containsOpen = function(time) {
     return (this.start <= time) && (time < this.start + this.duration);
 };
+
+
 
 /* Timeline.prototype.union = function(other) {
     return new TimeBand(Math.min(start, band.start), Math.max(end, band.end));
@@ -135,6 +151,10 @@ Timeline.prototype.asBand = function() {
 
 Timeline.prototype.asRelativeBand = function() {
     return [0, this.duration];
+};
+
+Timeline.prototype.asEffectiveBand = function() {
+    return [this.start, this.start + this.getEffectiveDuration()];
 };
 
 Timeline.prototype.t = function(time) {
@@ -168,6 +188,21 @@ Timeline.prototype.getGlobalStart = function() {
 Timeline.prototype.getGlobalTime = function() {
     return (this.position !== NO_TIME) ? (this.getGlobalStart() + this.position) : NO_TIME;
 };
+
+Timeline.prototype.toTweenTime = function(time) {
+    var offset = time - this.start;
+
+    if (this.endAction === C.R_LOOP) {
+        return this.contains(time) ? offset : (offset % this.getDuration());
+    else if (this.endAction === C.R_BOUNCE) {
+        var duration = this.getDuration();
+        var n = Math.floor(offset / duration);
+        var t = offset - (duration * n);
+
+        if (n % 2 == 0) return t;
+        else return duration - t;
+    } else return offset;
+}
 
 //Timeline.prototype.isPaused = function() { return this.paused; }
 //Timeline.prototype.isPlaying = function() { return !this.paused; }

@@ -227,7 +227,7 @@ Import.node = function(src, layer_src, layer_band, all, parent, anim, scene) {
     if (trg) {
         Import.callCustom(trg, src, type);
     }
-    trg.editor_type = type;
+    trg.import_type = TYPE_TO_NAME[type];
     return trg;
 };
 
@@ -426,7 +426,7 @@ Import.leaf = function(type, src, layer_src, layer_band, parent, anim, scene) {
         trg.$shadow = Import.shadow(src[3]);
     }
     // FIXME: fire an event instead (event should inform about type of the importer)
-    trg.editor_type = type;
+    trg.import_type = TYPE_TO_NAME[type];
     return trg;
 };
 
