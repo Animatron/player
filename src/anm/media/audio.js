@@ -13,8 +13,7 @@ var ResMan = require('../resource_manager.js');
 var testAudio = engine.createAudio(),
     oggSupported =  !!(testAudio.canPlayType && testAudio.canPlayType('audio/ogg;').replace(/no/, ''));
 
-var audioExt = oggSupported ? '.ogg' : '.mp3';
-var audioType = oggSupported ? 'audio/ogg' : 'audio/mp3';
+var defaultAudioExt = oggSupported ? '.ogg' : '.mp3';
 
 function getAudioContext() {
     if (engine.isLocal) {
@@ -47,7 +46,7 @@ var audioContext = getAudioContext();
  * @class anm.Audio
  */
 function Audio(url) {
-    this.url = /\.\w+$/i.test(url) ? url : url + audioExt;
+    this.url = /\.\w+$/i.test(url) ? url : url + defaultAudioExt;
     this.ready = false;
     this.active = false;
     this.playing = false;
@@ -182,6 +181,8 @@ Audio.prototype.load = function(uid, player) {
             };
 
             try {
+              var ext = me.url.substring(me.url.lastIndexOf('.') + 1);
+              var audioType = ext === 'ogg' ? 'audio/ogg' : 'audio/mp3';
               addSource(el, url, audioType);
               engine.appendToBody(el);
             } catch(e) {
