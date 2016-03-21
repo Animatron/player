@@ -502,6 +502,10 @@ Element.prototype.shadow = function(value, radius, x, y) {
     } else return this.$shadow;
 };
 
+Element.prototype.runTweens = function(t, dt) {
+    this.modifiers(t, dt);
+};
+
 /**
  * @private @method modifiers
  *
@@ -688,34 +692,8 @@ Element.prototype.invTransform = function(ctx) {
     return inv_matrix;
 };
 
-Element.prototype.tick = function(dt) {
-    if (this.disabled) return;
-    /*var resultTime;
-    if (!this.parent && this.scene && this.scene.affectsChildren) {
-        resultTime = this.timeline.tickRelative(this.scene.timeline, dt);
-    } else if (this.parent && this.parent.affectsChildren) {
-        resultTime = this.timeline.tickRelative(this.parent.timeline, dt);
-    } else {
-        resultTime = this.timeline.tick(dt);
-    }
-    var isActive = this.timeline.isActive() && this.modifiers(resultTime, dt);
-    if (isActive) {
-        if (this.hasSwitch) {
-            this.each(function(child) {
-                if (child.name == this.switch) {
-                    if (this.justSwitched) child.timeline.reset();
-                    var childTime = child.timeline.tickRelativeToPosition(this.getTime() - this.switchBand[0], dt);
-                    if (child.timeline.isActive()) child.modifiers(childTime, dt);
-                }
-            }.bind(this));
-        } else {
-            this.each(function(child) {
-                child.tick(dt);
-            });
-        }
-    }
-    this.active = isActive;*/
-    return resultTime;
+Element.prototype.tickStep = function(step, oldTime, newTime) {
+    this.timeline.tickStep(step, oldTime, newTime);
 };
 
 /**

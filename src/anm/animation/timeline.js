@@ -53,6 +53,10 @@ Timeline.prototype.addAction = function(t, f) {
     this.actions.splice(i, 0, { time: t, func: f });
 };
 
+Timeline.prototype.tickStep = function(step, oldTime, newTime) {
+    if (this.owner.isImportType('element')) this.owner.runTweens(this.timeToTweenTime(newTime), step);
+};
+
 // -> tick
 // -> tickRelative
 
@@ -125,12 +129,9 @@ Timeline.prototype.containsEffective = function(time) {
     return (this.start <= time) && (time <= this.start + this.getEffectiveDuration());
 };
 
-
 Timeline.prototype.containsOpen = function(time) {
     return (this.start <= time) && (time < this.start + this.duration);
 };
-
-
 
 /* Timeline.prototype.union = function(other) {
     return new TimeBand(Math.min(start, band.start), Math.max(end, band.end));
