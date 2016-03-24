@@ -597,10 +597,11 @@ $DE.checkPlayerCanvas = function(cvs) {
 };
 
 $DE.hasUrlToLoad = function(elm) {
-    return {
-        url: elm.getAttribute(URL_ATTR) || elm.getAttribute(SNAPSHOT_URL_ATTR),
-        importer_id: elm.getAttribute(IMPORTER_ATTR)
-    };
+    var url = elm.getAttribute(URL_ATTR) || elm.getAttribute(SNAPSHOT_URL_ATTR);
+    var importer_id = elm.getAttribute(IMPORTER_ATTR);
+    return (url || importer_id) ? {
+        url: url, importer_id: importer_id
+    } : null;
 };
 
 $DE.setTabIndex = function(cvs, idx) {

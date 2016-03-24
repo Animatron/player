@@ -8,6 +8,20 @@ var currentMode; // embed, config, publish, html
 
 var shortVersion = true;
 
+var loadingModes = [
+    { value: 'rightaway', name: 'right away', description: 'loads animation just immediately when finds it\'s source (i.e. from HTML attribute)' },
+    { value: 'onrequest', name: 'on request', description: 'waits for user to manually call .load() method' },
+    { value: 'onplay', name: 'on play', description: 'when play button was pressed, starts loading a scene and plays it just after' }/*,
+    { value: 'onidle', name: 'on idle', description: ' waits for pause in user actions (mouse move, clicks, keyboard) to load the animation' },*/
+];
+
+var playingModes = [
+    { value: 'onrequest', name: 'on request', description: 'same to autoPlay: false, waits for user to manually call .play() method' },
+    { value: 'rightaway', name: 'right away', description: 'same to autoPlay: true' },
+    { value: 'onhover', name: 'on hover', description: 'starts playing animation when user hovered with mouse over the player canvas' },
+    { value: 'wheninview', name: 'when in view', description: 'starts playing animation when Player appeares in browser viewport' }
+];
+
 function getElm(id) { return document.getElementById(id); }
 
 function collectOptions() {
@@ -25,6 +39,7 @@ function collectOptions() {
     if (!getElm('opts-bg-color').disabled) options.bgColor = getElm('opts-bg-color').value;
     if (!getElm('opts-ribbons').disabled) options.ribbonsColor = getElm('opts-ribbons').value;
     if (!getElm('opts-loading').disabled) options.loadingMode = getElm('opts-loading').selectedIndex;
+    if (!getElm('opts-playing').disabled) options.playingMode = getElm('opts-playing').selectedIndex;
     if (!getElm('opts-thumbnail').disabled) options.thumbnail = getElm('opts-thumbnail').value;
     //if (!getElm('opts-images').disabled) options.imagesEnabled = getElm('opts-images').checked;
     if (!getElm('opts-audio').disabled) options.audioEnabled = getElm('opts-audio').checked;
@@ -134,12 +149,30 @@ function init() {
         'loading': { label: 'Loading', type: 'select',
                      create: function() {
                          var select = document.createElement('select');
-                         var onPlay = document.createElement('option');
-                         onPlay.innerText = onPlay.textContent = 'on play';
-                         var onRequest = document.createElement('option');
-                         onRequest.innerText = onRequest.textContent = 'on request';
-                         select.appendChild(onPlay);
-                         select.appendChild(onRequest);
+                         for (var i = 0, il = loadingModes.length, mode; i < il; i++) {
+                             var option = document.createElement('option');
+                             option.innerText = option.textContent = loadingModes[i].name;
+                             select.appendChild(option);
+                         }
+                         select.setAttribute('title', loadingModes[0].description);
+                         select.addEventListener('change', function() {
+                             select.setAttribute('title', loadingModes[select.selectedIndex].description);
+                         });
+                         return select;
+                     },
+                     modify: function(elm, form) { elm.selectedIndex = 0; } },
+        'playing': { label: 'Playing', type: 'select',
+                     create: function() {
+                         var select = document.createElement('select');
+                         for (var i = 0, il = playingModes.length, mode; i < il; i++) {
+                             var option = document.createElement('option');
+                             option.innerText = option.textContent = playingModes[i].name;
+                             select.appendChild(option);
+                         }
+                         select.setAttribute('title', playingModes[0].description);
+                         select.addEventListener('change', function() {
+                             select.setAttribute('title', playingModes[select.selectedIndex].description);
+                         });
                          return select;
                      },
                      modify: function(elm, form) { elm.selectedIndex = 0; } },
@@ -195,7 +228,8 @@ var optionsMapper = function(mode, options) {
             function numberOption(v) { return v; };
             function colorOption(v) { return (v.indexOf('#') >= 0) ? v.slice(1) : v; };
             function booleanOption(v) { return v ? '1' : '0'; };
-            function loadingModeOption(v) { return (v === 1) ? 'onrequest' : 'onplay' };
+            function loadingModeOption(v) { return loadingModes[v].value };
+            function playingModeOption(v) { return playingModes[v].value };
 
             return {
                 width: extractOption('width', 'w', 'width', numberOption),
@@ -209,6 +243,7 @@ var optionsMapper = function(mode, options) {
                 startFrom: extractOption('startFrom', 't', 'from', parseTime),
                 stopAt: extractOption('stopAt', 'p', 'at', parseTime),
                 loadingMode: extractOption('loadingMode', 'lm', 'lmode', loadingModeOption),
+                playingMode: extractOption('playingMode', 'pm', 'pmode', playingModeOption),
                 bgColor: extractOption('bgColor', 'bg', 'bgcolor', colorOption),
                 ribbonsColor: extractOption('ribbonsColor', 'rc', 'ribcolor', colorOption),
                 audioEnabled: extractOption('audioEnabled', 's', 'audio', booleanOption),
@@ -227,7 +262,8 @@ var optionsMapper = function(mode, options) {
             function textOption(v) { return '\'' + v + '\''; };
             function colorOption(v) { return '\'' + v + '\''; };
             function booleanOption(v) { return v ? 'true' : 'false'; };
-            function loadingModeOption(v) { return (v === 1) ? '\'onrequest\'' : '\'onplay\'' };
+            function loadingModeOption(v) { return '\'' + loadingModes[v].value + '\''; };
+            function playingModeOption(v) { return '\'' + playingModes[v].value + '\''; };
             function thumbnailOption(v) { return v; };
 
             return {
@@ -240,6 +276,7 @@ var optionsMapper = function(mode, options) {
                 speed: extractOption('speed', numberOption),
                 zoom: extractOption('zoom', numberOption),
                 loadingMode: extractOption('loadingMode', loadingModeOption),
+                playingMode: extractOption('playingMode', playingModeOption),
                 bgColor: extractOption('bgColor', colorOption),
                 ribbonsColor: extractOption('ribbonsColor', colorOption),
                 thumbnail: extractOption('thumbnail', textOption),
@@ -262,7 +299,8 @@ var optionsMapper = function(mode, options) {
             function textOption(v) { return v; };
             function numberOption(v) { return v; };
             function booleanOption(v) { return v ? 'true' : 'false'; };
-            function loadingModeOption(v) { return (v === 1) ? 'onrequest' : 'onplay' };
+            function loadingModeOption(v) { return loadingModes[v].value };
+            function playingModeOption(v) { return playingModes[v].value };
 
             return {
                 width: extractOption('width', 'anm-width', numberOption),
@@ -276,6 +314,7 @@ var optionsMapper = function(mode, options) {
                 startFrom: extractOption('startFrom', 'anm-start-from', parseTime),
                 stopAt: extractOption('stopAt', 'anm-stop-at', parseTime),
                 loadingMode: extractOption('loadingMode', 'anm-loading-mode', loadingModeOption),
+                playingMode: extractOption('playingMode', 'anm-playing-mode', playingModeOption),
                 bgColor: extractOption('bgColor', 'anm-bg-color', colorOption),
                 ribbonsColor: extractOption('ribbonsColor', 'anm-rib-color', colorOption),
                 thumbnail: extractOption('thumbnail', 'anm-thumbnail', textOption),

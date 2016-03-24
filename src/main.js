@@ -13,14 +13,18 @@ var PUBLIC_NAMESPACE = 'anm';
 
 var constants = require('./anm/constants.js'),
     engine = require('engine'),
+    manager = require('./anm/player_manager.js'),
     Player = require('./anm/player.js');
 
-function findAndInitPotentialPlayers() {
+function findAndInitPotentialPlayers(options) {
     var matches = engine.findPotentialPlayers();
     for (var i = 0, il = matches.length; i < il; i++) {
-        anm.createPlayer(matches[i]);
+        anm.createPlayer(matches[i], options);
     }
 }
+
+var detachAllPlayers = manager.detachAll.bind(manager);
+var forgetAllPlayers = manager.forgetAll.bind(manager);
 
 engine.onDocReady(findAndInitPotentialPlayers);
 
@@ -78,6 +82,10 @@ var anm = {
 
     Audio: require('./anm/media/audio.js'),
     Video: require('./anm/media/video.js'),
+
+    findAndInitPotentialPlayers: findAndInitPotentialPlayers,
+    detachAllPlayers: detachAllPlayers,
+    forgetAllPlayers: forgetAllPlayers,
 
     interop: {
         playerjs: require('./anm/interop/playerjs-io.js')

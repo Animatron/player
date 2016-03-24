@@ -3,6 +3,12 @@
 
 module.exports = function(config) {
 
+  function isDebug() {
+      return process.argv.some(function(argument) {
+          argument === '--debug';
+      });
+  }
+
   var options = {
 
     // base path that will be used to resolve all patterns (eg. files, exclude)
@@ -11,16 +17,17 @@ module.exports = function(config) {
 
     // frameworks to use
     // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
-    frameworks: ['jasmine'],
+    frameworks: ['jasmine-ajax', 'jasmine'],
 
 
     // list of files / patterns to load in the browser
     files: [
-      './dist/bundle/animatron.min.js',
+      isDebug ? './dist/bundle/animatron.js' : './dist/bundle/animatron.min.js',
 
       './spec/search.spec.js',
       './spec/mouse.spec.js',
-      './spec/time.spec.js'
+      './spec/time.spec.js',
+      './spec/loading-modes.spec.js'
     ],
 
 

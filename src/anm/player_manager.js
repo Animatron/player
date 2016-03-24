@@ -41,6 +41,27 @@ PlayerManager.prototype.getPlayer = function(cvs_id) {
 };
 
 /**
+ * @method detachAll
+ *
+ * Detach all players created before
+ */
+PlayerManager.prototype.detachAll = function() {
+    for (var i = 0, il = this.instances.length; i < il; i++) {
+        this.instances[i].detach();
+    }
+}
+
+/**
+ * @method forgetAll
+ *
+ * Clear the data collected about all players instances created before
+ */
+PlayerManager.prototype.forgetAll = function() {
+    this.hash = {};
+    this.instances = [];
+}
+
+/**
  * @method handleDocumentHiddenChange
  * @private
  *

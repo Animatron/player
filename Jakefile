@@ -255,6 +255,13 @@ desc(_dfit_nl(['Run tests for the distribution.',
                'Requires: `karma`, `karma-mocha-reporter`.']));
 task('test', ['dist-min', 'test-dist']);
 
+// test-debug ==================================================================
+
+desc(_dfit_nl(['Run tests with debug for the unminified distribution.',
+               'Usage: Just call {jake test}.',
+               'Requires: `karma`, `karma-mocha-reporter`.']));
+task('test-debug', ['dist', 'test-dist-debug']);
+
 // test-dist ===================================================================
 
 desc(_dfit_nl(['Test the distribution which already exists.',
@@ -266,6 +273,24 @@ task('test-dist', { async: true }, function() {
     jake.exec([ Binaries.KARMA, 'start',
                 _loc(Tests.Config),
                 '--single-run'
+              ].join(' '), EXEC_OPTS,
+              function() { _print('Tests finished successfully');
+                           _print(DONE_MARKER);
+                           complete(); });
+});
+
+// test-dist-debug =============================================================
+
+desc(_dfit_nl(['Test the unminified distribution which already exists.',
+               'Usage: Just call {jake test-dist-debug}.',
+               'Requires: `karma`, `karma-mocha-reporter`.']));
+task('test-dist-debug', { async: true }, function() {
+    _print('Running tests');
+
+    jake.exec([ Binaries.KARMA, 'start',
+                _loc(Tests.Config),
+                '--single-run=false',
+                '--debug'
               ].join(' '), EXEC_OPTS,
               function() { _print('Tests finished successfully');
                            _print(DONE_MARKER);

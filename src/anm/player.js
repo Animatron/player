@@ -127,7 +127,8 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'controlsEnabled': undefined, // undefined means 'auto'
                                  'controlsInvisible': undefined,
                                  'infoEnabled': undefined, // undefined means 'auto'
-                                 'loadingMode': C.LM_DEFAULT, // undefined means 'auto'
+                                 'loadingMode': C.LM_DEFAULT,
+                                 'playingMode': C.PM_DEFAULT,
                                  'thumbnail': undefined,
                                  'bgColor': undefined,
                                  'ribbonsColor': undefined,
@@ -174,7 +175,8 @@ Player.EMPTY_BG = 'rgba(0,0,0,.05)';
  *       controlsEnabled: undefined, // undefined means 'auto'
  *       infoEnabled: undefined, // undefined means 'auto'
  *       handleEvents: undefined, // undefined means 'auto'
- *       loadingMode: undefined, // undefined means 'auto'
+ *       loadingMode: C.LM_DEFAULT, // see loading modes description in constants.js
+ *       playingMode: C.PM_DEFAULT, // see playing modes description in constants.js
  *       thumbnail: undefined,
  *       forceAnimationSize: false,
  *       stretchToCanvas: false,
@@ -234,10 +236,17 @@ Player.prototype.init = function(elm, opts) {
     } catch(e) {}
     this._addOpts(opts || {});
     this._postInit();
+    if (opts && opts.handle) {
+        for (var event in opts.handle) {
+            this.on(event, opts.handle[event]);
+        }
+    }
     this._checkOpts();
     /* TODO: if (this.canvas.hasAttribute('data-url')) */
 
     playerManager.fire(C.S_NEW_PLAYER, this);
+    this._checkPreparedSource(); // if scene was specified with HTML attributes,
+                                 // and loading mode matches, will load it immediately
     return this;
 };
 
@@ -270,6 +279,10 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     if ((player.happens === C.PLAYING) ||
         (player.happens === C.PAUSED)) {
         throw errors.player(ErrLoc.P.COULD_NOT_LOAD_WHILE_PLAYING, player);
+    }
+
+    if (this.loadingMode === C.LM_ONPLAY) {
+        this._postponedLoad = arguments; return;
     }
 
     /* object */
@@ -313,21 +326,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     } else if (is.obj(arg2)) { /* object, importer[, ...] */
         importer = arg2;
         callback = arg3;
-    }
-
-    if ((player.loadingMode == C.LM_ONPLAY) &&
-        !player._playLock) { // if play lock is set, we should just load an animation normally, since
-                             // it was requested after the call to 'play', or else it was called by user
-                             // FIXME: may be playLock was set by player and user calls this method
-                             //        while some animation is already loading
-        if (player._postponedLoad) throw errors.player(ErrLoc.P.LOAD_WAS_ALREADY_POSTPONED, player);
-        player._lastReceivedAnimationId = null;
-        // this kind of postponed call is different from the ones below (_clearPostpones and _postpone),
-        // since this one is related to loading mode, rather than calling later some methods which
-        // were called during the process of loading (and were required to be called when it was finished).
-        player._postponedLoad = [ object, duration, importer, callback ];
-        player.stop();
-        return;
     }
 
     // if player was loading resources already when .load() was called, inside the ._reset() method
@@ -454,34 +452,6 @@ Player.prototype.play = function(from, speed, stopAfter) {
         if (player.infiniteDuration) return; // it's ok to skip this call if it's some dynamic animation (FIXME?)
     }
 
-    if ((player.loadingMode === C.LM_ONPLAY) && !player._lastReceivedAnimationId) {
-        if (player._playLock) return; // we already loading something
-        // use _postponedLoad with _playLock flag set
-        // call play when loading was finished
-        player._playLock = true;
-        var loadArgs = player._postponedLoad,
-            playArgs = arguments;
-        if (!loadArgs) throw errors.player(ErrLoc.P.NO_LOAD_CALL_BEFORE_PLAY, player);
-        var loadCallback = loadArgs[3];
-        var afterLoad = function() {
-            if (loadCallback) loadCallback.apply(player, arguments);
-            player._postponedLoad = null;
-            player._playLock = false;
-            player._lastReceivedAnimationId = player.anim.id;
-            Player.prototype.play.apply(player, playArgs);
-        };
-        loadArgs[3] = afterLoad; // substitute callback with our variant which calls the previous one
-        Player.prototype.load.apply(player, loadArgs);
-        return;
-    }
-
-    if ((player.loadingMode === C.LM_ONREQUEST) &&
-        (player.happens === C.RES_LOADING)) { player._postpone('play', arguments);
-                                              return; } // if player loads remote resources just now,
-                                                        // postpone this task and exit. postponed tasks
-                                                        // will be called when all remote resources were
-                                                        // finished loading
-
     // reassigns var to ensure proper function is used
     //__nextFrame = engine.getRequestFrameFunc();
     //__stopAnim = engine.getCancelFrameFunc();
@@ -560,8 +530,7 @@ Player.prototype.stop = function() {
     // postpone this task and exit. postponed tasks
     // will be called when all remote resources were
     // finished loading
-    if ((player.happens === C.RES_LOADING) &&
-        (player.loadingMode === C.LM_ONREQUEST)) {
+    if (player.happens === C.RES_LOADING) {
         player._postpone('stop', arguments);
         return;
     }
@@ -573,8 +542,7 @@ Player.prototype.stop = function() {
 
     var anim = player.anim;
 
-    if (anim || ((player.loadingMode == C.LM_ONPLAY) &&
-                   player._postponedLoad)) {
+    if (anim) {
         player.happens = C.STOPPED;
         player._drawStill();
         player.fire(C.S_CHANGE_STATE, C.STOPPED);
@@ -608,8 +576,7 @@ Player.prototype.pause = function() {
     // postpone this task and exit. postponed tasks
     // will be called when all remote resources were
     // finished loading
-    if ((player.happens === C.RES_LOADING) &&
-        (player.loadingMode === C.LM_ONREQUEST)) {
+    if (player.happens === C.RES_LOADING) {
         player._postpone('pause', arguments);
         return player;
     }
@@ -740,12 +707,17 @@ Player.prototype._addOpts = function(opts) {
     this.width =   opts.width || this.width;
     this.height =  opts.height || this.height;
 
+    this.loadingMode = is.defined(opts.loadingMode)
+                       ? ((C.LOADING_MODES.indexOf(opts.loadingMode) >= 0) ? opts.loadingMode : C.LM_DEFAULT)
+                       : this.loadingMode;
+    this.playingMode = is.defined(opts.playingMode)
+                       ? ((C.PLAYING_MODES.indexOf(opts.playingMode) >= 0) ? opts.playingMode : C.PM_DEFAULT)
+                       : this.playingMode;
+
     this.ribbonsColor =
                    opts.ribbonsColor || this.ribbonsColor;
     this.thumbnailSrc = opts.thumbnail || this.thumbnailSrc;
 
-    this.loadingMode = is.defined(opts.loadingMode) ?
-                        opts.loadingMode : this.loadingMode;
     this.audioEnabled = is.defined(opts.audioEnabled) ?
                         opts.audioEnabled : this.audioEnabled;
     this.globalVolume = is.defined(opts.volume) ?
@@ -819,16 +791,9 @@ Player.prototype._checkOpts = function() {
 // initial state of the player, called from constuctor
 Player.prototype._postInit = function() {
     this.stop();
-    /* TODO: load some default information into player */
-    var to_load = engine.hasUrlToLoad(this.wrapper);
-    if (!to_load.url) to_load = engine.hasUrlToLoad(this.canvas);
-    if (to_load.url) {
-        var importer = null;
-        if (to_load.importer_id && anm.importers.isAccessible(to_load.importer_id)) {
-            importer = anm.importers.create(to_load.importer_id);
-        }
-        this.load(to_load.url, importer);
-    }
+    // this._prepared_src will be null if there is no url to load
+    this._prepared_src = engine.hasUrlToLoad(this.wrapper);
+    if (!this._prepared_src) this._prepared_src = engine.hasUrlToLoad(this.canvas);
 };
 
 /**
@@ -898,12 +863,11 @@ Player.prototype.forceRedraw = function() {
  */
 Player.prototype.drawAt = function(time) {
     if (time === Timeline.NO_TIME) throw errors.player(ErrLoc.P.PASSED_TIME_VALUE_IS_NO_TIME, this);
-    if ((this.happens === C.RES_LOADING) &&
-        (this.loadingMode === C.LM_ONREQUEST)) { this._postpone('drawAt', arguments);
-                                                   return; } // if player loads remote resources just now,
-                                                             // postpone this task and exit. postponed tasks
-                                                             // will be called when all remote resources were
-                                                             // finished loading
+    if (this.happens === C.RES_LOADING) { this._postpone('drawAt', arguments);
+                                          return; } // if player loads remote resources just now,
+                                                    // postpone this task and exit. postponed tasks
+                                                    // will be called when all remote resources were
+                                                    // finished loading
     if ((time < 0) || (!this.infiniteDuration && (time > this.anim.getDuration()))) {
         throw errors.player(utils.strf(ErrLoc.P.PASSED_TIME_NOT_IN_RANGE, [time]), this);
     }
@@ -1388,8 +1352,7 @@ Player.prototype._reset = function() {
     // clear postponed tasks if player started to load remote resources,
     // they are not required since new animation is loading in the player now
     // or it is being detached
-    if ((this.loadingMode === C.LM_ONREQUEST) &&
-        (this.happens === C.RES_LOADING)) {
+    if (this.happens === C.RES_LOADING) {
         this._clearPostpones();
         resourceManager.cancel(this.id);
     }
@@ -1635,7 +1598,7 @@ Player.prototype._callPostpones = function() {
 Player.forSnapshot = function(elm_id, snapshot_url, importer, callback, alt_opts) {
     var player = new Player();
     player.init(elm_id, alt_opts);
-    player.load(snapshot_url, importer, callback);
+    if (player.loadingMode === C.LM_RIGHTAWAY) player.load(snapshot_url, importer, callback);
     return player;
 };
 
@@ -1678,6 +1641,18 @@ Player.prototype._applyTimeOptionsIfSet = function() {
         this.play(this.startFrom);
     } else if (this.stopAt) {
         this.pause(this.stopAt);
+    }
+}
+
+Player.prototype._checkPreparedSource = function() {
+    if (this._prepared_src && (this.loadingMode === C.LM_RIGHTAWAY)) {
+        var url = this._prepared_src.url,
+            importer_id = this._prepared_src.importer_id;
+        var importer = null;
+        if (importer_id && anm.importers.isAccessible(importer_id)) {
+            importer = anm.importers.create(importer_id);
+        }
+        this.load(url, importer);
     }
 }
 
