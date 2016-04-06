@@ -107,7 +107,13 @@ for (var m in adapter) {
 var origin = engine.getIframeOrigin();
 
 var messageListener = function(evt) {
-    var message = JSON.parse(evt.data);
+    var message = (function () {
+        try {
+            return JSON.parse(evt.data);
+        } catch (e) {
+            return {};
+        }
+    })();
     if (evt.origin === origin && message.context === 'player.js') {
         if (adapter[message.method] && player) {
             var result = adapter[message.method].call(player, message);
