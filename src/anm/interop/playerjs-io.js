@@ -182,7 +182,7 @@ var bindPlayerEvents = function(player) {
     });
 
     player.on(C.S_TIME_UPDATE, function(time) {
-        fireEvent('timeupdate', {seconds: time, duration: player.state.duration});
+        fireEvent('timeupdate', {seconds: time, duration: player.state? player.state.duration: time});
     });
 };
 
