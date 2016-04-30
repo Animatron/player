@@ -139,7 +139,7 @@
             target.style.width  = targetWidth + 'px';
             target.style.height = targetHeight + 'px';
             target.style.marginLeft = -Math.floor(targetWidth / 2) + 'px';
-            target.style.marginTop  = -Math.floor(targetHeight / 2) + 'px';
+            target.style.marginTop  = -Math.floor(window.innerHeight / 2) + 'px';
             target.style.position = 'absolute';
             target.style.left = '50%';
             target.style.top = '50%';
