@@ -385,8 +385,11 @@ Import.branch = function(type, src, psrc, all, anim) {
 
     if (type === TYPE_SKELETON) {
         trg.layer2Bone = new Array(_layers.length);
-        var bones = trg.children[0];
+        var size = trg.children.length;
+        var bones = trg.children[size - 1];
         for (var li = bones.children.length; li--;) {
+            bones.children[li].$from = size - bones.children[li].$from - 1;
+            bones.children[li].$to = size - bones.children[li].$to - 1;
             trg.layer2Bone[bones.children[li].$to] = bones.children[li];
         }
     }
