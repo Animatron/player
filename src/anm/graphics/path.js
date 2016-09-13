@@ -9,7 +9,7 @@ var segments = require('./segments.js'),
     CSeg = segments.CSeg,
     Crossings = segments.Crossings,
     engine = require('engine'),
-    useP2D = !!engine.Path2D;
+    useP2D = !!engine.Path2D && !engine.isIEorEdge;
 
 var Brush = require('./brush.js');
 

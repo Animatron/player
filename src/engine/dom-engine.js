@@ -968,6 +968,7 @@ $DE.checkMediaUrl = function(url) {
 var jscriptVersion = new Function("/*@cc_on return @_jscript_version; @*/")();
 $DE.isIE9 = jscriptVersion == 9;
 $DE.isIE10 = jscriptVersion == 10;
+$DE.isIEorEdge = !!window.StyleMedia;
 
 
 var hidden, visibilityChange;
