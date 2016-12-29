@@ -70,8 +70,11 @@ function ResourceManager() {
 
 ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks, onprogress) {
     if (!subject_id) throw errors.system('Subject ID is empty');
-    if (this._subscriptions[subject_id]) throw errors.system('This subject (\'' + subject_id + '\') is already subscribed to ' +
-                                                             'a bunch of resources, please group them in one.');
+
+    // if (this._subscriptions[subject_id]) throw errors.system('This subject (\'' + subject_id + '\') is already subscribed to ' +
+    //                                                          'a bunch of resources, please group them in one.');
+
+    if (this._subscriptions[subject_id]) return;    // todo: ignoring this error for now
 
     var filteredUrls = [];
     rmLog('subscribing ' + callbacks.length + ' to ' + urls.length + ' urls: ' + urls);
